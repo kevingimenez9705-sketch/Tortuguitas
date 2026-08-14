@@ -148,34 +148,34 @@ body{
 .equipo-banner{
   background:linear-gradient(120deg,#6b4a2e 0%,#9c7248 38%,#c39868 68%,#e8c99e 100%);
   border-radius:var(--radius);
-  padding:52px 44px;
+  padding:26px 32px;
   color:#fff;
-  margin-bottom:30px;
+  margin-bottom:20px;
   display:flex;
   align-items:center;
-  gap:28px;
+  gap:20px;
 }
 .equipo-banner .logo{
-  width:76px;
-  height:76px;
+  width:56px;
+  height:56px;
   border-radius:50%;
   background:rgba(255,255,255,.16);
   border:1px solid rgba(255,255,255,.35);
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:36px;
+  font-size:26px;
   flex-shrink:0;
   object-fit:cover;
 }
-.equipo-banner h1{margin:0 0 8px;font-size:38px;font-weight:800;}
+.equipo-banner h1{margin:0 0 6px;font-size:28px;font-weight:800;}
 .equipo-banner h1 .accent{color:#fff0dc;}
-.equipo-banner p{margin:0;color:#fbf1e6;font-size:16px;max-width:640px;}
+.equipo-banner p{margin:0;color:#fbf1e6;font-size:14px;max-width:640px;}
 
 .unit-grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:22px;
+  gap:16px;
 }
 @media(max-width:760px){.unit-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:480px){.unit-grid{grid-template-columns:1fr;}}
@@ -189,7 +189,7 @@ body{
   border:1px solid var(--border);
   border-top:5px solid #8a5a35;
   border-radius:var(--radius);
-  padding:38px 26px;
+  padding:22px 20px;
   text-decoration:none;
   color:inherit;
   box-shadow:0 1px 2px rgba(16,24,40,.04);
@@ -197,11 +197,11 @@ body{
 }
 .unit-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,24,40,.1);}
 .unit-avatar{
-  width:96px;
-  height:96px;
+  width:72px;
+  height:72px;
   border-radius:50%;
   object-fit:cover;
-  margin-bottom:18px;
+  margin-bottom:14px;
   border:3px solid #fff;
   box-shadow:0 0 0 1px var(--border), 0 4px 10px rgba(16,24,40,.08);
   flex-shrink:0;
@@ -213,10 +213,10 @@ body{
   background:#f3ede6;
   color:#8a5a35;
   font-weight:800;
-  font-size:26px;
+  font-size:22px;
 }
-.unit-name{font-weight:800;font-size:20px;color:var(--text);}
-.unit-link{margin-top:20px;font-size:14px;font-weight:700;color:#8a5a35;}
+.unit-name{font-weight:800;font-size:17px;color:var(--text);}
+.unit-link{margin-top:14px;font-size:13px;font-weight:700;color:#8a5a35;}
 
 .btn-primary{
   display:inline-flex;
