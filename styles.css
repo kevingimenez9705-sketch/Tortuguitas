@@ -134,6 +134,8 @@ body{
 .rank-list .bar-track{flex:1;background:#e4e8f0;border-radius:6px;height:10px;overflow:hidden;}
 .rank-list .bar-fill{height:100%;border-radius:6px;min-width:3px;}
 .rank-list .val{width:48px;text-align:right;font-weight:700;flex-shrink:0;}
+.rank-list li.me{background:rgba(140,90,53,.08);border-radius:8px;padding:4px 8px;margin-left:-8px;margin-right:-8px;}
+.rank-list li.me .name{font-weight:800;}
 
 .chart-wrap{position:relative;height:260px;}
 .chart-wrap.small{height:200px;}
