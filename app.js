@@ -78,8 +78,19 @@
     return `${MES_ABBR[parseInt(mm, 10) - 1]} ${y.slice(2)}`;
   };
 
-  const SELECTOR_COLORS = {};
-  const PALETTE = ['#0f1c3f', '#7c5cf0', '#e05263', '#4c7cf0', '#f0a94c', '#3fbf7f', '#8a94a6', '#c74fb0'];
+  // Colores fijos por selector (no por orden de aparición): así el color de
+  // Agustín/Agustina en "Ranking de selectores", "Participación", etc. es
+  // siempre el mismo que el de su propia tarjeta/dashboard, en cualquier
+  // página donde aparezcan (Kevin, Otros...).
+  const SELECTOR_COLORS = {
+    Agustin: '#5b2d78',
+    Agustina: '#cc2f2f',
+    Seleccion: '#0f1c3f',
+    Facundo: '#3fbf7f',
+    Mariano: '#f0a94c',
+    Emiliano: '#8a94a6',
+  };
+  const PALETTE = ['#7c5cf0', '#4c7cf0', '#e05263', '#3fbf7f', '#f0a94c', '#8a94a6', '#c74fb0', '#0f1c3f'];
   function colorFor(selector) {
     if (!SELECTOR_COLORS[selector]) {
       const used = Object.keys(SELECTOR_COLORS).length;
