@@ -31,12 +31,34 @@
     const b = Math.round((n & 255) * factor);
     return `rgb(${r},${g},${b})`;
   }
+  function tint(hex, amount) {
+    const n = parseInt(hex.slice(1), 16);
+    const mix = (c) => Math.round(c + (255 - c) * amount);
+    return `rgb(${mix((n >> 16) & 255)},${mix((n >> 8) & 255)},${mix(n & 255)})`;
+  }
   (function themeHero() {
     const hero = document.querySelector('.hero');
     if (!hero) return;
     const color = member ? member.color : KEVIN_COLOR;
     hero.style.background = `linear-gradient(135deg, ${color}, ${darken(color, 0.6)})`;
   })();
+
+  // Paleta del informe: en la vista de un integrante (o "Otros"), todos los
+  // gráficos usan tonos de su propio color en vez de la paleta azul/gris
+  // genérica, para que todo el informe se sienta "de esa persona". El panel
+  // general de Kevin mantiene la paleta multicolor (necesita distinguir
+  // selectores entre sí) y usa su color solo en el header.
+  const THEME = member ? {
+    base: member.color,
+    light: tint(member.color, 0.45),
+    lighter: tint(member.color, 0.75),
+  } : null;
+  function col(key) {
+    if (!THEME) return Charts.COLORS[key];
+    if (key === 'blueLight') return THEME.light;
+    if (key === 'grey') return THEME.lighter;
+    return THEME.base; // blue, purple, green, navy...
+  }
 
   let ALTAS, CUMPL;
   if (member && member.selectors.length) {
@@ -168,8 +190,10 @@
       { label: 'CUMPLIMIENTO PROMEDIO', value: fmtPct(cumplProm), sub: 'Enviados / vacantes totales', cls: 'c-purple' },
     ];
 
+    // En la vista de un integrante, las 5 tarjetas comparten su color (en vez
+    // de azul/verde/violeta genéricos) para que el panel se sienta unificado.
     document.getElementById('kpis').innerHTML = kpis.map(k => `
-      <div class="kpi ${k.cls}">
+      <div class="kpi ${k.cls}"${THEME ? ` style="border-top-color:${THEME.base}"` : ''}>
         <div class="label">${k.label}</div>
         <div class="value">${k.value}</div>
         <div class="sub">${k.sub}</div>
@@ -179,15 +203,15 @@
   function renderAltasMes(months, altasF) {
     const counts = groupCount(altasF, r => r.mes);
     const data = months.map(m => counts.get(m) || 0);
-    Charts.line('chartAltasMes', months.map(monthLabel), data, { color: Charts.COLORS.blue });
+    Charts.line('chartAltasMes', months.map(monthLabel), data, { color: col('blue') });
   }
 
   function renderAltasMarcaMes(months, altasF) {
     const sab = months.map(m => altasF.filter(r => r.mes === m && r.marca === 'Sabores').length);
     const ext = months.map(m => altasF.filter(r => r.mes === m && r.marca === 'Extremas').length);
     Charts.stackedBar('chartAltasMarcaMes', months.map(monthLabel), [
-      { label: 'Sabores', data: sab, color: Charts.COLORS.blue },
-      { label: 'Extremas', data: ext, color: Charts.COLORS.blueLight },
+      { label: 'Sabores', data: sab, color: col('blue') },
+      { label: 'Extremas', data: ext, color: col('blueLight') },
     ]);
   }
 
@@ -196,12 +220,12 @@
     const extremas = altasF.filter(r => r.marca === 'Extremas').length;
     const total = sabores + extremas;
     Charts.donut('chartDistMarca', ['Sabores', 'Extremas'], [sabores, extremas],
-      [Charts.COLORS.blue, Charts.COLORS.blueLight]);
+      [col('blue'), col('blueLight')]);
     const legend = document.getElementById('legendDistMarca');
     if (legend) {
       legend.innerHTML = [
-        ['Sabores Express', sabores, Charts.COLORS.blue],
-        ['Hamburguesas Extremas', extremas, Charts.COLORS.blueLight],
+        ['Sabores Express', sabores, col('blue')],
+        ['Hamburguesas Extremas', extremas, col('blueLight')],
       ].map(([n, v, c]) => `
         <li><span><span class="dot" style="background:${c}"></span>${n}</span><span>${fmtPct(pct(v, total))}</span></li>
       `).join('');
@@ -214,7 +238,7 @@
       const val = rows.length ? (100 - pct(rows.filter(r => r.presente).length, rows.length) * 100) : 0;
       return round1(val);
     });
-    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: Charts.COLORS.grey });
+    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: col('grey') });
   }
 
   function topN(rows, keyFn, n = 5) {
@@ -231,10 +255,10 @@
     const tl1 = topN(sab, r => r.local);
     const tl2 = topN(ext, r => r.local);
 
-    Charts.horizontalBar('chartTopZonalSabores', tz1.map(x => x[0]), tz1.map(x => x[1]), Charts.COLORS.blue);
-    Charts.horizontalBar('chartTopZonalExtremas', tz2.map(x => x[0]), tz2.map(x => x[1]), Charts.COLORS.blueLight);
-    Charts.horizontalBar('chartTopLocalSabores', tl1.map(x => x[0]), tl1.map(x => x[1]), Charts.COLORS.blue);
-    Charts.horizontalBar('chartTopLocalExtremas', tl2.map(x => x[0]), tl2.map(x => x[1]), Charts.COLORS.blueLight);
+    Charts.horizontalBar('chartTopZonalSabores', tz1.map(x => x[0]), tz1.map(x => x[1]), col('blue'));
+    Charts.horizontalBar('chartTopZonalExtremas', tz2.map(x => x[0]), tz2.map(x => x[1]), col('blueLight'));
+    Charts.horizontalBar('chartTopLocalSabores', tl1.map(x => x[0]), tl1.map(x => x[1]), col('blue'));
+    Charts.horizontalBar('chartTopLocalExtremas', tl2.map(x => x[0]), tl2.map(x => x[1]), col('blueLight'));
   }
 
   function renderPorSelector(months, altasF) {
@@ -248,13 +272,14 @@
     const sabD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Sabores').length);
     const extD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Extremas').length);
     Charts.stackedBar('chartMezclaSelector', names, [
-      { label: 'Sabores', data: sabD, color: Charts.COLORS.blue },
-      { label: 'Extremas', data: extD, color: Charts.COLORS.blueLight },
+      { label: 'Sabores', data: sabD, color: col('blue') },
+      { label: 'Extremas', data: extD, color: col('blueLight') },
     ]);
 
     // Participación: para el equipo completo (Kevin) se reparte por selector real;
     // para un integrante/grupo filtrado, comparamos contra el resto del equipo
     // (en ese período), que tiene más sentido que un gráfico de una sola porción.
+    // "Resto del equipo" queda siempre gris neutro (no es parte de su paleta).
     if (member) {
       const monthSet = new Set(months);
       const restoTotal = DATA.altas.filter(r => monthSet.has(r.mes) && !memberSelectorSet.has(r.selector)).length;
@@ -262,10 +287,10 @@
       document.getElementById('participacionTitle').textContent = 'Participación vs. resto del equipo';
       document.getElementById('participacionDesc').textContent = `${member.label} comparado con el resto del equipo, en volumen de altas`;
       Charts.donut('chartParticipacionSelector', [member.label, 'Resto del equipo'], [miTotal, restoTotal],
-        [Charts.COLORS.blue, Charts.COLORS.grey]);
+        [THEME.base, Charts.COLORS.grey]);
       const totalTodos = miTotal + restoTotal;
       document.getElementById('legendParticipacion').innerHTML = [
-        [member.label, miTotal, Charts.COLORS.blue],
+        [member.label, miTotal, THEME.base],
         ['Resto del equipo', restoTotal, Charts.COLORS.grey],
       ].map(([n, v, c]) => `
         <li><span><span class="dot" style="background:${c}"></span>${n}</span><span>${fmtPct(pct(v, totalTodos))}</span></li>
@@ -300,7 +325,7 @@
     document.getElementById('rankPresentismo').innerHTML = order2.map(([n, p]) => `
       <li>
         <span class="name" style="width:90px;">${n}</span>
-        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${Charts.COLORS.green}"></span></span>
+        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${col('green')}"></span></span>
         <span class="val">${fmtPct(p)}</span>
       </li>`).join('');
   }
@@ -325,7 +350,7 @@
       const tot = rows.reduce((a, r) => a + (r.total || 0), 0);
       return round1(pct(env, tot) * 100);
     });
-    Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: Charts.COLORS.purple });
+    Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple') });
 
     const selectores = [...new Set(cumF.map(r => r.selector))];
     const ranking = selectores.map(s => {
