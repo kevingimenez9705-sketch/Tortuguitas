@@ -146,7 +146,7 @@ body{
 
 /* ================= Equipo (team landing page) ================= */
 .equipo-banner{
-  background:linear-gradient(120deg,#2b1a10 0%,#5c3a22 38%,#8a5a35 68%,#bd8a5c 100%);
+  background:linear-gradient(120deg,#4a2f1c 0%,#7a5030 38%,#a8754a 68%,#d6ac7c 100%);
   border-radius:var(--radius);
   padding:28px 32px;
   color:#fff;
@@ -174,7 +174,7 @@ body{
 .unit-grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
-  gap:16px;
+  gap:22px;
 }
 @media(max-width:760px){.unit-grid{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:480px){.unit-grid{grid-template-columns:1fr;}}
@@ -186,9 +186,9 @@ body{
   text-align:center;
   background:var(--card);
   border:1px solid var(--border);
-  border-top:4px solid #8a5a35;
+  border-top:5px solid #8a5a35;
   border-radius:var(--radius);
-  padding:24px 20px;
+  padding:38px 26px;
   text-decoration:none;
   color:inherit;
   box-shadow:0 1px 2px rgba(16,24,40,.04);
@@ -196,11 +196,11 @@ body{
 }
 .unit-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,24,40,.1);}
 .unit-avatar{
-  width:64px;
-  height:64px;
+  width:96px;
+  height:96px;
   border-radius:50%;
   object-fit:cover;
-  margin-bottom:14px;
+  margin-bottom:18px;
   border:3px solid #fff;
   box-shadow:0 0 0 1px var(--border), 0 4px 10px rgba(16,24,40,.08);
   flex-shrink:0;
@@ -212,10 +212,10 @@ body{
   background:#f3ede6;
   color:#8a5a35;
   font-weight:800;
-  font-size:20px;
+  font-size:26px;
 }
-.unit-name{font-weight:800;font-size:17px;color:var(--text);}
-.unit-link{margin-top:16px;font-size:13px;font-weight:700;color:#8a5a35;}
+.unit-name{font-weight:800;font-size:20px;color:var(--text);}
+.unit-link{margin-top:20px;font-size:14px;font-weight:700;color:#8a5a35;}
 
 .btn-primary{
   display:inline-flex;
