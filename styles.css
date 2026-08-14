@@ -183,6 +183,7 @@ body{
 @media(max-width:480px){.unit-grid{grid-template-columns:1fr;}}
 
 .unit-card{
+  position:relative;
   display:flex;
   flex-direction:column;
   align-items:center;
@@ -196,8 +197,22 @@ body{
   color:inherit;
   box-shadow:0 1px 2px rgba(16,24,40,.04);
   transition:transform .15s ease, box-shadow .15s ease;
+  overflow:hidden;
+  isolation:isolate;
+}
+.unit-card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background-image:var(--tortuga-bg, none);
+  background-size:cover;
+  background-position:center;
+  opacity:0;
+  transition:opacity .25s ease;
+  z-index:-1;
 }
 .unit-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,24,40,.1);}
+.unit-card:hover::before{opacity:.16;}
 .unit-avatar{
   width:72px;
   height:72px;

@@ -11,7 +11,7 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 - `charts.js` — helpers genéricos para instanciar/actualizar gráficos Chart.js (línea, barra apilada, barra horizontal, dona).
 - `app.js` — lógica de filtros de período (6/12/histórico/meses específicos), filtro por integrante (`?miembro=`) y agregaciones que alimentan KPIs, gráficos y rankings.
 - `vendor/chart.umd.min.js` — copia local de Chart.js 4.4.4. Se dejó de cargar desde el CDN (`cdnjs.cloudflare.com`) porque en varias redes (firewalls corporativos, bloqueadores de contenido) esa URL queda bloqueada y el script nunca llega a definir `Chart`; eso hacía que todos los gráficos quedaran en blanco aunque `data.js` sí tuviera datos. Al servir el archivo desde el propio sitio, los gráficos ya no dependen de una red externa.
-- `images/` — fotos subidas para versiones anteriores de la página de equipo. Ya no se usan (la página actual es solo texto), quedaron por si se quiere volver a un diseño con fotos.
+- `images/` — fotos de cada integrante (avatar circular en la tarjeta) y las imágenes `tortuga-*.jpg`, que se muestran como fondo de la tarjeta al pasar el cursor por encima (hover) en `index.html`.
 
 ## Página de equipo y resultados por integrante
 
