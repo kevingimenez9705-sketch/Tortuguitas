@@ -18,6 +18,7 @@
 
   const MIEMBRO_KEY = new URLSearchParams(location.search).get('miembro');
   const member = MIEMBRO_KEY ? MEMBER_MAP[MIEMBRO_KEY] : null;
+  const memberSelectorSet = member ? new Set(member.selectors) : null;
 
   let ALTAS, CUMPL;
   if (member && member.selectors.length) {
@@ -108,7 +109,7 @@
     renderDistribucionMarca(altasF);
     renderNoPresentados(months, altasF);
     renderTops(altasF);
-    renderPorSelector(altasF);
+    renderPorSelector(months, altasF);
     renderCumplimiento(months);
 
     document.getElementById('fuenteNote').textContent = 'Fuente: ' + DATA.fuente;
@@ -160,8 +161,18 @@
   function renderDistribucionMarca(altasF) {
     const sabores = altasF.filter(r => r.marca === 'Sabores').length;
     const extremas = altasF.filter(r => r.marca === 'Extremas').length;
+    const total = sabores + extremas;
     Charts.donut('chartDistMarca', ['Sabores', 'Extremas'], [sabores, extremas],
       [Charts.COLORS.blue, Charts.COLORS.blueLight]);
+    const legend = document.getElementById('legendDistMarca');
+    if (legend) {
+      legend.innerHTML = [
+        ['Sabores Express', sabores, Charts.COLORS.blue],
+        ['Hamburguesas Extremas', extremas, Charts.COLORS.blueLight],
+      ].map(([n, v, c]) => `
+        <li><span><span class="dot" style="background:${c}"></span>${n}</span><span>${fmtPct(pct(v, total))}</span></li>
+      `).join('');
+    }
   }
 
   function renderNoPresentados(months, altasF) {
@@ -192,13 +203,12 @@
     Charts.horizontalBar('chartTopLocalExtremas', tl2.map(x => x[0]), tl2.map(x => x[1]), Charts.COLORS.blueLight);
   }
 
-  function renderPorSelector(altasF) {
+  function renderPorSelector(months, altasF) {
     const selectores = [...new Set(altasF.map(r => r.selector))];
     const totals = selectores.map(s => altasF.filter(r => r.selector === s).length);
     const order = selectores.map((s, i) => [s, totals[i]]).sort((a, b) => b[1] - a[1]);
     const names = order.map(x => x[0]);
     const vals = order.map(x => x[1]);
-    const total = vals.reduce((a, b) => a + b, 0);
 
     // Mezcla de marca por selector
     const sabD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Sabores').length);
@@ -208,12 +218,34 @@
       { label: 'Extremas', data: extD, color: Charts.COLORS.blueLight },
     ]);
 
-    // Participación por selector
-    const colors = names.map(colorFor);
-    Charts.donut('chartParticipacionSelector', names, vals, colors);
-    document.getElementById('legendParticipacion').innerHTML = names.map((n, i) => `
-      <li><span><span class="dot" style="background:${colors[i]}"></span>${n}</span><span>${fmtPct(pct(vals[i], total))}</span></li>
-    `).join('');
+    // Participación: para el equipo completo (Kevin) se reparte por selector real;
+    // para un integrante/grupo filtrado, comparamos contra el resto del equipo
+    // (en ese período), que tiene más sentido que un gráfico de una sola porción.
+    if (member) {
+      const monthSet = new Set(months);
+      const restoTotal = DATA.altas.filter(r => monthSet.has(r.mes) && !memberSelectorSet.has(r.selector)).length;
+      const miTotal = altasF.length;
+      document.getElementById('participacionTitle').textContent = 'Participación vs. resto del equipo';
+      document.getElementById('participacionDesc').textContent = `${member.label} comparado con el resto del equipo, en volumen de altas`;
+      Charts.donut('chartParticipacionSelector', [member.label, 'Resto del equipo'], [miTotal, restoTotal],
+        [Charts.COLORS.blue, Charts.COLORS.grey]);
+      const totalTodos = miTotal + restoTotal;
+      document.getElementById('legendParticipacion').innerHTML = [
+        [member.label, miTotal, Charts.COLORS.blue],
+        ['Resto del equipo', restoTotal, Charts.COLORS.grey],
+      ].map(([n, v, c]) => `
+        <li><span><span class="dot" style="background:${c}"></span>${n}</span><span>${fmtPct(pct(v, totalTodos))}</span></li>
+      `).join('');
+    } else {
+      const total = vals.reduce((a, b) => a + b, 0);
+      const colors = names.map(colorFor);
+      document.getElementById('participacionTitle').textContent = 'Participación por selector';
+      document.getElementById('participacionDesc').textContent = '% del volumen total de altas · equipo completo';
+      Charts.donut('chartParticipacionSelector', names, vals, colors);
+      document.getElementById('legendParticipacion').innerHTML = names.map((n, i) => `
+        <li><span><span class="dot" style="background:${colors[i]}"></span>${n}</span><span>${fmtPct(pct(vals[i], total))}</span></li>
+      `).join('');
+    }
 
     // Ranking de selectores
     const maxVal = Math.max(...vals, 1);
