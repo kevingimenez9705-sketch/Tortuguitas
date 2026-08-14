@@ -10,14 +10,20 @@
   // ("Seleccion" en la planilla fuente).
   // color: mismo acento que su tarjeta en index.html, para que el header de su
   // dashboard se sienta "de esa persona" (el equipo sin filtrar usa KEVIN_COLOR).
+  // avatar/tortuga: mismas fotos que usa index.html (avatar circular chico
+  // y la foto "tortuga-*" grande) — se reusan acá como retrato del hero,
+  // así el dashboard de cada uno se siente realmente "suyo" y no un molde
+  // genérico con el nombre cambiado.
   const MEMBER_MAP = {
-    agustin: { label: 'Agustín Márquez', selectors: ['Agustin'], color: '#5b2d78' },
-    agustina: { label: 'Agustina Castillo', selectors: ['Agustina'], color: '#cc2f2f' },
-    rafael: { label: 'Rafael Barberi', selectors: [], color: '#e2721f' },
-    gustavo: { label: 'Gustavo Sotelo', selectors: [], color: '#4f8fc9' },
-    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a' },
+    agustin: { label: 'Agustín Márquez', selectors: ['Agustin'], color: '#5b2d78', avatar: 'images/agustin-marquez.jpg', tortuga: 'images/tortuga-agustin.jpg' },
+    agustina: { label: 'Agustina Castillo', selectors: ['Agustina'], color: '#cc2f2f', avatar: 'images/agustina-castillo.jpg', tortuga: 'images/tortuga-agustina.jpg' },
+    rafael: { label: 'Rafael Barberi', selectors: [], color: '#e2721f', avatar: 'images/rafael-barberi.jpg', tortuga: 'images/tortuga-rafael.jpg' },
+    gustavo: { label: 'Gustavo Sotelo', selectors: [], color: '#4f8fc9', avatar: 'images/gustavo-sotelo.jpg', tortuga: 'images/tortuga-gustavo.jpg' },
+    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a', avatar: null, tortuga: null },
   };
   const KEVIN_COLOR = '#5c2430';
+  // Panel sin filtrar (sin ?miembro=): también es "de alguien" — Kevin.
+  const KEVIN = { label: 'Kevin García', color: KEVIN_COLOR, avatar: 'images/kevin-garcia.jpg', tortuga: 'images/tortuga-kevin.jpg' };
 
   const MIEMBRO_KEY = new URLSearchParams(location.search).get('miembro');
   const member = MIEMBRO_KEY ? MEMBER_MAP[MIEMBRO_KEY] : null;
@@ -39,8 +45,14 @@
   (function themeHero() {
     const hero = document.querySelector('.hero');
     if (!hero) return;
-    const color = member ? member.color : KEVIN_COLOR;
-    hero.style.background = `linear-gradient(135deg, ${color}, ${darken(color, 0.6)})`;
+    const person = member || KEVIN;
+    hero.style.background = `linear-gradient(135deg, ${person.color}, ${darken(person.color, 0.6)})`;
+    if (person.tortuga) hero.style.setProperty('--tortuga-bg', `url('${person.tortuga}')`);
+    const avatarEl = document.getElementById('heroAvatar');
+    if (avatarEl && person.avatar) {
+      avatarEl.src = person.avatar;
+      avatarEl.alt = person.label;
+    }
   })();
 
   // Paleta del informe: en la vista de un integrante (o "Otros"), todos los
@@ -169,10 +181,32 @@
     renderDistribucionMarca(altasF);
     renderNoPresentados(months, altasF);
     renderTops(altasF);
-    renderPorSelector(months, altasF, allAltasF);
-    renderCumplimiento(months);
+    const { rankVolumen, rankPresentismo } = renderPorSelector(months, altasF, allAltasF);
+    const rankCumplimiento = renderCumplimiento(months);
+    renderHeroBadges(rankVolumen, rankPresentismo, rankCumplimiento);
 
     document.getElementById('fuenteNote').textContent = 'Fuente: ' + DATA.fuente;
+  }
+
+  // Insignias del hero: en qué puesto queda el integrante (dentro de todo el
+  // equipo) en cada uno de los tres rankings. Solo tiene sentido para un
+  // selector individual real (no el panel de Kevin ni el grupo "Otros",
+  // que mezcla varios selectores sin un puesto propio único).
+  function renderHeroBadges(rankVolumen, rankPresentismo, rankCumplimiento) {
+    const el = document.getElementById('heroBadges');
+    if (!el) return;
+    if (!member || member.selectors.length !== 1) { el.innerHTML = ''; return; }
+    const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+    const findMine = (arr) => arr.findIndex(([n]) => memberSelectorSet.has(n));
+    const items = [
+      ['volumen de altas', findMine(rankVolumen)],
+      ['presentismo', findMine(rankPresentismo)],
+      ['cumplimiento', findMine(rankCumplimiento)],
+    ];
+    el.innerHTML = items
+      .filter(([, i]) => i > -1)
+      .map(([label, i]) => `<span class="hero-badge">${medal(i)} en ${label}</span>`)
+      .join('');
   }
 
   function renderKpis(altasF) {
@@ -339,6 +373,8 @@
         <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${col('green')}"></span></span>
         <span class="val">${fmtPct(p)}</span>
       </li>`).join('');
+
+    return { rankVolumen: rankOrder, rankPresentismo: order2 };
   }
 
   function renderCumplimiento(months) {
@@ -383,6 +419,8 @@
         <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)}"></span></span>
         <span class="val">${fmtPct(p)}</span>
       </li>`).join('');
+
+    return ranking;
   }
 
   // ---------- Toolbar ----------
