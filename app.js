@@ -1,8 +1,57 @@
 // app.js — filtros de período y agregaciones sobre window.ALTAS_DATA
 (() => {
   const DATA = window.ALTAS_DATA;
-  const ALTAS = DATA.altas;
-  const CUMPL = DATA.cumplimiento;
+
+  // ---------- Filtro por miembro (?miembro=) ----------
+  // Cada integrante del equipo mapea a uno o más "selector" de data.js.
+  // selectors: [] => todavía no tiene altas cargadas a su nombre -> pantalla S/D.
+  // "otros" agrupa a los selectores que no tienen tarjeta propia en el equipo
+  // (Emiliano, Mariano, Facundo) más los registros sin selector asignado
+  // ("Seleccion" en la planilla fuente).
+  const MEMBER_MAP = {
+    agustin: { label: 'Agustín Márquez', selectors: ['Agustin'] },
+    agustina: { label: 'Agustina Castillo', selectors: ['Agustina'] },
+    rafael: { label: 'Rafael Barberi', selectors: [] },
+    gustavo: { label: 'Gustavo Sotelo', selectors: [] },
+    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'] },
+  };
+
+  const MIEMBRO_KEY = new URLSearchParams(location.search).get('miembro');
+  const member = MIEMBRO_KEY ? MEMBER_MAP[MIEMBRO_KEY] : null;
+
+  let ALTAS, CUMPL;
+  if (member && member.selectors.length) {
+    const set = new Set(member.selectors);
+    ALTAS = DATA.altas.filter(r => set.has(r.selector));
+    CUMPL = DATA.cumplimiento.filter(r => set.has(r.selector));
+  } else if (member) {
+    ALTAS = [];
+    CUMPL = [];
+  } else {
+    ALTAS = DATA.altas;
+    CUMPL = DATA.cumplimiento;
+  }
+
+  if (member) {
+    const breadcrumb = document.getElementById('heroBreadcrumb');
+    const title = document.getElementById('heroTitle');
+    const subtitle = document.getElementById('heroSubtitle');
+    if (breadcrumb) breadcrumb.textContent = `Selección · Equipo · ${member.label}`;
+    if (title) title.textContent = `Resultados — ${member.label}`;
+    if (subtitle) subtitle.textContent = member.label === 'Otros'
+      ? 'Altas, presentismo y cumplimiento agrupados: Emiliano, Mariano, Facundo y altas sin selector asignado.'
+      : `Altas, presentismo y cumplimiento de ${member.label}.`;
+  }
+
+  // Sin ninguna alta ni cumplimiento cargado a su nombre -> pantalla S/D en vez de dashboard vacío.
+  if (member && ALTAS.length === 0 && CUMPL.length === 0) {
+    document.getElementById('mainContent').style.display = 'none';
+    const sd = document.getElementById('sdState');
+    document.getElementById('sdMessage').textContent =
+      `Todavía no hay altas ni cumplimiento cargados a nombre de ${member.label}. En cuanto se registren datos, los gráficos van a aparecer acá automáticamente.`;
+    sd.style.display = 'block';
+    return; // no hace falta inicializar el resto del dashboard
+  }
 
   const MES_ABBR = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
   const monthLabel = (m) => {
