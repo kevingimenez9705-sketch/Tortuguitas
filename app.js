@@ -8,17 +8,35 @@
   // "otros" agrupa a los selectores que no tienen tarjeta propia en el equipo
   // (Emiliano, Mariano, Facundo) más los registros sin selector asignado
   // ("Seleccion" en la planilla fuente).
+  // color: mismo acento que su tarjeta en index.html, para que el header de su
+  // dashboard se sienta "de esa persona" (el equipo sin filtrar usa KEVIN_COLOR).
   const MEMBER_MAP = {
-    agustin: { label: 'Agustín Márquez', selectors: ['Agustin'] },
-    agustina: { label: 'Agustina Castillo', selectors: ['Agustina'] },
-    rafael: { label: 'Rafael Barberi', selectors: [] },
-    gustavo: { label: 'Gustavo Sotelo', selectors: [] },
-    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'] },
+    agustin: { label: 'Agustín Márquez', selectors: ['Agustin'], color: '#5b2d78' },
+    agustina: { label: 'Agustina Castillo', selectors: ['Agustina'], color: '#cc2f2f' },
+    rafael: { label: 'Rafael Barberi', selectors: [], color: '#e2721f' },
+    gustavo: { label: 'Gustavo Sotelo', selectors: [], color: '#4f8fc9' },
+    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a' },
   };
+  const KEVIN_COLOR = '#5c2430';
 
   const MIEMBRO_KEY = new URLSearchParams(location.search).get('miembro');
   const member = MIEMBRO_KEY ? MEMBER_MAP[MIEMBRO_KEY] : null;
   const memberSelectorSet = member ? new Set(member.selectors) : null;
+
+  // Tematiza el header con el color de la persona (equipo completo = color de Kevin).
+  function darken(hex, factor) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.round(((n >> 16) & 255) * factor);
+    const g = Math.round(((n >> 8) & 255) * factor);
+    const b = Math.round((n & 255) * factor);
+    return `rgb(${r},${g},${b})`;
+  }
+  (function themeHero() {
+    const hero = document.querySelector('.hero');
+    if (!hero) return;
+    const color = member ? member.color : KEVIN_COLOR;
+    hero.style.background = `linear-gradient(135deg, ${color}, ${darken(color, 0.6)})`;
+  })();
 
   let ALTAS, CUMPL;
   if (member && member.selectors.length) {
@@ -93,9 +111,13 @@
     return map;
   }
 
-  function pct(n, d) { return d > 0 ? n / d : 0; }
+  // Clampeado a 100%: algunas filas de la planilla fuente tienen "enviados" >
+  // "total" por errores de carga (p. ej. Agustina, jul-2026, semana 1: total=3
+  // cuando debería ser mayor). Un cumplimiento no puede superar el 100%.
+  function pct(n, d) { return d > 0 ? Math.min(1, n / d) : 0; }
   function fmtPct(x) { return (x * 100).toFixed(1) + '%'; }
   function fmtInt(x) { return x.toLocaleString('es-AR'); }
+  function round1(x) { return Math.round(x * 10) / 10; } // 1 decimal para valores que Chart.js grafica/muestra en tooltip
 
   // ---------- Render ----------
   function render() {
@@ -178,7 +200,8 @@
   function renderNoPresentados(months, altasF) {
     const data = months.map(m => {
       const rows = altasF.filter(r => r.mes === m);
-      return rows.length ? (100 - pct(rows.filter(r => r.presente).length, rows.length) * 100) : 0;
+      const val = rows.length ? (100 - pct(rows.filter(r => r.presente).length, rows.length) * 100) : 0;
+      return round1(val);
     });
     Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: Charts.COLORS.grey });
   }
@@ -289,7 +312,7 @@
       const rows = cumF.filter(r => r.mes === m);
       const env = rows.reduce((a, r) => a + (r.enviados || 0), 0);
       const tot = rows.reduce((a, r) => a + (r.total || 0), 0);
-      return pct(env, tot) * 100;
+      return round1(pct(env, tot) * 100);
     });
     Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: Charts.COLORS.purple });
 
