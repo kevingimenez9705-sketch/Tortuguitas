@@ -24,12 +24,33 @@ body{
 .container{max-width:1200px;margin:0 auto;padding:20px;}
 
 .hero{
+  position:relative;
+  overflow:hidden;
   background:linear-gradient(135deg,var(--navy),var(--navy-2));
   border-radius:var(--radius);
   padding:28px 32px;
   color:#fff;
   margin-bottom:20px;
 }
+/* Retrato del selector como silueta grande de fondo, degradada hacia la
+   derecha con una máscara para que no compita con el texto. Se activa vía
+   --tortuga-bg (custom property seteada desde app.js según el integrante). */
+.hero::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  left:40%;
+  background-image:var(--tortuga-bg, none);
+  background-size:cover;
+  background-position:center 15%;
+  opacity:.4;
+  filter:grayscale(.1) contrast(1.05);
+  mix-blend-mode:luminosity;
+  -webkit-mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.5) 30%, rgba(0,0,0,.95) 100%);
+  mask-image:linear-gradient(90deg, transparent 0%, rgba(0,0,0,.5) 30%, rgba(0,0,0,.95) 100%);
+  pointer-events:none;
+}
+.hero > *{position:relative;z-index:1;}
 .breadcrumb{
   display:inline-block;
   background:rgba(255,255,255,.12);
@@ -40,6 +61,30 @@ body{
 }
 .hero h1{margin:0 0 8px;font-size:30px;}
 .hero p{margin:0;color:#b9c3de;font-size:14px;max-width:640px;}
+.hero-top{display:flex;align-items:center;gap:18px;}
+.hero-avatar{
+  width:64px;
+  height:64px;
+  border-radius:50%;
+  object-fit:cover;
+  border:3px solid rgba(255,255,255,.5);
+  box-shadow:0 4px 14px rgba(0,0,0,.25);
+  flex-shrink:0;
+}
+.hero-avatar:not([src]){display:none;}
+.hero-badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+.hero-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.35);
+  padding:6px 13px;
+  border-radius:20px;
+  font-size:12px;
+  font-weight:700;
+  backdrop-filter:blur(2px);
+}
 
 .toolbar{
   background:var(--card);
