@@ -158,11 +158,11 @@ body{
   gap:20px;
 }
 .equipo-banner .logo{
-  width:56px;
-  height:56px;
+  width:96px;
+  height:96px;
   border-radius:50%;
   background:rgba(255,255,255,.16);
-  border:1px solid rgba(255,255,255,.35);
+  border:2px solid rgba(255,255,255,.35);
   display:flex;
   align-items:center;
   justify-content:center;
@@ -173,6 +173,10 @@ body{
 .equipo-banner h1{margin:0 0 6px;font-size:28px;font-weight:800;}
 .equipo-banner h1 .accent{color:#fff0dc;}
 .equipo-banner p{margin:0;color:#fbf1e6;font-size:14px;max-width:640px;}
+@media(max-width:600px){
+  .equipo-banner{flex-direction:column;}
+  .equipo-banner .logo{width:72px;height:72px;}
+}
 
 .unit-grid{
   display:grid;
