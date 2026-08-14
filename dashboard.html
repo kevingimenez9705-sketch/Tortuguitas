@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Altas de personal · Dashboard</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="vendor/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="container">
+
+  <div class="hero">
+    <a class="dash-nav" href="index.html">← Equipo</a>
+    <span class="breadcrumb">Selección · Operaciones · Dashboard</span>
+    <h1>Altas de personal</h1>
+    <p>Volumen de altas, presentismo y participación por selector · Sabores Express y Hamburguesas Extremas.</p>
+  </div>
+
+  <div class="toolbar" id="toolbar">
+    <label>PERÍODO</label>
+    <button class="chip" data-period="6">6 meses</button>
+    <button class="chip" data-period="12">12 meses</button>
+    <button class="chip" data-period="historico">Histórico</button>
+    <button class="chip" data-period="custom">Meses específicos...</button>
+    <div class="months-picker" id="monthsPicker"></div>
+  </div>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <h3>Altas totales por mes</h3>
+    <div class="chart-wrap"><canvas id="chartAltasMes"></canvas></div>
+  </div>
+
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Altas por mes</h3>
+      <p class="desc">Sabores vs Extremas, según filtro</p>
+      <div class="chart-wrap"><canvas id="chartAltasMarcaMes"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Distribución por marca</h3>
+      <div class="donut-wrap"><canvas id="chartDistMarca"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
+    <h3>Tasa de no presentados día 1 (%)</h3>
+    <div class="chart-wrap small"><canvas id="chartNoPresentados"></canvas></div>
+  </div>
+
+  <div class="section-label">Top locales / zonales</div>
+  <div class="grid cols-2">
+    <div class="card"><h3>Top 5 zonales</h3><p class="desc">Sabores Express</p>
+      <div class="chart-wrap small"><canvas id="chartTopZonalSabores"></canvas></div></div>
+    <div class="card"><h3>Top 5 zonales</h3><p class="desc">Hamburguesas Extremas</p>
+      <div class="chart-wrap small"><canvas id="chartTopZonalExtremas"></canvas></div></div>
+  </div>
+  <div class="grid cols-2">
+    <div class="card"><h3>Top 5 locales</h3><p class="desc">Sabores Express</p>
+      <div class="chart-wrap small"><canvas id="chartTopLocalSabores"></canvas></div></div>
+    <div class="card"><h3>Top 5 locales</h3><p class="desc">Hamburguesas Extremas</p>
+      <div class="chart-wrap small"><canvas id="chartTopLocalExtremas"></canvas></div></div>
+  </div>
+
+  <div class="section-label">Por selector</div>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Mezcla de marca por selector</h3>
+      <p class="desc">Sabores vs Extremas, en volumen de altas</p>
+      <div class="chart-wrap"><canvas id="chartMezclaSelector"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Participación por selector</h3>
+      <p class="desc">% del volumen total de altas</p>
+      <div class="donut-wrap"><canvas id="chartParticipacionSelector"></canvas></div>
+      <ul class="legend-list" id="legendParticipacion"></ul>
+    </div>
+  </div>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Ranking de selectores</h3>
+      <p class="desc">Por volumen de altas en el período</p>
+      <ul class="rank-list" id="rankSelectores"></ul>
+    </div>
+    <div class="card">
+      <h3>Presentismo por selector</h3>
+      <p class="desc">% que se presentó el primer día</p>
+      <ul class="rank-list" id="rankPresentismo"></ul>
+    </div>
+  </div>
+
+  <div class="section-label">Cumplimiento de selección</div>
+  <p class="desc" style="margin:0 0 10px;">Enviados vs. vacantes totales · datos disponibles solo para Ene–Jun 2026</p>
+  <div class="grid cols-2">
+    <div class="card">
+      <h3>Cumplimiento por mes</h3>
+      <p class="desc">Promedio de enviados / vacantes</p>
+      <div class="chart-wrap"><canvas id="chartCumplimientoMes"></canvas></div>
+    </div>
+    <div class="card">
+      <h3>Ranking de cumplimiento</h3>
+      <p class="desc">Promedio de cumplimiento por selector</p>
+      <ul class="rank-list" id="rankCumplimiento"></ul>
+    </div>
+  </div>
+
+  <p class="footer-note" id="fuenteNote"></p>
+</div>
+
+<script src="data.js"></script>
+<script src="charts.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
