@@ -4,17 +4,24 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 
 ## Estructura
 
-- `index.html` — página de equipo (landing): fotos/avatares de Coordinación, Selectores y "Otros", con botón "Ver dashboard →".
-- `dashboard.html` — layout y contenedores de cada card/gráfico del dashboard (antes `index.html`).
+- `index.html` — página de equipo (landing): banner "Equipo Tortuguitas" en degradé de marrones y una tarjeta minimalista por integrante (solo nombre y apellido), cada una linkeando a sus resultados en `dashboard.html`.
+- `dashboard.html` — layout y contenedores de cada card/gráfico del dashboard (antes `index.html`). Funciona como panel general (sin filtrar) o filtrado por integrante vía `?miembro=`.
 - `styles.css` — estilos de ambas páginas.
 - `data.js` — `window.ALTAS_DATA`: datos crudos normalizados (altas + cumplimiento). Reemplazar con la exportación actualizada del Excel para refrescar el dashboard.
 - `charts.js` — helpers genéricos para instanciar/actualizar gráficos Chart.js (línea, barra apilada, barra horizontal, dona).
-- `app.js` — lógica de filtros de período (6/12/histórico/meses específicos) y agregaciones que alimentan KPIs, gráficos y rankings.
+- `app.js` — lógica de filtros de período (6/12/histórico/meses específicos), filtro por integrante (`?miembro=`) y agregaciones que alimentan KPIs, gráficos y rankings.
 - `vendor/chart.umd.min.js` — copia local de Chart.js 4.4.4. Se dejó de cargar desde el CDN (`cdnjs.cloudflare.com`) porque en varias redes (firewalls corporativos, bloqueadores de contenido) esa URL queda bloqueada y el script nunca llega a definir `Chart`; eso hacía que todos los gráficos quedaran en blanco aunque `data.js` sí tuviera datos. Al servir el archivo desde el propio sitio, los gráficos ya no dependen de una red externa.
+- `images/` — fotos subidas para versiones anteriores de la página de equipo. Ya no se usan (la página actual es solo texto), quedaron por si se quiere volver a un diseño con fotos.
 
-## Página de equipo
+## Página de equipo y resultados por integrante
 
-`index.html` muestra Coordinación (Kevin García) + Selectores (Agustín Márquez, Agustina Castillo, Rafael Barberi, Gustavo Sotelo) y, en una sección aparte "Otros", a Emiliano, Mariano y Facundo — estos tres coinciden con los `selector` que aparecen en `data.js`. Los avatares son iniciales sobre un círculo de color (no hay fotos reales todavía): para usar fotos reales, reemplazar el `<div class="avatar" style="...">` de cada tarjeta por un `<img class="avatar" src="images/nombre.jpg">` y agregar las imágenes a una carpeta `images/`.
+`index.html` tiene una tarjeta por integrante (Kevin García, Agustín Márquez, Agustina Castillo, Rafael Barberi, Gustavo Sotelo, Otros). Cada una linkea a `dashboard.html?miembro=<clave>`, que filtra todos los KPIs/gráficos a los datos de esa persona. El mapeo integrante → `selector` de `data.js` vive en `MEMBER_MAP` dentro de `app.js`:
+
+- **Kevin García** → sin filtro (`dashboard.html` sin query param): ve el panel ejecutivo completo, como coordinador.
+- **Agustín Márquez** → `selector: "Agustin"`.
+- **Agustina Castillo** → `selector: "Agustina"`.
+- **Rafael Barberi** y **Gustavo Sotelo** → todavía no tienen `selector` propio en `data.js`, así que su página muestra un estado "S/D" (sin datos) en vez de gráficos vacíos. En cuanto la planilla fuente tenga altas con su nombre como selector, agregar la clave correspondiente en `MEMBER_MAP` y van a mostrar datos automáticamente.
+- **Otros** → agrupa `Emiliano`, `Mariano`, `Facundo` y `Seleccion` (altas sin selector puntual asignado en la planilla) en un solo resultado combinado.
 
 ## Cómo actualizar los datos
 

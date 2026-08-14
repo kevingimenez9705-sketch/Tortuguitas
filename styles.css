@@ -30,7 +30,7 @@ body{
   color:#fff;
   margin-bottom:20px;
 }
-.hero .breadcrumb{
+.breadcrumb{
   display:inline-block;
   background:rgba(255,255,255,.12);
   padding:4px 12px;
@@ -145,99 +145,78 @@ body{
 @media(max-width:900px){.two-col{grid-template-columns:1fr;}}
 
 /* ================= Equipo (team landing page) ================= */
-.team-hero{margin-bottom:26px;}
-.team-hero h1{margin:0 0 6px;font-size:30px;font-weight:800;color:var(--text);}
-.team-hero p{margin:0;font-size:14px;color:var(--blue);font-weight:600;}
-
-.team-layout{display:grid;grid-template-columns:280px 1fr;gap:16px;align-items:stretch;}
-@media(max-width:820px){.team-layout{grid-template-columns:1fr;}}
-
-.team-otros{margin-top:6px;}
-
-.member-card{
-  background:var(--card);
-  border:1px solid var(--border);
+.equipo-banner{
+  background:linear-gradient(120deg,#2b1a10 0%,#5c3a22 38%,#8a5a35 68%,#bd8a5c 100%);
   border-radius:var(--radius);
-  padding:22px 18px;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  text-align:center;
-  box-shadow:0 1px 2px rgba(16,24,40,.04);
-  position:relative;
-}
-.member-card.coord{
-  background:#eaf0ff;
-  border-color:#c9d9fb;
-  justify-content:center;
-  min-height:100%;
-  padding:32px 20px;
-}
-.member-card .badge{
-  position:absolute;
-  top:14px;
-  left:14px;
-  background:#dfe9ff;
-  color:var(--blue);
-  font-size:10px;
-  font-weight:800;
-  letter-spacing:.05em;
-  text-transform:uppercase;
-  padding:4px 10px;
-  border-radius:20px;
-}
-.avatar{
-  width:76px;
-  height:76px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+  padding:28px 32px;
   color:#fff;
-  font-weight:800;
-  font-size:22px;
-  margin-bottom:14px;
-  border:3px solid #fff;
-  box-shadow:0 0 0 1px var(--border), 0 4px 10px rgba(16,24,40,.08);
-  flex-shrink:0;
-  object-fit:cover;
+  margin-bottom:26px;
+  display:flex;
+  align-items:center;
+  gap:20px;
 }
-.member-card.coord .avatar{width:96px;height:96px;font-size:28px;}
-.member-name{font-weight:800;font-size:15px;color:var(--text);}
-.member-card.coord .member-name{font-size:18px;margin-top:2px;}
-.member-role{font-size:12px;font-weight:700;color:var(--blue);margin-top:3px;}
+.equipo-banner .logo{
+  width:56px;
+  height:56px;
+  border-radius:50%;
+  background:rgba(255,255,255,.14);
+  border:1px solid rgba(255,255,255,.35);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:26px;
+  flex-shrink:0;
+}
+.equipo-banner h1{margin:0 0 6px;font-size:28px;font-weight:800;}
+.equipo-banner h1 .accent{color:#ffd9a8;}
+.equipo-banner p{margin:0;color:#ecdcc9;font-size:14px;max-width:640px;}
 
-.team-grid{
+.unit-grid{
   display:grid;
   grid-template-columns:repeat(3,1fr);
   gap:16px;
 }
-@media(max-width:600px){.team-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:760px){.unit-grid{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:480px){.unit-grid{grid-template-columns:1fr;}}
 
-.member-card.add{
-  border-style:dashed;
-  border-color:#c7ceda;
-  background:#f7f9fc;
-  box-shadow:none;
-  justify-content:center;
-  min-height:150px;
-}
-.member-card.add .avatar{
-  background:#e9edf5;
-  color:#9aa4b8;
-  font-size:28px;
-  font-weight:400;
-  box-shadow:none;
-  border-color:#f7f9fc;
-}
-.member-card.add .member-name{color:#9aa4b8;font-weight:700;}
-.member-card.add .member-role{color:#b3bac9;}
-
-.team-cta{
+.unit-card{
   display:flex;
-  justify-content:flex-end;
-  margin-top:28px;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  background:var(--card);
+  border:1px solid var(--border);
+  border-top:4px solid #8a5a35;
+  border-radius:var(--radius);
+  padding:24px 20px;
+  text-decoration:none;
+  color:inherit;
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+  transition:transform .15s ease, box-shadow .15s ease;
 }
+.unit-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,24,40,.1);}
+.unit-avatar{
+  width:64px;
+  height:64px;
+  border-radius:50%;
+  object-fit:cover;
+  margin-bottom:14px;
+  border:3px solid #fff;
+  box-shadow:0 0 0 1px var(--border), 0 4px 10px rgba(16,24,40,.08);
+  flex-shrink:0;
+}
+.unit-avatar.placeholder{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#f3ede6;
+  color:#8a5a35;
+  font-weight:800;
+  font-size:20px;
+}
+.unit-name{font-weight:800;font-size:17px;color:var(--text);}
+.unit-link{margin-top:16px;font-size:13px;font-weight:700;color:#8a5a35;}
+
 .btn-primary{
   display:inline-flex;
   align-items:center;
@@ -264,3 +243,25 @@ body{
   margin-bottom:10px;
 }
 .dash-nav:hover{color:#fff;}
+
+/* ================= Estado sin datos (S/D) ================= */
+.sd-card{
+  text-align:center;
+  padding:60px 30px;
+  margin-top:20px;
+}
+.sd-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:64px;
+  height:64px;
+  border-radius:50%;
+  background:#f3ede6;
+  color:#8a5a35;
+  font-weight:800;
+  font-size:16px;
+  margin-bottom:16px;
+}
+.sd-card h3{margin:0 0 6px;font-size:18px;}
+.sd-card p{max-width:440px;margin:0 auto 20px;}

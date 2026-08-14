@@ -12,11 +12,19 @@
 
   <div class="hero">
     <a class="dash-nav" href="index.html">← Equipo</a>
-    <span class="breadcrumb">Selección · Operaciones · Dashboard</span>
-    <h1>Altas de personal</h1>
-    <p>Volumen de altas, presentismo y participación por selector · Sabores Express y Hamburguesas Extremas.</p>
+    <span class="breadcrumb" id="heroBreadcrumb">Selección · Operaciones · Dashboard</span>
+    <h1 id="heroTitle">Altas de personal</h1>
+    <p id="heroSubtitle">Volumen de altas, presentismo y participación por selector · Sabores Express y Hamburguesas Extremas.</p>
   </div>
 
+  <div class="card sd-card" id="sdState" style="display:none;">
+    <div class="sd-icon">S/D</div>
+    <h3>Sin datos disponibles</h3>
+    <p class="desc" id="sdMessage"></p>
+    <a class="btn-primary" href="index.html">← Volver al equipo</a>
+  </div>
+
+  <div id="mainContent">
   <div class="toolbar" id="toolbar">
     <label>PERÍODO</label>
     <button class="chip" data-period="6">6 meses</button>
@@ -107,6 +115,7 @@
   </div>
 
   <p class="footer-note" id="fuenteNote"></p>
+  </div>
 </div>
 
 <script src="data.js"></script>
