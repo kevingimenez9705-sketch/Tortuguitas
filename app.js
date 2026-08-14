@@ -157,6 +157,11 @@
     const months = activeMonths();
     const monthSet = new Set(months);
     const altasF = ALTAS.filter(r => monthSet.has(r.mes));
+    // Para "Ranking de selectores" y "Presentismo por selector": si hay un
+    // integrante filtrado, esos dos widgets igual se calculan sobre TODO el
+    // equipo (no solo sus selectores), para que se vea dónde queda parado
+    // respecto al resto en vez de un ranking de una sola fila.
+    const allAltasF = member ? DATA.altas.filter(r => monthSet.has(r.mes)) : altasF;
 
     renderKpis(altasF);
     renderAltasMes(months, altasF);
@@ -164,7 +169,7 @@
     renderDistribucionMarca(altasF);
     renderNoPresentados(months, altasF);
     renderTops(altasF);
-    renderPorSelector(months, altasF);
+    renderPorSelector(months, altasF, allAltasF);
     renderCumplimiento(months);
 
     document.getElementById('fuenteNote').textContent = 'Fuente: ' + DATA.fuente;
@@ -261,7 +266,7 @@
     Charts.horizontalBar('chartTopLocalExtremas', tl2.map(x => x[0]), tl2.map(x => x[1]), col('blueLight'));
   }
 
-  function renderPorSelector(months, altasF) {
+  function renderPorSelector(months, altasF, allAltasF) {
     const selectores = [...new Set(altasF.map(r => r.selector))];
     const totals = selectores.map(s => altasF.filter(r => r.selector === s).length);
     const order = selectores.map((s, i) => [s, totals[i]]).sort((a, b) => b[1] - a[1]);
@@ -306,24 +311,30 @@
       `).join('');
     }
 
-    // Ranking de selectores
-    const maxVal = Math.max(...vals, 1);
-    document.getElementById('rankSelectores').innerHTML = names.map((n, i) => `
-      <li>
+    // Ranking de selectores (todo el equipo, ver comentario en render())
+    const rankOrder = [...new Set(allAltasF.map(r => r.selector))]
+      .map(s => [s, allAltasF.filter(r => r.selector === s).length])
+      .sort((a, b) => b[1] - a[1]);
+    const rankNames = rankOrder.map(x => x[0]);
+    const rankVals = rankOrder.map(x => x[1]);
+    const isMe = (n) => memberSelectorSet && memberSelectorSet.has(n);
+    const maxVal = Math.max(...rankVals, 1);
+    document.getElementById('rankSelectores').innerHTML = rankOrder.map(([n, v], i) => `
+      <li class="${isMe(n) ? 'me' : ''}">
         <span class="idx">${i + 1}</span>
         <span class="name">${n}</span>
-        <span class="bar-track"><span class="bar-fill" style="width:${(vals[i] / maxVal) * 100}%;background:${colorFor(n)}"></span></span>
-        <span class="val">${fmtInt(vals[i])}</span>
+        <span class="bar-track"><span class="bar-fill" style="width:${(v / maxVal) * 100}%;background:${colorFor(n)}"></span></span>
+        <span class="val">${fmtInt(v)}</span>
       </li>`).join('');
 
-    // Presentismo por selector
-    const presentismo = names.map(s => {
-      const rows = altasF.filter(r => r.selector === s);
+    // Presentismo por selector (todo el equipo)
+    const presentismo = rankNames.map(s => {
+      const rows = allAltasF.filter(r => r.selector === s);
       return pct(rows.filter(r => r.presente).length, rows.length);
     });
-    const order2 = names.map((n, i) => [n, presentismo[i]]).sort((a, b) => b[1] - a[1]);
+    const order2 = rankNames.map((n, i) => [n, presentismo[i]]).sort((a, b) => b[1] - a[1]);
     document.getElementById('rankPresentismo').innerHTML = order2.map(([n, p]) => `
-      <li>
+      <li class="${isMe(n) ? 'me' : ''}">
         <span class="name" style="width:90px;">${n}</span>
         <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${col('green')}"></span></span>
         <span class="val">${fmtPct(p)}</span>
@@ -352,16 +363,21 @@
     });
     Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple') });
 
-    const selectores = [...new Set(cumF.map(r => r.selector))];
+    // Ranking de cumplimiento: todo el equipo en el mismo rango de meses (ver
+    // comentario de allAltasF en render() — mismo criterio, para comparar
+    // contra el resto en vez de mostrar una sola fila cuando hay un
+    // integrante filtrado).
+    const allCumF = member ? DATA.cumplimiento.filter(r => cumMonths.includes(r.mes)) : cumF;
+    const selectores = [...new Set(allCumF.map(r => r.selector))];
     const ranking = selectores.map(s => {
-      const rows = cumF.filter(r => r.selector === s);
+      const rows = allCumF.filter(r => r.selector === s);
       const env = rows.reduce((a, r) => a + (r.enviados || 0), 0);
       const tot = rows.reduce((a, r) => a + (r.total || 0), 0);
       return [s, pct(env, tot)];
     }).sort((a, b) => b[1] - a[1]);
 
     document.getElementById('rankCumplimiento').innerHTML = ranking.map(([n, p], i) => `
-      <li>
+      <li class="${memberSelectorSet && memberSelectorSet.has(n) ? 'me' : ''}">
         <span class="idx">${i + 1}</span>
         <span class="name">${n}</span>
         <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)}"></span></span>
