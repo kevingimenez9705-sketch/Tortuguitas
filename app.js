@@ -85,6 +85,13 @@
     CUMPL = DATA.cumplimiento;
   }
 
+  // "Altas por zona" es un panel del coordinador (Kevin): en las vistas
+  // filtradas por integrante queda oculto, igual que hacía el mapa anterior.
+  if (member) {
+    const zonasCard = document.getElementById('zonasCard');
+    if (zonasCard) zonasCard.style.display = 'none';
+  }
+
   if (member) {
     const breadcrumb = document.getElementById('heroBreadcrumb');
     const title = document.getElementById('heroTitle');
@@ -181,6 +188,7 @@
     renderDistribucionMarca(altasF);
     renderNoPresentados(months, altasF);
     renderTops(altasF);
+    if (!member) renderZonas(altasF);
     const { rankVolumen, rankPresentismo } = renderPorSelector(months, altasF, allAltasF);
     const rankCumplimiento = renderCumplimiento(months);
     renderHeroBadges(rankVolumen, rankPresentismo, rankCumplimiento);
@@ -300,6 +308,106 @@
     Charts.horizontalBar('chartTopLocalExtremas', tl2.map(x => x[0]), tl2.map(x => x[1]), col('blueLight'));
   }
 
+  // Altas por zona geográfica del AMBA (CABA / Norte / Oeste / Sur), solo en
+  // el panel completo de Kevin — ver zonas.js para el detalle de cómo se
+  // clasifica cada local. Reemplaza al mapa de pines anterior: es más rápido
+  // (no depende de geocodificar ~190 direcciones contra un servicio externo)
+  // y no puede ubicar un local en la provincia equivocada.
+  const ZONA_COLOR = {
+    CABA: Charts.COLORS.navy,
+    Norte: Charts.COLORS.blue,
+    Oeste: Charts.COLORS.orange,
+    Sur: Charts.COLORS.green,
+  };
+  function renderZonas(altasF) {
+    const cardsEl = document.getElementById('zonaCards');
+    if (!cardsEl) return;
+    const ZONA_MAP = window.ZONA_MAP || {};
+    const zoneOf = (r) => ZONA_MAP[r.local] || 'Otras';
+    const total = altasF.length;
+
+    const zonas = window.ZONA_ORDER.map(z => {
+      const rows = altasF.filter(r => zoneOf(r) === z);
+      const sab = rows.filter(r => r.marca === 'Sabores').length;
+      const ext = rows.filter(r => r.marca === 'Extremas').length;
+      return { zona: z, label: window.ZONA_LABELS[z] || z, total: rows.length, sab, ext };
+    }).sort((a, b) => b.total - a.total);
+
+    cardsEl.innerHTML = zonas.map(z => `
+      <div class="zona-card" style="border-top-color:${ZONA_COLOR[z.zona]}">
+        <div class="zona-label">${z.label}</div>
+        <div class="zona-value">${fmtInt(z.total)}</div>
+        <div class="zona-sub">${fmtPct(pct(z.total, total))} del total</div>
+        <div class="bar-track zona-mix"><span class="bar-fill" style="width:${z.total ? (z.sab / z.total) * 100 : 0}%;background:${col('blue')}"></span></div>
+        <div class="zona-legend"><span>Sabores ${fmtInt(z.sab)}</span><span>Extremas ${fmtInt(z.ext)}</span></div>
+      </div>`).join('');
+
+    renderZonaDiagram(zonas, total);
+
+    const otras = total - zonas.reduce((a, z) => a + z.total, 0);
+    const otrasEl = document.getElementById('zonaOtras');
+    if (otrasEl) {
+      otrasEl.textContent = otras > 0
+        ? `+ ${fmtInt(otras)} altas fuera del AMBA (Rosario, Mar del Plata, La Plata) · ${fmtPct(pct(otras, total))} del total.`
+        : '';
+    }
+  }
+
+  // Dibuja las 4 zonas como una "brújula": AMBA en el centro y cada zona
+  // ubicada en su posición geográfica real (Norte arriba, Sur abajo, Oeste a
+  // la izquierda, CABA a la derecha — hacia el Río de la Plata, de ahí la
+  // franja celeste). El tamaño de cada burbuja es proporcional al volumen de
+  // altas de esa zona en el período elegido, así que además de ubicarlas
+  // funciona como gráfico comparativo (reemplaza a la barra apilada).
+  const ZONA_DIR = {
+    Norte: { x: 0, y: -1 },
+    Sur: { x: 0, y: 1 },
+    Oeste: { x: -1, y: 0 },
+    CABA: { x: 1, y: 0 },
+  };
+  function renderZonaDiagram(zonas, total) {
+    const el = document.getElementById('zonaDiagram');
+    if (!el) return;
+
+    const cx = 180, cy = 200, dist = 95;
+    const vals = zonas.map(z => z.total);
+    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const minR = 30, maxR = 58;
+    const radiusFor = (v) => maxV === minV ? (minR + maxR) / 2
+      : minR + ((v - minV) / (maxV - minV)) * (maxR - minR);
+
+    const nodes = zonas.map(z => {
+      const dir = ZONA_DIR[z.zona] || { x: 0, y: 0 };
+      const r = radiusFor(z.total);
+      return { ...z, x: cx + dir.x * dist, y: cy + dir.y * dist, r, color: ZONA_COLOR[z.zona] };
+    });
+
+    const outlineR = dist + maxR + 20;
+    const spokes = nodes.map(n => `
+      <line x1="${cx}" y1="${cy}" x2="${n.x}" y2="${n.y}" class="zdiag-spoke" stroke="${n.color}" />`).join('');
+    const bubbles = nodes.map(n => {
+      // Sur queda "boca abajo": la etiqueta va debajo de la burbuja en vez de arriba.
+      const labelY = n.zona === 'Sur' ? n.y + n.r + 24 : n.y - n.r - 12;
+      return `
+      <g>
+        <circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="${n.color}" />
+        <text x="${n.x}" y="${n.y - 3}" text-anchor="middle" class="zdiag-value">${fmtInt(n.total)}</text>
+        <text x="${n.x}" y="${n.y + 14}" text-anchor="middle" class="zdiag-pct">${fmtPct(pct(n.total, total))}</text>
+        <text x="${n.x}" y="${labelY}" text-anchor="middle" class="zdiag-label">${n.label}</text>
+      </g>`;
+    }).join('');
+
+    el.innerHTML = `
+      <svg viewBox="0 0 360 400" role="img" aria-label="Altas por zona del AMBA, distribuidas en un esquema con Zona Norte arriba, Zona Sur abajo, Zona Oeste a la izquierda y CABA a la derecha">
+        <circle cx="${cx}" cy="${cy}" r="${outlineR}" class="zdiag-outline" />
+        <path class="zdiag-rio" d="M${cx + outlineR - 6},${cy - 60} q14,15 0,30 q-14,15 0,30 q14,15 0,30 q-14,15 0,30 q14,15 0,30" />
+        ${spokes}
+        <circle cx="${cx}" cy="${cy}" r="15" class="zdiag-hub" />
+        <text x="${cx}" y="${cy + 4}" text-anchor="middle" class="zdiag-hub-label">AMBA</text>
+        ${bubbles}
+      </svg>`;
+  }
+
   function renderPorSelector(months, altasF, allAltasF) {
     const selectores = [...new Set(altasF.map(r => r.selector))];
     const totals = selectores.map(s => altasF.filter(r => r.selector === s).length);
@@ -370,7 +478,7 @@
     document.getElementById('rankPresentismo').innerHTML = order2.map(([n, p]) => `
       <li class="${isMe(n) ? 'me' : ''}">
         <span class="name" style="width:90px;">${n}</span>
-        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${col('green')}"></span></span>
+        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)}"></span></span>
         <span class="val">${fmtPct(p)}</span>
       </li>`).join('');
 
