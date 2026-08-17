@@ -21,10 +21,32 @@
   const DATA = window.LOCALES_DATA || [];
   if (!DATA.length || typeof L === 'undefined') return;
 
-  const CACHE_KEY = 'tortuguitas_geocode_cache_v1';
+  // v2: la v1 geocodificaba con solo ", Argentina" (sin provincia/ciudad), lo que
+  // hacía que calles con nombre común (San Martín, Rivadavia...) pudieran matchear
+  // en cualquier provincia del país. Se cambia la clave para forzar un re-geocodeo
+  // con la región correcta en los navegadores que ya tenían la v1 cacheada.
+  const CACHE_KEY = 'tortuguitas_geocode_cache_v2';
   const MARCA_COLOR = { Sabores: '#4c7cf0', Extremas: '#a9c4f7' };
   const MARCA_LABEL = { Sabores: 'Sabores Express', Extremas: 'Hamburguesas Extremas' };
   const GEOCODE_DELAY_MS = 1100; // Nominatim: máx. 1 solicitud/seg
+
+  // Casi todos los locales son de Ciudad/Provincia de Buenos Aires, salvo un
+  // puñado en Rosario, Mar del Plata ("Mdq") y La Plata (identificables por el
+  // nombre del local). Sin esta región, direcciones con nombre de calle común
+  // (San Martín, Rivadavia, Córdoba...) pueden matchear en cualquier provincia.
+  // viewbox = izquierda,arriba,derecha,abajo (lon,lat) — solo como preferencia
+  // (sin bounded=1), para no descartar resultados válidos justo en el borde.
+  const REGIONES = [
+    { test: /\brosario\b/i, region: 'Rosario, Santa Fe, Argentina', viewbox: '-60.75,-32.85,-60.55,-33.05' },
+    { test: /mar del plata|\bmdq\b/i, region: 'Mar del Plata, Buenos Aires, Argentina', viewbox: '-57.65,-37.90,-57.50,-38.10' },
+    { test: /\bla plata\b/i, region: 'La Plata, Buenos Aires, Argentina', viewbox: '-57.98,-34.85,-57.85,-35.00' },
+  ];
+  const REGION_DEFAULT = { region: 'Buenos Aires, Argentina', viewbox: '-59.30,-34.20,-57.90,-35.30' };
+  function regionFor(item) {
+    const texto = `${item.local} ${item.direccion}`;
+    const match = REGIONES.find(r => r.test.test(texto));
+    return match || REGION_DEFAULT;
+  }
 
   function loadCache() {
     try { return JSON.parse(localStorage.getItem(CACHE_KEY)) || {}; }
@@ -115,8 +137,9 @@
     const item = pending[i];
     statusEl.textContent =
       `Ubicando direcciones en el mapa… ${i + 1}/${pending.length} (se hace una sola vez; después queda guardado en este navegador)`;
-    const q = encodeURIComponent(`${item.direccion}, Argentina`);
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&q=${q}`)
+    const { region, viewbox } = regionFor(item);
+    const q = encodeURIComponent(`${item.direccion}, ${region}`);
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=ar&viewbox=${viewbox}&q=${q}`)
       .then(r => r.ok ? r.json() : [])
       .then(results => {
         const sameAddr = DATA.filter(d => d.direccion === item.direccion);
