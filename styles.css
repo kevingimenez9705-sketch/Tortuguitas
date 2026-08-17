@@ -188,23 +188,25 @@ body{
 
 .footer-note{font-size:11px;color:var(--text-muted);text-align:right;margin:8px 4px 30px;}
 
-/* ================= Mapa de locales (panel completo de Kevin) ================= */
-.map-wrap{position:relative;height:420px;border-radius:10px;overflow:hidden;}
-#mapaLocales{width:100%;height:100%;background:var(--bg);}
-.map-legend{
-  background:rgba(255,255,255,.92);
-  border-radius:8px;
-  padding:6px 10px;
-  font-size:12px;
-  box-shadow:0 1px 4px rgba(16,24,40,.15);
-  display:flex;
-  flex-direction:column;
-  gap:4px;
+/* ================= Altas por zona AMBA (panel completo de Kevin) ================= */
+.zona-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px;
+  margin-bottom:20px;
 }
-.map-legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;}
-.map-status{font-size:12px;color:var(--text-muted);margin:12px 2px 0;}
-.map-count{font-size:12px;color:var(--text-muted);margin:6px 2px 0;}
-.map-fallidos{font-size:11px;color:var(--text-muted);margin:6px 2px 0;}
+.zona-card{
+  background:var(--bg);
+  border-radius:10px;
+  padding:14px 16px;
+  border-top:3px solid var(--border);
+}
+.zona-label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.03em;text-transform:uppercase;}
+.zona-value{font-size:24px;font-weight:800;margin-top:6px;}
+.zona-sub{font-size:12px;color:var(--text-muted);margin-top:2px;}
+.zona-mix{margin-top:10px;}
+.zona-legend{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:6px;}
+.zona-otras{font-size:12px;color:var(--text-muted);margin:10px 2px 0;}
 
 .two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
 @media(max-width:900px){.two-col{grid-template-columns:1fr;}}

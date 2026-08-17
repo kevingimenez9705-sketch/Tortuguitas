@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Altas de personal · Dashboard</title>
 <link rel="stylesheet" href="styles.css" />
-<link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <script src="vendor/chart.umd.min.js"></script>
-<script src="vendor/leaflet/leaflet.js"></script>
 </head>
 <body>
 <div class="container">
@@ -81,15 +79,14 @@
       <div class="chart-wrap small"><canvas id="chartTopLocalExtremas"></canvas></div></div>
   </div>
 
-  <div id="mapaLocalesCard">
-    <div class="section-label">Mapa de locales</div>
-    <div class="card map-card" style="margin-bottom:16px;">
-      <h3>Locales y zonales</h3>
-      <p class="desc">Sabores Express y Hamburguesas Extremas · equipo completo</p>
-      <div class="map-wrap"><div id="mapaLocales"></div></div>
-      <p class="map-status" id="mapaLocalesStatus" style="display:none;"></p>
-      <p class="map-count" id="mapaLocalesCount"></p>
-      <p class="map-fallidos" id="mapaLocalesFallidos" style="display:none;"></p>
+  <div id="zonasCard">
+    <div class="section-label">Altas por zona (AMBA)</div>
+    <div class="card" style="margin-bottom:16px;">
+      <h3>Distribución geográfica</h3>
+      <p class="desc">Volumen de altas por zona · Sabores Express y Hamburguesas Extremas · equipo completo</p>
+      <div class="zona-grid" id="zonaCards"></div>
+      <div class="chart-wrap"><canvas id="chartZonas"></canvas></div>
+      <p class="zona-otras" id="zonaOtras"></p>
     </div>
   </div>
 
@@ -140,9 +137,8 @@
 </div>
 
 <script src="data.js"></script>
-<script src="locales.js"></script>
+<script src="zonas.js"></script>
 <script src="charts.js"></script>
 <script src="app.js"></script>
-<script src="map.js"></script>
 </body>
 </html>
