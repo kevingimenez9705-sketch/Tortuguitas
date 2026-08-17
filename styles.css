@@ -207,6 +207,16 @@ body{
 .zona-mix{margin-top:10px;}
 .zona-legend{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:6px;}
 .zona-otras{font-size:12px;color:var(--text-muted);margin:10px 2px 0;}
+.zona-diagram-wrap{max-width:420px;margin:4px auto 0;}
+.zona-diagram-wrap svg{width:100%;height:auto;display:block;}
+.zdiag-outline{fill:none;stroke:var(--border);stroke-width:1.5;stroke-dasharray:4 5;}
+.zdiag-rio{fill:none;stroke:#a9c4f7;stroke-width:5;stroke-linecap:round;opacity:.55;}
+.zdiag-spoke{stroke-width:10;stroke-linecap:round;opacity:.18;}
+.zdiag-hub{fill:var(--navy);}
+.zdiag-hub-label{fill:#fff;font-size:11px;font-weight:800;letter-spacing:.02em;}
+.zdiag-value{fill:#fff;font-size:20px;font-weight:800;text-shadow:0 1px 3px rgba(0,0,0,.35);}
+.zdiag-pct{fill:#fff;font-size:11px;font-weight:600;opacity:.92;text-shadow:0 1px 3px rgba(0,0,0,.35);}
+.zdiag-label{fill:var(--text);font-size:13px;font-weight:700;}
 
 .two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
 @media(max-width:900px){.two-col{grid-template-columns:1fr;}}

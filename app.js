@@ -342,10 +342,7 @@
         <div class="zona-legend"><span>Sabores ${fmtInt(z.sab)}</span><span>Extremas ${fmtInt(z.ext)}</span></div>
       </div>`).join('');
 
-    Charts.stackedBar('chartZonas', zonas.map(z => z.label), [
-      { label: 'Sabores Express', data: zonas.map(z => z.sab), color: col('blue') },
-      { label: 'Hamburguesas Extremas', data: zonas.map(z => z.ext), color: col('blueLight') },
-    ], { legend: true });
+    renderZonaDiagram(zonas, total);
 
     const otras = total - zonas.reduce((a, z) => a + z.total, 0);
     const otrasEl = document.getElementById('zonaOtras');
@@ -354,6 +351,61 @@
         ? `+ ${fmtInt(otras)} altas fuera del AMBA (Rosario, Mar del Plata, La Plata) · ${fmtPct(pct(otras, total))} del total.`
         : '';
     }
+  }
+
+  // Dibuja las 4 zonas como una "brújula": AMBA en el centro y cada zona
+  // ubicada en su posición geográfica real (Norte arriba, Sur abajo, Oeste a
+  // la izquierda, CABA a la derecha — hacia el Río de la Plata, de ahí la
+  // franja celeste). El tamaño de cada burbuja es proporcional al volumen de
+  // altas de esa zona en el período elegido, así que además de ubicarlas
+  // funciona como gráfico comparativo (reemplaza a la barra apilada).
+  const ZONA_DIR = {
+    Norte: { x: 0, y: -1 },
+    Sur: { x: 0, y: 1 },
+    Oeste: { x: -1, y: 0 },
+    CABA: { x: 1, y: 0 },
+  };
+  function renderZonaDiagram(zonas, total) {
+    const el = document.getElementById('zonaDiagram');
+    if (!el) return;
+
+    const cx = 180, cy = 200, dist = 95;
+    const vals = zonas.map(z => z.total);
+    const minV = Math.min(...vals), maxV = Math.max(...vals);
+    const minR = 30, maxR = 58;
+    const radiusFor = (v) => maxV === minV ? (minR + maxR) / 2
+      : minR + ((v - minV) / (maxV - minV)) * (maxR - minR);
+
+    const nodes = zonas.map(z => {
+      const dir = ZONA_DIR[z.zona] || { x: 0, y: 0 };
+      const r = radiusFor(z.total);
+      return { ...z, x: cx + dir.x * dist, y: cy + dir.y * dist, r, color: ZONA_COLOR[z.zona] };
+    });
+
+    const outlineR = dist + maxR + 20;
+    const spokes = nodes.map(n => `
+      <line x1="${cx}" y1="${cy}" x2="${n.x}" y2="${n.y}" class="zdiag-spoke" stroke="${n.color}" />`).join('');
+    const bubbles = nodes.map(n => {
+      // Sur queda "boca abajo": la etiqueta va debajo de la burbuja en vez de arriba.
+      const labelY = n.zona === 'Sur' ? n.y + n.r + 24 : n.y - n.r - 12;
+      return `
+      <g>
+        <circle cx="${n.x}" cy="${n.y}" r="${n.r}" fill="${n.color}" />
+        <text x="${n.x}" y="${n.y - 3}" text-anchor="middle" class="zdiag-value">${fmtInt(n.total)}</text>
+        <text x="${n.x}" y="${n.y + 14}" text-anchor="middle" class="zdiag-pct">${fmtPct(pct(n.total, total))}</text>
+        <text x="${n.x}" y="${labelY}" text-anchor="middle" class="zdiag-label">${n.label}</text>
+      </g>`;
+    }).join('');
+
+    el.innerHTML = `
+      <svg viewBox="0 0 360 400" role="img" aria-label="Altas por zona del AMBA, distribuidas en un esquema con Zona Norte arriba, Zona Sur abajo, Zona Oeste a la izquierda y CABA a la derecha">
+        <circle cx="${cx}" cy="${cy}" r="${outlineR}" class="zdiag-outline" />
+        <path class="zdiag-rio" d="M${cx + outlineR - 6},${cy - 60} q14,15 0,30 q-14,15 0,30 q14,15 0,30 q-14,15 0,30 q14,15 0,30" />
+        ${spokes}
+        <circle cx="${cx}" cy="${cy}" r="15" class="zdiag-hub" />
+        <text x="${cx}" y="${cy + 4}" text-anchor="middle" class="zdiag-hub-label">AMBA</text>
+        ${bubbles}
+      </svg>`;
   }
 
   function renderPorSelector(months, altasF, allAltasF) {
