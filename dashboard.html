@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Altas de personal · Dashboard</title>
 <link rel="stylesheet" href="styles.css" />
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css" />
 <script src="vendor/chart.umd.min.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
 </head>
 <body>
 <div class="container">
@@ -79,6 +81,18 @@
       <div class="chart-wrap small"><canvas id="chartTopLocalExtremas"></canvas></div></div>
   </div>
 
+  <div id="mapaLocalesCard">
+    <div class="section-label">Mapa de locales</div>
+    <div class="card map-card" style="margin-bottom:16px;">
+      <h3>Locales y zonales</h3>
+      <p class="desc">Sabores Express y Hamburguesas Extremas · equipo completo</p>
+      <div class="map-wrap"><div id="mapaLocales"></div></div>
+      <p class="map-status" id="mapaLocalesStatus" style="display:none;"></p>
+      <p class="map-count" id="mapaLocalesCount"></p>
+      <p class="map-fallidos" id="mapaLocalesFallidos" style="display:none;"></p>
+    </div>
+  </div>
+
   <div class="section-label">Por selector</div>
   <div class="grid cols-2">
     <div class="card">
@@ -126,7 +140,9 @@
 </div>
 
 <script src="data.js"></script>
+<script src="locales.js"></script>
 <script src="charts.js"></script>
 <script src="app.js"></script>
+<script src="map.js"></script>
 </body>
 </html>

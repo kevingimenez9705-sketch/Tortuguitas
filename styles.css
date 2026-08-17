@@ -188,6 +188,24 @@ body{
 
 .footer-note{font-size:11px;color:var(--text-muted);text-align:right;margin:8px 4px 30px;}
 
+/* ================= Mapa de locales (panel completo de Kevin) ================= */
+.map-wrap{position:relative;height:420px;border-radius:10px;overflow:hidden;}
+#mapaLocales{width:100%;height:100%;background:var(--bg);}
+.map-legend{
+  background:rgba(255,255,255,.92);
+  border-radius:8px;
+  padding:6px 10px;
+  font-size:12px;
+  box-shadow:0 1px 4px rgba(16,24,40,.15);
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.map-legend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;}
+.map-status{font-size:12px;color:var(--text-muted);margin:12px 2px 0;}
+.map-count{font-size:12px;color:var(--text-muted);margin:6px 2px 0;}
+.map-fallidos{font-size:11px;color:var(--text-muted);margin:6px 2px 0;}
+
 .two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
 @media(max-width:900px){.two-col{grid-template-columns:1fr;}}
 
