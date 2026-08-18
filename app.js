@@ -21,6 +21,16 @@
     gustavo: { label: 'Gustavo Sotelo', selectors: [], color: '#4f8fc9', avatar: 'images/gustavo-sotelo.jpg', tortuga: 'images/tortuga-gustavo.jpg' },
     otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a', avatar: null, tortuga: null },
   };
+  // Puesto de cada selector agrupado dentro de "Otros" (no tienen tarjeta
+  // propia en index.html, pero sí un puesto real dentro del equipo): se usa
+  // para armar los badges del hero de su dashboard (ver renderHeroBadges),
+  // tomados con el mismo criterio que Agustín/Agustina en el organigrama.
+  const OTROS_ROLES = {
+    Emiliano: { label: 'Emiliano Pravato', puesto: 'Capacitador' },
+    Mariano: { label: 'Mariano', puesto: 'Selector' },
+    Facundo: { label: 'Facundo', puesto: 'Selector' },
+    Seleccion: { label: 'Selección', puesto: 'Sin selector asignado' },
+  };
   const KEVIN_COLOR = '#5c2430';
   // Panel sin filtrar (sin ?miembro=): también es "de alguien" — Kevin.
   const KEVIN = { label: 'Kevin García', color: KEVIN_COLOR, avatar: 'images/kevin-garcia.jpg', tortuga: 'images/tortuga-kevin.jpg' };
@@ -315,6 +325,17 @@
   function renderHeroBadges(rankVolumen, rankPresentismo, rankCumplimiento) {
     const el = document.getElementById('heroBadges');
     if (!el) return;
+    // Grupo con más de un selector (p. ej. "Otros"): no tiene un puesto único
+    // en el ranking, así que en vez de medallas mostramos el puesto de cada
+    // selector agrupado (ver OTROS_ROLES).
+    if (member && member.selectors.length > 1) {
+      el.innerHTML = member.selectors
+        .map(s => OTROS_ROLES[s])
+        .filter(Boolean)
+        .map(r => `<span class="hero-badge">${r.label} · ${r.puesto}</span>`)
+        .join('');
+      return;
+    }
     if (!member || member.selectors.length !== 1) { el.innerHTML = ''; return; }
     const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
     const findMine = (arr) => arr.findIndex(([n]) => memberSelectorSet.has(n));

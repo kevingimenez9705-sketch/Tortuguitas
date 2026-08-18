@@ -9,48 +9,184 @@
 <body>
 <div class="container">
 
-  <div class="equipo-banner">
-    <img class="logo" src="images/tortuguitas-logo.jpg" alt="Escudo Selección Tortuguitas" />
-    <div>
-      <span class="breadcrumb">Selección · Equipo</span>
-      <h1>Equipo <span class="accent">Tortuguitas</span></h1>
-      <p>Sabores Express · Extremas — elegí un integrante para ver sus resultados.</p>
+  <header class="home-hero">
+    <div class="brand-lockup">
+      <img class="brand-logo" src="images/tortuguitas-logo.jpg" alt="Escudo Selección Tortuguitas" />
+      <div>
+        <span class="breadcrumb">Selección · Equipo</span>
+        <h1 class="home-title">Equipo <span class="accent">Tortuguitas</span></h1>
+        <p class="home-subtitle">Sabores Express · Extremas — elegí un integrante para ver sus resultados.</p>
+      </div>
     </div>
-  </div>
+
+    <aside class="greeting-card" id="dynamic-greeting" data-phase="day" aria-live="polite">
+      <span class="greeting-sky" id="greeting-icon" aria-hidden="true">☀️</span>
+      <span class="greeting-copy"><small>Hora local</small><strong id="greeting-title">Buen día</strong><p id="greeting-detail">Que tengas una excelente jornada.</p></span>
+      <span class="greeting-meta"><time class="greeting-time" id="greeting-time"></time><a class="greeting-radio" id="greeting-radio" href="https://fmaspen.com/" target="_blank" rel="noopener noreferrer" hidden>🎧 Escuchar Aspen</a></span>
+    </aside>
+  </header>
+
+  <nav class="quick-nav" aria-label="Accesos rápidos">
+    <a class="quick-link" href="https://docs.google.com/spreadsheets/d/1YhOjO2nACt7WLHuOF5JShQA-AUlYvmkdULdgi4MwPRM/edit?usp=sharing" target="_blank" rel="noopener noreferrer">
+      <span class="quick-icon" aria-hidden="true">✅</span><span class="quick-copy"><strong>Tareas grupales</strong><small>Planificación y asignaciones</small></span>
+    </a>
+    <a class="quick-link" href="https://docs.google.com/presentation/d/17jh0j4r3MUOfes14RT6oXLTK4SXCsEZkHCDvUxsqOy0/edit?usp=sharing" target="_blank" rel="noopener noreferrer">
+      <span class="quick-icon" aria-hidden="true">🚀</span><span class="quick-copy"><strong>Onboarding</strong><small>Bienvenida e Ingreso</small></span>
+    </a>
+    <a class="quick-link gem-sabores" href="https://gemini.google.com/gem/17a591cbf4b4?usp=sharing" target="_blank" rel="noopener noreferrer">
+      <span class="quick-icon" aria-hidden="true">💎</span><span class="quick-copy"><strong>Envíos Sabores</strong><small>Mensajes preconfigurados</small></span>
+    </a>
+    <a class="quick-link gem-extremas" href="https://gemini.google.com/gem/fed5cb54e8f7?usp=sharing" target="_blank" rel="noopener noreferrer">
+      <span class="quick-icon" aria-hidden="true">💎</span><span class="quick-copy"><strong>Envíos Extremas</strong><small>Mensajes preconfigurados</small></span>
+    </a>
+  </nav>
 
   <div class="unit-grid">
     <a class="unit-card" href="dashboard.html" style="border-top-color:#5c2430;--tortuga-bg:url('images/tortuga-kevin.jpg');">
       <img class="unit-avatar" src="images/kevin-garcia.jpg" alt="Kevin García" />
       <div class="unit-name">Kevin García</div>
+      <div class="unit-role">Coordinador de Selección</div>
       <div class="unit-link" style="color:#5c2430;">Ver resultados de equipo →</div>
     </a>
     <a class="unit-card" href="dashboard.html?miembro=agustin" style="border-top-color:#5b2d78;--tortuga-bg:url('images/tortuga-agustin.jpg');">
       <img class="unit-avatar" src="images/agustin-marquez.jpg" alt="Agustín Márquez" />
       <div class="unit-name">Agustín Márquez</div>
+      <div class="unit-role">Selector</div>
       <div class="unit-link" style="color:#5b2d78;">Ver resultados →</div>
     </a>
     <a class="unit-card" href="dashboard.html?miembro=agustina" style="border-top-color:#cc2f2f;--tortuga-bg:url('images/tortuga-agustina.jpg');">
       <img class="unit-avatar" src="images/agustina-castillo.jpg" alt="Agustina Castillo" />
       <div class="unit-name">Agustina Castillo</div>
+      <div class="unit-role">Selector Jr</div>
       <div class="unit-link" style="color:#cc2f2f;">Ver resultados →</div>
     </a>
     <a class="unit-card" href="dashboard.html?miembro=rafael" style="border-top-color:#e2721f;--tortuga-bg:url('images/tortuga-rafael.jpg');">
       <img class="unit-avatar" src="images/rafael-barberi.jpg" alt="Rafael Barberi" />
       <div class="unit-name">Rafael Barberi</div>
+      <div class="unit-role">Selector Jr</div>
       <div class="unit-link" style="color:#e2721f;">Ver resultados →</div>
     </a>
     <a class="unit-card" href="dashboard.html?miembro=gustavo" style="border-top-color:#4f8fc9;--tortuga-bg:url('images/tortuga-gustavo.jpg');">
       <img class="unit-avatar" src="images/gustavo-sotelo.jpg" alt="Gustavo Sotelo" />
       <div class="unit-name">Gustavo Sotelo</div>
+      <div class="unit-role">Selector Jr</div>
       <div class="unit-link" style="color:#4f8fc9;">Ver resultados →</div>
     </a>
-    <a class="unit-card" href="dashboard.html?miembro=otros" style="border-top-color:#a9714a;">
+    <a class="unit-card" href="dashboard.html?miembro=otros" style="border-top-color:#a9714a;--tortuga-bg:url('images/muertos%20en%20el%20camino.jpg');">
       <div class="unit-avatar placeholder">+3</div>
       <div class="unit-name">Otros</div>
+      <div class="unit-role">Selectores adicionales</div>
       <div class="unit-link" style="color:#a9714a;">Ver resultados →</div>
     </a>
   </div>
 
+  <details class="structure-disclosure">
+    <summary class="structure-summary">
+      <span class="summary-copy"><span aria-hidden="true">🏢</span><span>Estructura completa de RRHH<small>Alejandra Baltar y todos los equipos</small></span></span>
+      <span class="summary-arrow" aria-hidden="true">⌄</span>
+    </summary>
+
+    <div class="structure-body">
+      <div class="org-intro"><span>Organigrama general</span><h2>Equipo RRHH</h2><p>Conducción común y especialidades de Selección, Capacitación, Diseño y Staff.</p></div>
+
+      <div class="executive-row">
+        <article class="org-card"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/alejandra-baltar.jpg" alt="Alejandra Baltar"></div><div class="org-person"><small>Gerencia</small><h3>Alejandra Baltar</h3><p>Gerente RRHH</p></div></article>
+      </div>
+      <div class="connector-vertical" aria-hidden="true"></div>
+
+      <div class="heads-row">
+        <article class="org-card"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/angel-buzo.jpg" alt="Ángel Buzo"></div><div class="org-person"><small>Jefatura</small><h3>Ángel Buzo</h3><p>Jefe RRHH Soft</p></div></article>
+        <article class="org-card"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/soledad-toledo.jpg" alt="Soledad Cueto"></div><div class="org-person"><small>Jefatura</small><h3>Soledad Cueto</h3><p>Jefe RRHH Soft Staff</p></div></article>
+      </div>
+
+      <div class="division-grid">
+        <details class="division division-disclosure">
+          <summary class="division-title">
+            <span><strong>RRHH Soft</strong><span class="division-lead">Ángel Buzo</span></span>
+            <span class="summary-arrow" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="soft-layout">
+            <div class="subteam">
+              <div class="subteam-title"><span>🐢 Las Tortuguitas Ninja</span><span>Selección</span></div>
+              <div class="chain">
+                <article class="org-card"><div class="org-avatar"><img loading="lazy" src="images/kevin-garcia.jpg" alt="Kevin García"></div><div class="org-person"><small>Coordinación</small><h3>Kevin García</h3><p>Coordinador Selección</p></div></article>
+                <div class="connector-vertical" aria-hidden="true"></div>
+                <article class="org-card"><div class="org-avatar"><img loading="lazy" src="images/agustin-marquez.jpg" alt="Agustín Márquez"></div><div class="org-person"><small>Selección</small><h3>Agustín Márquez</h3><p>Selector</p></div></article>
+              </div>
+              <div class="roster">
+                <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="images/agustina-castillo.jpg" alt="Agustina Castillo"></div><h3>Agustina Castillo</h3><p>Selector Jr</p></article>
+                <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="images/rafael-barberi.jpg" alt="Rafael Barberi"></div><h3>Rafael Barberi</h3><p>Selector Jr</p></article>
+                <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="images/gustavo-sotelo.jpg" alt="Gustavo Sotelo"></div><h3>Gustavo Sotelo</h3><p>Selector Jr</p></article>
+                <article class="mini-person vacancy"><div class="org-avatar" aria-hidden="true">+</div><h3>Vacante</h3><p>Selector Jr</p></article>
+              </div>
+            </div>
+
+            <div class="specialties">
+              <section class="specialty"><strong>Capacitación</strong><article class="mini-person"><div class="org-avatar"><img loading="lazy" src="images/emiliano-pravato.jpg" alt="Emiliano Pravato"></div><h3>Emiliano Pravato</h3><p>Capacitador</p></article></section>
+              <section class="specialty"><strong>Diseño</strong>
+                <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/nazareno-devia.jpg" alt="Nazareno Devia"></div><h3>Nazareno Devia</h3><p>Diseñador Sr</p></article>
+                <div class="roster">
+                  <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/bautista-valle.jpg" alt="Bautista Valle"></div><h3>Bautista Valle</h3><p>Diseñador Jr</p></article>
+                  <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/agustin-monteverdi.jpg" alt="Agustín Monteverdi"></div><h3>Agustín Monteverdi</h3><p>Diseñador Jr</p></article>
+                </div>
+              </section>
+            </div>
+          </div>
+        </details>
+
+        <details class="division division-disclosure">
+          <summary class="division-title">
+            <span><strong>RRHH Soft Staff</strong><span class="division-lead">Soledad Cueto</span></span>
+            <span class="summary-arrow" aria-hidden="true">⌄</span>
+          </summary>
+          <div class="staff-chain">
+            <article class="org-card vacancy"><div class="org-avatar" aria-hidden="true">+</div><div class="org-person"><small>Vacante</small><h3>Coordinación</h3><p>Coordinador RRHH Soft Staff</p></div></article>
+            <div class="roster staff-roster">
+              <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/silvina-croce.jpg" alt="Silvina Croce"></div><h3>Silvina Croce</h3><p>Selector</p></article>
+              <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/romina-rogoni.jpg" alt="Romina Rogoni"></div><h3>Romina Rogoni</h3><p>Selector</p>
+                <div class="mini-person juan-card"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/juan-alecha.jpg" alt="Juan Pablo Alecha"></div><h3>Juan Pablo Alecha</h3><p>Selector Jr</p></div>
+              </article>
+              <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/claudia-triana.jpg" alt="Claudia Triana"></div><h3>Claudia Triana</h3><p>Selector</p></article>
+              <article class="mini-person"><div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/noelia-esteban.jpg" alt="Noelia Esteban"></div><h3>Noelia Esteban</h3><p>Selector</p></article>
+            </div>
+          </div>
+        </details>
+      </div>
+    </div>
+  </details>
+
 </div>
+
+<script>
+  (function () {
+    const card = document.getElementById('dynamic-greeting');
+    if (!card) return;
+    const icon = document.getElementById('greeting-icon');
+    const title = document.getElementById('greeting-title');
+    const detail = document.getElementById('greeting-detail');
+    const time = document.getElementById('greeting-time');
+    const radio = document.getElementById('greeting-radio');
+
+    function updateGreeting() {
+      const now = new Date();
+      const hour = now.getHours();
+      let phase;
+      if (hour >= 5 && hour < 8) phase = { key: 'dawn', icon: '🌅', title: 'Buenos días', detail: 'El equipo comienza una nueva jornada.' };
+      else if (hour >= 8 && hour < 13) phase = { key: 'day', icon: '☀️', title: 'Buen día', detail: 'Que tengas una excelente jornada.' };
+      else if (hour >= 13 && hour < 18) phase = { key: 'afternoon', icon: '🌤️', title: 'Buenas tardes', detail: 'Seguimos avanzando juntos.' };
+      else if (hour >= 18 && hour < 21) phase = { key: 'sunset', icon: '🌇', title: 'Buenas tardes', detail: 'Cerramos la jornada paso a paso.' };
+      else phase = { key: 'night', icon: '🌙', title: 'Buenas noches', detail: 'Si estás trabajando fuera de horario, no estás solo.' };
+      card.dataset.phase = phase.key;
+      icon.textContent = phase.icon;
+      title.textContent = phase.title;
+      detail.textContent = phase.detail;
+      time.textContent = now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) + ' hs';
+      radio.hidden = phase.key !== 'night';
+    }
+
+    updateGreeting();
+    setInterval(updateGreeting, 30000);
+  })();
+</script>
 </body>
 </html>

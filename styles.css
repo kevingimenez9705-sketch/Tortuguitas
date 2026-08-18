@@ -192,37 +192,123 @@ body{
 @media(max-width:900px){.two-col{grid-template-columns:1fr;}}
 
 /* ================= Equipo (team landing page) ================= */
-.equipo-banner{
-  background:linear-gradient(120deg,#6b4a2e 0%,#9c7248 38%,#c39868 68%,#e8c99e 100%);
+.home-hero{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(240px,320px);
+  align-items:center;
+  gap:28px;
+  background:linear-gradient(135deg,var(--navy),var(--navy-2));
   border-radius:var(--radius);
   padding:26px 32px;
   color:#fff;
   margin-bottom:20px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  gap:20px;
 }
-.equipo-banner .logo{
-  width:96px;
-  height:96px;
+.brand-lockup{display:flex;align-items:center;gap:18px;}
+.brand-logo{
+  width:88px;
+  height:88px;
+  flex:0 0 auto;
+  padding:5px;
   border-radius:50%;
-  background:rgba(255,255,255,.16);
-  border:2px solid rgba(255,255,255,.35);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:26px;
-  flex-shrink:0;
+  background:#fff;
   object-fit:cover;
 }
-.equipo-banner h1{margin:0 0 6px;font-size:28px;font-weight:800;}
-.equipo-banner h1 .accent{color:#fff0dc;}
-.equipo-banner p{margin:0;color:#fbf1e6;font-size:14px;max-width:640px;}
+.home-title{margin:10px 0 6px;font-size:28px;font-weight:800;color:#fff;}
+.home-title .accent{color:#60a5fa;}
+.home-subtitle{margin:0;color:#b9c3de;font-size:14px;max-width:640px;}
+
+.greeting-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:center;
+  gap:12px;
+  padding:15px;
+  border:1px solid #315a86;
+  border-radius:16px;
+  background:#123a70;
+  color:#fff;
+  transition:background-color .35s ease, border-color .35s ease;
+}
+.greeting-card[data-phase="dawn"]{border-color:#f6c77d;background:#5b4a4e;}
+.greeting-card[data-phase="day"]{border-color:#60a5fa;background:#123a70;}
+.greeting-card[data-phase="afternoon"]{border-color:#7dd3fc;background:#173f67;}
+.greeting-card[data-phase="sunset"]{border-color:#f0a779;background:#493b57;}
+.greeting-card[data-phase="night"]{border-color:#506487;background:#111c33;}
+.greeting-sky{
+  display:grid;
+  place-items:center;
+  width:50px;
+  height:50px;
+  border-radius:14px;
+  background:rgba(255,255,255,.1);
+  font-size:25px;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+  animation:greeting-float 4s ease-in-out infinite;
+}
+.greeting-copy{min-width:0;}
+.greeting-copy small{display:block;margin-bottom:3px;color:#bfdbfe;font-size:9px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;}
+.greeting-copy strong{display:block;font-size:16px;letter-spacing:-.02em;}
+.greeting-copy p{margin:4px 0 0;color:#dbeafe;font-size:11px;line-height:1.35;}
+.greeting-meta{grid-column:2;display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:2px;}
+.greeting-time{color:#bfdbfe;font-size:10px;font-weight:800;}
+.greeting-radio{
+  display:inline-flex;
+  align-items:center;
+  padding:5px 9px;
+  border:1px solid #64748b;
+  border-radius:9px;
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  font-size:10px;
+  font-weight:800;
+  text-decoration:none;
+}
+.greeting-radio:hover{background:rgba(255,255,255,.15);}
+.greeting-radio[hidden]{display:none;}
+@keyframes greeting-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
+
+@media(max-width:760px){
+  .home-hero{grid-template-columns:1fr;gap:16px;}
+}
 @media(max-width:600px){
-  .equipo-banner{flex-direction:column;}
-  .equipo-banner .logo{width:72px;height:72px;}
+  .home-hero{padding:20px;}
+  .brand-lockup{align-items:flex-start;gap:13px;}
+  .brand-logo{width:64px;height:64px;}
+}
+
+.quick-nav{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin:0 0 20px;
+}
+.quick-link{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-height:66px;
+  padding:13px 15px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card);
+  color:var(--text);
+  text-decoration:none;
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+  transition:transform .15s ease, box-shadow .15s ease;
+}
+.quick-link:hover{border-color:var(--blue);background:#f8fbff;transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,24,40,.1);}
+.quick-link.gem-sabores{border-color:#fdba74;background:linear-gradient(135deg,#fff7ed 0%,#ffedd5 100%);}
+.quick-link.gem-extremas{border-color:#fca5a5;background:linear-gradient(135deg,#fff5f5 0%,#fee2e2 100%);}
+.quick-icon{font-size:22px;flex-shrink:0;}
+.quick-copy{min-width:0;}
+.quick-copy strong{display:block;font-size:13px;}
+.quick-copy small{display:block;margin-top:2px;color:var(--text-muted);font-size:11px;line-height:1.25;}
+@media(max-width:760px){
+  .quick-nav{grid-template-columns:repeat(2,minmax(0,1fr));}
+}
+@media(max-width:480px){
+  .quick-nav{grid-template-columns:1fr;gap:8px;}
+  .quick-link{min-height:56px;}
 }
 
 .unit-grid{
@@ -275,7 +361,8 @@ body{
 .unit-card:hover{transform:translateY(-2px);box-shadow:0 8px 20px rgba(16,24,40,.1);}
 .unit-card:hover::before{opacity:.85;}
 .unit-card:hover::after{opacity:1;}
-.unit-card:hover img.unit-avatar{opacity:0;transform:scale(.85);}
+.unit-card:hover img.unit-avatar,
+.unit-card:hover .unit-avatar.placeholder{opacity:0;transform:scale(.85);}
 .unit-avatar{
   transition:opacity .2s ease, transform .2s ease;
   width:72px;
@@ -297,6 +384,7 @@ body{
   font-size:22px;
 }
 .unit-name{font-weight:800;font-size:17px;color:var(--text);}
+.unit-role{margin-top:2px;font-size:12px;font-weight:700;color:var(--text-muted);}
 .unit-link{margin-top:14px;font-size:13px;font-weight:700;color:#8a5a35;}
 
 .btn-primary{
@@ -395,3 +483,150 @@ body{
 }
 .sd-card h3{margin:0 0 6px;font-size:18px;}
 .sd-card p{max-width:440px;margin:0 auto 20px;}
+
+/* ================= Organigrama de RRHH (desplegable, index.html) ================= */
+.structure-disclosure{
+  margin-top:24px;
+  border-radius:var(--radius);
+  background:var(--card);
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+  overflow:hidden;
+}
+.structure-summary{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding:16px 20px;
+  background:linear-gradient(135deg,var(--navy),var(--navy-2));
+  color:#fff;
+  cursor:pointer;
+  list-style:none;
+  font-weight:800;
+}
+.structure-summary::-webkit-details-marker{display:none;}
+.summary-copy{display:flex;align-items:center;gap:12px;}
+.summary-copy small{display:block;margin-top:3px;color:#b9c3de;font-size:11px;font-weight:600;}
+.summary-arrow{font-size:18px;transition:transform .2s ease;}
+.structure-disclosure[open] > .structure-summary .summary-arrow{transform:rotate(180deg);}
+.structure-body{padding:24px;}
+
+.org-intro{max-width:700px;margin:0 auto 24px;text-align:center;}
+.org-intro span{color:var(--blue);font-size:10px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;}
+.org-intro h2{margin:5px 0;font-size:24px;letter-spacing:-.02em;}
+.org-intro p{margin:0;color:var(--text-muted);font-size:13px;}
+
+.org-card{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:0;
+  padding:11px 13px;
+  border:1px solid var(--border);
+  border-radius:15px;
+  background:#fff;
+  box-shadow:0 1px 2px rgba(16,24,40,.04);
+}
+.org-avatar{
+  width:56px;
+  height:56px;
+  flex:0 0 auto;
+  overflow:hidden;
+  border:3px solid #eef2f7;
+  border-radius:50%;
+  background:#f1f5f9;
+}
+.org-avatar img{width:100%;height:100%;object-fit:cover;}
+.org-person{min-width:0;}
+.org-person small{display:block;color:var(--blue);font-size:9px;font-weight:900;text-transform:uppercase;}
+.org-person h3{margin:2px 0;font-size:14px;}
+.org-person p{margin:0;color:var(--text-muted);font-size:11px;font-weight:700;}
+
+.executive-row{display:grid;justify-items:center;}
+.executive-row .org-card{width:min(100%,340px);border-color:#a9c4f7;background:#eff6ff;}
+.executive-row .org-avatar{width:68px;height:68px;}
+
+.connector-vertical{width:2px;height:22px;margin-inline:auto;background:var(--border);}
+
+.heads-row{
+  position:relative;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,340px));
+  justify-content:center;
+  gap:clamp(24px,8vw,100px);
+  padding-top:22px;
+}
+.heads-row::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:calc(25% - 1px);
+  right:calc(25% - 1px);
+  height:2px;
+  background:var(--border);
+}
+.heads-row .org-card::before{
+  content:"";
+  position:absolute;
+  left:calc(50% - 1px);
+  top:-22px;
+  width:2px;
+  height:22px;
+  background:var(--border);
+}
+
+.division-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:26px;}
+.division{border:1px solid var(--border);border-radius:16px;background:#fbfbfd;overflow:hidden;}
+.division-disclosure{padding:0;}
+.division-title{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:14px 16px;
+  cursor:pointer;
+  list-style:none;
+  background:#f3f4f7;
+}
+.division-title::-webkit-details-marker{display:none;}
+.division-disclosure[open] > .division-title .summary-arrow{transform:rotate(180deg);}
+.division-title strong{font-size:15px;}
+.division-title .division-lead{display:block;margin-top:2px;color:var(--text-muted);font-size:10px;font-weight:800;text-transform:uppercase;}
+.division-disclosure > .soft-layout,
+.division-disclosure > .staff-chain{padding:16px;}
+
+.soft-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(200px,.65fr);gap:12px;}
+.subteam{padding:14px;border:1px solid #c4b5fd;border-radius:14px;background:#fff;}
+.subteam-title{display:flex;justify-content:space-between;margin-bottom:12px;color:#5b3ea6;font-size:12px;font-weight:900;}
+.chain{display:grid;justify-items:center;}
+.chain .org-card{width:min(100%,280px);}
+.roster{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:12px;}
+.mini-person{min-width:0;padding:9px 5px;border:1px solid var(--border);border-radius:12px;background:#fff;text-align:center;}
+.mini-person .org-avatar{width:48px;height:48px;margin:0 auto 6px;}
+.mini-person h3{margin:0 0 2px;overflow:hidden;font-size:10px;text-overflow:ellipsis;white-space:nowrap;}
+.mini-person p{margin:0;color:var(--text-muted);font-size:9px;font-weight:700;}
+.vacancy{border-style:dashed;}
+.vacancy .org-avatar{display:grid;place-items:center;color:#94a3b8;font-size:18px;font-weight:900;}
+
+.specialties{display:grid;gap:10px;}
+.specialty{padding:12px;border:1px solid var(--border);border-radius:14px;background:#fff;}
+.specialty > strong{display:block;margin-bottom:9px;font-size:11px;}
+.specialty .roster{grid-template-columns:repeat(2,minmax(0,1fr));margin-top:9px;}
+
+.staff-chain{display:grid;justify-items:center;}
+.staff-chain > .org-card{width:min(100%,280px);margin-bottom:12px;}
+.staff-roster{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;}
+.juan-card{margin-top:7px;border-color:#99f6e4;background:#f0fdfa;}
+
+@media(max-width:900px){
+  .heads-row{grid-template-columns:1fr;gap:10px;padding-top:0;}
+  .heads-row::before,.heads-row .org-card::before{display:none;}
+  .soft-layout{grid-template-columns:1fr;}
+}
+@media(max-width:600px){
+  .structure-body{padding:16px 12px;}
+  .roster{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .org-avatar{width:48px;height:48px;}
+  .summary-copy small{display:none;}
+}
