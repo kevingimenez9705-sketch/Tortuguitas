@@ -85,6 +85,17 @@
     CUMPL = DATA.cumplimiento;
   }
 
+  // Mapa de zonas: es contexto general del equipo, así que solo se muestra
+  // en el panel sin filtrar (Kevin). En la vista de un integrante se oculta
+  // junto con su section-label para no ocupar espacio con algo que no aplica
+  // a su propio informe.
+  if (member) {
+    const zonaLabel = document.getElementById('zonaSectionLabel');
+    const zonaCard = document.getElementById('zonaMapCard');
+    if (zonaLabel) zonaLabel.style.display = 'none';
+    if (zonaCard) zonaCard.style.display = 'none';
+  }
+
   if (member) {
     const breadcrumb = document.getElementById('heroBreadcrumb');
     const title = document.getElementById('heroTitle');
