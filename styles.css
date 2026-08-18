@@ -592,6 +592,46 @@ body{
   background:#fff;
   box-shadow:0 1px 2px rgba(16,24,40,.04);
 }
+/* Probando en Kevin: al pasar el mouse (o enfocar con teclado) la tarjeta
+   hace un pequeño zoom y debajo aparece una tarjetita con una descripción
+   breve y su contacto, sin correr el resto del organigrama. */
+.org-card--preview{
+  z-index:1;
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.org-card--preview:hover,
+.org-card--preview:focus-within{
+  z-index:6;
+  transform:scale(1.045);
+  box-shadow:0 14px 30px rgba(15,23,42,.16);
+}
+.org-preview{
+  position:absolute;
+  left:0;
+  right:0;
+  top:100%;
+  z-index:6;
+  margin-top:8px;
+  padding:10px 12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  background:#fff;
+  box-shadow:0 14px 30px rgba(15,23,42,.16);
+  text-align:center;
+  opacity:0;
+  transform:translateY(-6px) scale(.96);
+  transition:opacity .2s ease, transform .2s ease;
+  pointer-events:none;
+}
+.org-preview p{margin:0 0 4px;font-size:11px;font-weight:700;color:var(--text);}
+.org-preview-contact{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--blue);text-decoration:none;}
+.org-preview-contact:hover{text-decoration:underline;}
+.org-card--preview:hover .org-preview,
+.org-card--preview:focus-within .org-preview{
+  opacity:1;
+  transform:translateY(0) scale(1);
+  pointer-events:auto;
+}
 .org-avatar{
   width:56px;
   height:56px;
