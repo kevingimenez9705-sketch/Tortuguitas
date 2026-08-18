@@ -576,25 +576,60 @@ body{
   background:var(--border);
 }
 
-.division-grid{display:grid;grid-template-columns:1fr;gap:16px;margin-top:26px;}
-.division{border:1px solid var(--border);border-radius:16px;background:#fbfbfd;overflow:hidden;}
-.division-disclosure{padding:0;}
-.division-title{
+/* Cada columna repite debajo de la tarjeta de Ángel/Soledad en heads-row,
+   con una línea que baja de esa tarjeta a su equipo: así queda visualmente
+   inequívoco qué equipo depende de quién, sin necesidad de desplegables. */
+.division-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:0;}
+.division-col{display:flex;flex-direction:column;align-items:stretch;}
+.division{
+  display:flex;
+  flex-direction:column;
+  flex:1;
+  border:1px solid var(--border);
+  border-top:3px solid var(--border);
+  border-radius:16px;
+  background:#fbfbfd;
+  overflow:hidden;
+}
+.division-angel{border-top-color:var(--blue);}
+.division-soledad{border-top-color:#14b8a6;}
+.division-header{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap:10px;
+  gap:12px;
   padding:14px 16px;
-  cursor:pointer;
-  list-style:none;
   background:#f3f4f7;
+  border-bottom:1px solid var(--border);
 }
-.division-title::-webkit-details-marker{display:none;}
-.division-disclosure[open] > .division-title .summary-arrow{transform:rotate(180deg);}
-.division-title strong{font-size:15px;}
-.division-title .division-lead{display:block;margin-top:2px;color:var(--text-muted);font-size:10px;font-weight:800;text-transform:uppercase;}
-.division-disclosure > .soft-layout,
-.division-disclosure > .staff-chain{padding:16px;}
+.division-lead-avatar{
+  width:44px;
+  height:44px;
+  flex:0 0 auto;
+  overflow:hidden;
+  border-radius:50%;
+  border:2px solid #fff;
+  box-shadow:0 0 0 1px var(--border);
+  background:#f1f5f9;
+}
+.division-lead-avatar img{width:100%;height:100%;object-fit:cover;}
+.division-lead-copy{min-width:0;}
+.division-eyebrow{display:block;color:var(--text-muted);font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;}
+.division-header strong{display:block;font-size:15px;}
+.division-tag{
+  display:inline-block;
+  margin-top:3px;
+  padding:2px 9px;
+  border-radius:999px;
+  background:#e7ecf5;
+  color:var(--text-muted);
+  font-size:10px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+.division-angel .division-tag{background:#dbeafe;color:#1d4ed8;}
+.division-soledad .division-tag{background:#ccfbf1;color:#0f766e;}
+.division > .soft-layout,
+.division > .staff-chain{padding:16px;flex:1;}
 
 .soft-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(200px,.65fr);gap:12px;}
 .subteam{padding:14px;border:1px solid #c4b5fd;border-radius:14px;background:#fff;}
@@ -623,6 +658,7 @@ body{
   .heads-row{grid-template-columns:1fr;gap:10px;padding-top:0;}
   .heads-row::before,.heads-row .org-card::before{display:none;}
   .soft-layout{grid-template-columns:1fr;}
+  .division-grid{grid-template-columns:1fr;}
 }
 @media(max-width:600px){
   .structure-body{padding:16px 12px;}
