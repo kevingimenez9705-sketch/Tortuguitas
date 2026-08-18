@@ -144,6 +144,88 @@
     return SELECTOR_COLORS[selector];
   }
 
+  // ---------- Mapa de zonas (solo panel general de Kevin) ----------
+  // data.js no tiene una columna de zona geográfica: "zonal" y "regional" son
+  // nombres de personas (zonal/regional manager), no regiones. Para poder
+  // mostrar altas reales por zona en el mapa, clasificamos cada "local" por
+  // el nombre de la localidad en la que está (Zona Norte/Oeste/Sur/Capital
+  // Federal, según los partidos del GBA que integra cada una). Lo que no
+  // matchea con ninguna de esas 4 zonas —localidades fuera del área de
+  // cobertura habitual, como La Plata, Mar del Plata (MDQ), Rosario o
+  // Zárate— cae en "Otros". Si se abren locales nuevos en localidades no
+  // contempladas acá, van a aparecer como "Otros" hasta que se agreguen a
+  // ZONA_BASE.
+  const ZONA_BASE = {
+    // Capital Federal (barrios porteños + calles/avenidas del microcentro)
+    'BARRACAS': 'capital', 'BELGRANO': 'capital', 'BOEDO': 'capital', 'CABALLITO': 'capital',
+    'CALLAO': 'capital', 'CONSTITUCION': 'capital', 'CORRIENTES': 'capital', 'ENTRE RIOS': 'capital',
+    'FLORES': 'capital', 'FLORIDA': 'capital', 'LAVALLE': 'capital', 'LINIERS': 'capital', 'LUGANO': 'capital',
+    'MATADEROS': 'capital', 'ONCE': 'capital', 'PELLEGRINI': 'capital', 'POMPEYA': 'capital',
+    'PUEYRREDON': 'capital', 'RETIRO': 'capital', 'SAAVEDRA': 'capital', 'SAVEEDRA': 'capital',
+    'SAN CRISTOBAL': 'capital', 'SAN NICOLAS': 'capital', 'SANTA FE': 'capital', 'TUCUMAN': 'capital',
+    'URQUIZA': 'capital', 'VILLA DEL PARQUE': 'capital', 'VILLA LUGANO': 'capital',
+    // Zona Norte (San Isidro, Vicente López, San Fernando, Tigre, Escobar, Pilar, San Martín, San Miguel, Malvinas Argentinas, José C. Paz...)
+    'BALLESTER': 'norte', 'BANAVIDEZ': 'norte', 'BENAVIDEZ': 'norte', 'BOULOGNE': 'norte',
+    'CHILAVERT': 'norte', 'DEL VISO': 'norte', 'DON TORCUATO': 'norte', 'ESCOBAR': 'norte',
+    'GARIN': 'norte', 'GRAND BOURG': 'norte', 'JOSE C PAZ': 'norte', 'JOSE LEON SUAREZ': 'norte',
+    'LOMA HERMOSA': 'norte', 'LOS POLVORINES': 'norte', 'MANUEL ALBERTI': 'norte',
+    'MAQUINISTA SAVIO': 'norte', 'SAVIO': 'norte', 'MARTINEZ': 'norte', 'MASCHWITZ': 'norte',
+    'MUNRO': 'norte', 'OLIVOS': 'norte', 'PACHECO': 'norte', 'PILAR': 'norte', 'PTE SAAVEDRA': 'norte',
+    'SAN FERNANDO': 'norte', 'SAN ISIDRO': 'norte', 'SAN MARTIN': 'norte', 'SAN MIGUEL': 'norte',
+    'TALAR': 'norte', 'TIGRE': 'norte', 'TORTUGUITAS': 'norte', 'ADELINA': 'norte', 'V ADELINA': 'norte',
+    'VIRREYES': 'norte', 'VTE LOPEZ': 'norte', 'BELLA VISTA': 'norte',
+    // Zona Oeste (Morón, Tres de Febrero, Hurlingham, Ituzaingó, La Matanza, Merlo, Moreno, Luján...)
+    'CASEROS': 'oeste', 'CASTELAR': 'oeste', 'CIUDADELA': 'oeste', 'CRUCE CASTELAR': 'oeste',
+    'EL PALOMAR': 'oeste', 'PALOMAR': 'oeste', 'GONZALEZ CATAN': 'oeste', 'GRAL RODRIGUEZ': 'oeste',
+    'HAEDO': 'oeste', 'HAEDOO': 'oeste', 'HURLINGHAM': 'oeste', 'ITUZAINGO': 'oeste', 'LAFERRERE': 'oeste',
+    'LOMAS DEL MIRADOR': 'oeste', 'LUJAN': 'oeste', 'MERLO': 'oeste', 'MORENO': 'oeste', 'MORON': 'oeste',
+    'PADUA': 'oeste', 'PASO DEL REY': 'oeste', 'RAFAEL CASTILLO': 'oeste', 'RAMOS MEJIA': 'oeste',
+    'SAN JUSTO': 'oeste', 'SANTOS LUGARES': 'oeste', 'SOURDEAUX': 'oeste', 'TAPIALES': 'oeste',
+    'W MORRIS': 'oeste',
+    // Zona Sur (Avellaneda, Lanús, Lomas de Zamora, Almirante Brown, Ezeiza, Esteban Echeverría, Quilmes, Berazategui, Florencio Varela...)
+    'ADROGUE': 'sur', 'E ADROGUE': 'sur', 'AVELLANEDA': 'sur', 'BANFIELD': 'sur', 'BERAZATEGUI': 'sur',
+    'CLAYPOLE': 'sur', 'CROVARA': 'sur', 'CRUCE VARELA': 'sur', 'EZEIZA': 'sur', 'GERLI': 'sur',
+    'GLEW': 'sur', 'JAGUEL': 'sur', 'LANUS': 'sur', 'LEZAMA': 'sur', 'LOMAS': 'sur', 'MONTE GRANDE': 'sur',
+    'QUILMES': 'sur', 'SOLANO': 'sur', 'TEMPERLEY': 'sur', 'TRISTAN SUAREZ': 'sur', 'VARELA': 'sur',
+    'WILDE': 'sur',
+    // Otros: fuera de las 4 zonas de cobertura habitual (otras ciudades/provincias)
+    'LA PLATA': 'otros', 'CITY BELL': 'otros', 'MDQ': 'otros', 'ROSARIO': 'otros', 'ZARATE': 'otros',
+  };
+  function normalizeLocal(local) {
+    let s = (local || '').trim().toUpperCase()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, ''); // saca acentos
+    s = s.replace(/^APER\s+/, '');   // "APER EZEIZA" -> "EZEIZA" (misma localidad, apertura reciente)
+    s = s.replace(/\./g, '');        // "VTE. LOPEZ" -> "VTE LOPEZ"
+    s = s.replace(/\s+\d+$/, '');    // "PILAR 1" -> "PILAR"
+    s = s.replace(/(\D)\d+$/, '$1'); // "PILAR2" -> "PILAR"
+    return s.trim();
+  }
+  function zonaFor(local) { return ZONA_BASE[normalizeLocal(local)] || 'otros'; }
+  const ZONA_INFO = {
+    norte: { label: 'Zona Norte', color: '#c7ccd6', svgId: 'zonaSvgNorte' },
+    oeste: { label: 'Zona Oeste', color: '#a9b0bd', svgId: 'zonaSvgOeste' },
+    sur: { label: 'Zona Sur', color: '#7c5cf0', svgId: 'zonaSvgSur' },
+    capital: { label: 'Capital Federal', color: '#525a68', svgId: 'zonaSvgCapital' },
+    otros: { label: 'Otros (fuera de zona)', color: '#8a94a6', svgId: null },
+  };
+  function renderZonas(altasF) {
+    if (member) return; // sección oculta para vistas por integrante
+    const legend = document.getElementById('zonaLegend');
+    if (!legend) return;
+    const counts = { norte: 0, oeste: 0, sur: 0, capital: 0, otros: 0 };
+    for (const r of altasF) counts[zonaFor(r.local)]++;
+    const total = altasF.length;
+    ['norte', 'oeste', 'sur', 'capital'].forEach(z => {
+      const el = document.getElementById(ZONA_INFO[z].svgId);
+      if (el) el.textContent = total ? `${fmtInt(counts[z])} altas` : 'sin datos';
+    });
+    legend.innerHTML = ['norte', 'oeste', 'sur', 'capital', 'otros'].map(z => {
+      const info = ZONA_INFO[z];
+      return `
+        <li class="${z === 'otros' ? 'otros' : ''}"><span><span class="dot" style="background:${info.color}"></span>${info.label}</span><span>${fmtInt(counts[z])} · ${fmtPct(pct(counts[z], total))}</span></li>`;
+    }).join('');
+  }
+
   const ALL_MONTHS = [...new Set(ALTAS.map(r => r.mes))].sort();
   const CUMPL_MONTHS = [...new Set(CUMPL.map(r => r.mes))].sort();
 
@@ -186,6 +268,7 @@
     // respecto al resto en vez de un ranking de una sola fila.
     const allAltasF = member ? DATA.altas.filter(r => monthSet.has(r.mes)) : altasF;
 
+    renderZonas(altasF);
     renderKpis(altasF);
     renderAltasMes(months, altasF);
     renderAltasMarcaMes(months, altasF);

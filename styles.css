@@ -358,18 +358,15 @@ body{
   fill:#1c2333;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
-.zona-legend{
-  list-style:none;
-  margin:0;
-  padding:0;
-  font-size:13px;
+.zona-label-count{
+  font-size:12px;
   font-weight:600;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
+  fill:#6b7280;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
-.zona-legend li{display:flex;align-items:center;}
-.zona-legend .dot{width:12px;height:12px;border-radius:3px;margin-right:10px;flex-shrink:0;}
+.zona-legend{min-width:200px;flex:1;}
+.zona-legend .dot{width:11px;height:11px;border-radius:3px;}
+.zona-legend li.otros{border-top:1px dashed var(--border);margin-top:6px;padding-top:10px;color:var(--text-muted);}
 @media(max-width:560px){
   .zona-map-wrap{justify-content:center;}
 }

@@ -34,7 +34,7 @@
   <div class="section-label" id="zonaSectionLabel" style="margin-top:0;">Cobertura geográfica</div>
   <div class="card zona-card" id="zonaMapCard" style="margin-bottom:20px;">
     <h3>Mapa de zonas</h3>
-    <p class="desc">Referencia geográfica del área de cobertura del equipo — Zona Norte, Zona Oeste, Zona Sur y Capital Federal.</p>
+    <p class="desc">Altas por zona geográfica del local · Zona Norte, Zona Oeste, Zona Sur y Capital Federal. "Otros" agrupa localidades fuera de esas 4 zonas (La Plata, Mar del Plata, Rosario, Zárate, etc.), según el período elegido arriba.</p>
     <div class="zona-map-wrap">
       <svg class="zona-map" viewBox="0 0 500 480" role="img" aria-label="Mapa de zonas: Norte, Oeste, Sur y Capital Federal">
         <g stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">
@@ -44,18 +44,13 @@
           <path class="zona-fill zona-capital" d="M250,180 L295,145 L340,165 L355,130 L410,175 L385,210 L385,245 L350,270 L330,235 L300,255 L270,230 Z" />
         </g>
         <g class="zona-label-group">
-          <g transform="translate(148,100)"><rect class="zona-label-bg" x="-52" y="-14" width="104" height="28" rx="8" /><text class="zona-label-text" text-anchor="middle" dy="5">Zona Norte</text></g>
-          <g transform="translate(150,300)"><rect class="zona-label-bg" x="-52" y="-14" width="104" height="28" rx="8" /><text class="zona-label-text" text-anchor="middle" dy="5">Zona Oeste</text></g>
-          <g transform="translate(340,355)"><rect class="zona-label-bg" x="-46" y="-14" width="92" height="28" rx="8" /><text class="zona-label-text" text-anchor="middle" dy="5">Zona Sur</text></g>
-          <g transform="translate(436,197)"><rect class="zona-label-bg zona-label-bg--capital" x="-68" y="-14" width="136" height="28" rx="8" /><text class="zona-label-text" text-anchor="middle" dy="5">Capital Federal</text></g>
+          <g transform="translate(148,100)"><rect class="zona-label-bg" x="-52" y="-22" width="104" height="40" rx="8" /><text class="zona-label-text" text-anchor="middle" dy="-3">Zona Norte</text><text class="zona-label-count" id="zonaSvgNorte" text-anchor="middle" dy="14"></text></g>
+          <g transform="translate(150,300)"><rect class="zona-label-bg" x="-52" y="-22" width="104" height="40" rx="8" /><text class="zona-label-text" text-anchor="middle" dy="-3">Zona Oeste</text><text class="zona-label-count" id="zonaSvgOeste" text-anchor="middle" dy="14"></text></g>
+          <g transform="translate(340,355)"><rect class="zona-label-bg" x="-46" y="-22" width="92" height="40" rx="8" /><text class="zona-label-text" text-anchor="middle" dy="-3">Zona Sur</text><text class="zona-label-count" id="zonaSvgSur" text-anchor="middle" dy="14"></text></g>
+          <g transform="translate(436,197)"><rect class="zona-label-bg zona-label-bg--capital" x="-68" y="-22" width="136" height="40" rx="8" /><text class="zona-label-text" text-anchor="middle" dy="-3">Capital Federal</text><text class="zona-label-count" id="zonaSvgCapital" text-anchor="middle" dy="14"></text></g>
         </g>
       </svg>
-      <ul class="zona-legend">
-        <li><span class="dot" style="background:#c7ccd6;"></span>Zona Norte</li>
-        <li><span class="dot" style="background:#a9b0bd;"></span>Zona Oeste</li>
-        <li><span class="dot" style="background:#525a68;"></span>Capital Federal</li>
-        <li><span class="dot" style="background:#7c5cf0;"></span>Zona Sur</li>
-      </ul>
+      <ul class="legend-list zona-legend" id="zonaLegend"></ul>
     </div>
   </div>
 
