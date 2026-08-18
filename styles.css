@@ -327,11 +327,10 @@ body{
 .dash-nav:hover{color:#fff;}
 
 /* ================= Mapa de zonas (panel general de Kevin) ================= */
-/* Paleta propia del mapa: azules/grises pastel, en línea con --navy/--blue
-   del resto del sitio (nada de morado acá, para que se sienta "informe
-   corporativo" y no comparta color con el KPI de cumplimiento). Va de más
-   clara (Norte) a más oscura (Capital Federal) para leerse como escala,
-   con Zona Sur en el azul de marca como acento. */
+/* Mapa de calor: el fill de cada zona se calcula en app.js (renderZonas)
+   según su volumen de altas en el período activo — rojo más intenso cuanto
+   más altas, más pálido cuanto menos. El fill de acá abajo es solo el
+   valor inicial antes de que corra el JS (evita un flash sin color). */
 .zona-map-wrap{
   display:flex;
   justify-content:center;
@@ -348,12 +347,8 @@ body{
   flex-shrink:0;
   filter:drop-shadow(0 2px 6px rgba(16,24,40,.08));
 }
-.zona-fill{transition:opacity .15s ease;}
+.zona-fill{fill:#fde4e1;transition:fill .2s ease,opacity .15s ease;}
 .zona-fill:hover{opacity:.85;}
-.zona-norte{fill:#e3eaf6;}
-.zona-oeste{fill:#aec2dc;}
-.zona-capital{fill:var(--navy);}
-.zona-sur{fill:var(--blue);}
 .zona-label-bg{
   fill:#ffffff;
   stroke:#1c2333;

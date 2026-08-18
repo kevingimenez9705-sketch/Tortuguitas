@@ -202,12 +202,26 @@
   }
   function zonaFor(local) { return ZONA_BASE[normalizeLocal(local)] || 'otros'; }
   const ZONA_INFO = {
-    norte: { label: 'Zona Norte', color: '#e3eaf6', svgId: 'zonaSvgNorte' },
-    oeste: { label: 'Zona Oeste', color: '#aec2dc', svgId: 'zonaSvgOeste' },
-    sur: { label: 'Zona Sur', color: '#4c7cf0', svgId: 'zonaSvgSur' },
-    capital: { label: 'Capital Federal', color: '#0f1c3f', svgId: 'zonaSvgCapital' },
-    otros: { label: 'Otros (fuera de zona)', color: '#94a3b8', svgId: null },
+    norte: { label: 'Zona Norte', pathClass: 'zona-norte', svgId: 'zonaSvgNorte' },
+    oeste: { label: 'Zona Oeste', pathClass: 'zona-oeste', svgId: 'zonaSvgOeste' },
+    sur: { label: 'Zona Sur', pathClass: 'zona-sur', svgId: 'zonaSvgSur' },
+    capital: { label: 'Capital Federal', pathClass: 'zona-capital', svgId: 'zonaSvgCapital' },
+    otros: { label: 'Otros (fuera de zona)', pathClass: null, svgId: null },
   };
+  // Mapa de calor: rojo más intenso = más altas, más pálido = menos. La
+  // escala se recalcula en cada render() contra el mín/máx de las 4 zonas
+  // del período activo (no incluye "Otros", que no tiene forma en el mapa
+  // y se mantiene gris neutro en la leyenda, como categoría aparte).
+  const ZONA_HEAT_LIGHT = { r: 0xfd, g: 0xe4, b: 0xe1 }; // rosado pálido
+  const ZONA_HEAT_DARK = { r: 0x7f, g: 0x1d, b: 0x1d };  // rojo intenso
+  const ZONA_OTROS_COLOR = '#94a3b8';
+  function heatColor(value, min, max) {
+    const t = max > min ? (value - min) / (max - min) : (max > 0 ? 1 : 0);
+    const r = Math.round(ZONA_HEAT_LIGHT.r + (ZONA_HEAT_DARK.r - ZONA_HEAT_LIGHT.r) * t);
+    const g = Math.round(ZONA_HEAT_LIGHT.g + (ZONA_HEAT_DARK.g - ZONA_HEAT_LIGHT.g) * t);
+    const b = Math.round(ZONA_HEAT_LIGHT.b + (ZONA_HEAT_DARK.b - ZONA_HEAT_LIGHT.b) * t);
+    return `rgb(${r},${g},${b})`;
+  }
   function renderZonas(altasF) {
     if (member) return; // sección oculta para vistas por integrante
     const legend = document.getElementById('zonaLegend');
@@ -215,14 +229,26 @@
     const counts = { norte: 0, oeste: 0, sur: 0, capital: 0, otros: 0 };
     for (const r of altasF) counts[zonaFor(r.local)]++;
     const total = altasF.length;
-    ['norte', 'oeste', 'sur', 'capital'].forEach(z => {
+
+    const zonaKeys = ['norte', 'oeste', 'sur', 'capital'];
+    const zonaVals = zonaKeys.map(z => counts[z]);
+    const minVal = Math.min(...zonaVals);
+    const maxVal = Math.max(...zonaVals);
+    const zonaColors = {};
+    zonaKeys.forEach(z => {
+      const c = heatColor(counts[z], minVal, maxVal);
+      zonaColors[z] = c;
+      const path = document.querySelector('.' + ZONA_INFO[z].pathClass);
+      if (path) path.style.fill = c;
       const el = document.getElementById(ZONA_INFO[z].svgId);
       if (el) el.textContent = total ? `${fmtInt(counts[z])} altas` : 'sin datos';
     });
+    zonaColors.otros = ZONA_OTROS_COLOR;
+
     legend.innerHTML = ['norte', 'oeste', 'sur', 'capital', 'otros'].map(z => {
       const info = ZONA_INFO[z];
       return `
-        <li class="${z === 'otros' ? 'otros' : ''}"><span><span class="dot" style="background:${info.color}"></span>${info.label}</span><span>${fmtInt(counts[z])} · ${fmtPct(pct(counts[z], total))}</span></li>`;
+        <li class="${z === 'otros' ? 'otros' : ''}"><span><span class="dot" style="background:${zonaColors[z]}"></span>${info.label}</span><span>${fmtInt(counts[z])} · ${fmtPct(pct(counts[z], total))}</span></li>`;
     }).join('');
   }
 
