@@ -326,6 +326,54 @@ body{
 }
 .dash-nav:hover{color:#fff;}
 
+/* ================= Mapa de zonas (panel general de Kevin) ================= */
+.zona-map-wrap{
+  display:flex;
+  align-items:center;
+  gap:24px;
+  flex-wrap:wrap;
+}
+.zona-map{
+  width:100%;
+  max-width:340px;
+  height:auto;
+  flex-shrink:0;
+  filter:drop-shadow(0 2px 6px rgba(16,24,40,.08));
+}
+.zona-fill{transition:opacity .15s ease;}
+.zona-fill:hover{opacity:.85;}
+.zona-norte{fill:#c7ccd6;}
+.zona-oeste{fill:#a9b0bd;}
+.zona-capital{fill:#525a68;}
+.zona-sur{fill:var(--purple);}
+.zona-label-bg{
+  fill:#ffffff;
+  stroke:#1c2333;
+  stroke-width:1;
+}
+.zona-label-bg--capital{fill:#ffffff;}
+.zona-label-text{
+  font-size:15px;
+  font-weight:700;
+  fill:#1c2333;
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+.zona-legend{
+  list-style:none;
+  margin:0;
+  padding:0;
+  font-size:13px;
+  font-weight:600;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+.zona-legend li{display:flex;align-items:center;}
+.zona-legend .dot{width:12px;height:12px;border-radius:3px;margin-right:10px;flex-shrink:0;}
+@media(max-width:560px){
+  .zona-map-wrap{justify-content:center;}
+}
+
 /* ================= Estado sin datos (S/D) ================= */
 .sd-card{
   text-align:center;
