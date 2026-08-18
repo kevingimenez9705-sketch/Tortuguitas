@@ -19,7 +19,7 @@
     agustina: { label: 'Agustina Castillo', selectors: ['Agustina'], color: '#cc2f2f', avatar: 'images/agustina-castillo.jpg', tortuga: 'images/tortuga-agustina.jpg' },
     rafael: { label: 'Rafael Barberi', selectors: [], color: '#e2721f', avatar: 'images/rafael-barberi.jpg', tortuga: 'images/tortuga-rafael.jpg' },
     gustavo: { label: 'Gustavo Sotelo', selectors: [], color: '#4f8fc9', avatar: 'images/gustavo-sotelo.jpg', tortuga: 'images/tortuga-gustavo.jpg' },
-    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a', avatar: null, tortuga: null },
+    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a', avatar: null, tortuga: 'images/muertos en el camino.jpg' },
   };
   // Puesto de cada selector agrupado dentro de "Otros" (no tienen tarjeta
   // propia en index.html, pero sí un puesto real dentro del equipo): se usa
@@ -325,19 +325,33 @@
   function renderHeroBadges(rankVolumen, rankPresentismo, rankCumplimiento) {
     const el = document.getElementById('heroBadges');
     if (!el) return;
+    const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
     // Grupo con más de un selector (p. ej. "Otros"): no tiene un puesto único
-    // en el ranking, así que en vez de medallas mostramos el puesto de cada
-    // selector agrupado (ver OTROS_ROLES).
+    // en el ranking general, pero cada selector adentro sí tiene el suyo —
+    // se muestra su puesto en el equipo + el lugar que ocupa en cada uno de
+    // los tres rankings, con el mismo criterio (medal/#N) que un selector
+    // individual más abajo.
     if (member && member.selectors.length > 1) {
+      const findRank = (arr, name) => arr.findIndex(([n]) => n === name);
       el.innerHTML = member.selectors
-        .map(s => OTROS_ROLES[s])
+        .map(s => {
+          const role = OTROS_ROLES[s];
+          if (!role) return null;
+          const ranks = [
+            ['altas', findRank(rankVolumen, s)],
+            ['presentismo', findRank(rankPresentismo, s)],
+            ['cumplimiento', findRank(rankCumplimiento, s)],
+          ]
+            .filter(([, i]) => i > -1)
+            .map(([label, i]) => `${medal(i)} ${label}`);
+          const rankText = ranks.length ? ` — ${ranks.join(' · ')}` : '';
+          return `<span class="hero-badge">${role.label} · ${role.puesto}${rankText}</span>`;
+        })
         .filter(Boolean)
-        .map(r => `<span class="hero-badge">${r.label} · ${r.puesto}</span>`)
         .join('');
       return;
     }
     if (!member || member.selectors.length !== 1) { el.innerHTML = ''; return; }
-    const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
     const findMine = (arr) => arr.findIndex(([n]) => memberSelectorSet.has(n));
     const items = [
       ['volumen de altas', findMine(rankVolumen)],
