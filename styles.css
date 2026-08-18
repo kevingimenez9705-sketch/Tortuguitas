@@ -212,6 +212,7 @@ body{
   background:#fff;
   object-fit:cover;
 }
+.eyebrow{display:block;margin-bottom:6px;color:#93c5fd;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase;}
 .home-title{margin:10px 0 6px;font-size:28px;font-weight:800;color:#fff;}
 .home-title .accent{color:#60a5fa;}
 .home-subtitle{margin:0;color:#b9c3de;font-size:14px;max-width:640px;}
@@ -244,6 +245,15 @@ body{
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
   animation:greeting-float 4s ease-in-out infinite;
 }
+/* Cada franja horaria mueve el ícono a su manera: el amanecer sube y
+   brilla, el sol de mediodía gira despacio, la tarde nublada se mece como
+   si la arrastrara el viento, el atardecer se hunde con un resplandor
+   cálido y la luna titila suave. */
+.greeting-card[data-phase="dawn"] .greeting-sky{animation:sky-rise 2.6s ease-in-out infinite;}
+.greeting-card[data-phase="day"] .greeting-sky{animation:sky-spin 9s linear infinite;}
+.greeting-card[data-phase="afternoon"] .greeting-sky{animation:sky-drift 4.5s ease-in-out infinite;}
+.greeting-card[data-phase="sunset"] .greeting-sky{animation:sky-set 3.2s ease-in-out infinite;}
+.greeting-card[data-phase="night"] .greeting-sky{animation:sky-twinkle 3.4s ease-in-out infinite;}
 .greeting-copy{min-width:0;}
 .greeting-copy small{display:block;margin-bottom:3px;color:#bfdbfe;font-size:9px;font-weight:900;letter-spacing:.09em;text-transform:uppercase;}
 .greeting-copy strong{display:block;font-size:16px;letter-spacing:-.02em;}
@@ -265,6 +275,15 @@ body{
 .greeting-radio:hover{background:rgba(255,255,255,.15);}
 .greeting-radio[hidden]{display:none;}
 @keyframes greeting-float{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
+@keyframes sky-rise{0%,100%{transform:translateY(3px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}50%{transform:translateY(-5px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 0 14px 2px rgba(246,199,125,.55);}}
+@keyframes sky-spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+@keyframes sky-drift{0%,100%{transform:translateX(-4px) rotate(-4deg);}50%{transform:translateX(4px) rotate(4deg);}}
+@keyframes sky-set{0%,100%{transform:translateY(-3px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08),0 0 14px 2px rgba(240,167,121,.5);}50%{transform:translateY(4px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);}}
+@keyframes sky-twinkle{0%,100%{transform:scale(1) rotate(0deg);opacity:1;}50%{transform:scale(1.1) rotate(-8deg);opacity:.8;}}
+@media(prefers-reduced-motion:reduce){
+  .greeting-sky,
+  .greeting-card[data-phase] .greeting-sky{animation:none;}
+}
 
 @media(max-width:760px){
   .home-hero{grid-template-columns:1fr;gap:16px;}
@@ -639,13 +658,6 @@ body{
 .staff-chain{display:grid;justify-items:center;}
 .staff-chain > .org-card{width:min(100%,280px);margin-bottom:12px;}
 .staff-roster{grid-template-columns:repeat(2,minmax(0,1fr));width:100%;}
-/* Los 4 "Selector" de Soledad van juntos en staff-roster; Juan Pablo Alecha
-   (el único Selector Jr) se separa debajo, con su propio rótulo, en vez de
-   ir anidado dentro de la tarjeta de Romina. */
-.staff-jr-label{margin:14px 0 6px;color:var(--text-muted);font-size:9px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;text-align:center;}
-.staff-roster-jr{grid-template-columns:minmax(0,1fr);justify-items:center;}
-.staff-roster-jr .mini-person{width:100%;max-width:150px;}
-.juan-card{border-color:#99f6e4;background:#f0fdfa;}
 
 @media(max-width:900px){
   .division-grid{grid-template-columns:1fr;padding-top:0;}
