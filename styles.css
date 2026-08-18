@@ -327,25 +327,33 @@ body{
 .dash-nav:hover{color:#fff;}
 
 /* ================= Mapa de zonas (panel general de Kevin) ================= */
+/* Paleta propia del mapa: azules/grises pastel, en línea con --navy/--blue
+   del resto del sitio (nada de morado acá, para que se sienta "informe
+   corporativo" y no comparta color con el KPI de cumplimiento). Va de más
+   clara (Norte) a más oscura (Capital Federal) para leerse como escala,
+   con Zona Sur en el azul de marca como acento. */
 .zona-map-wrap{
   display:flex;
+  justify-content:center;
   align-items:center;
-  gap:24px;
+  gap:32px;
   flex-wrap:wrap;
+  max-width:620px;
+  margin:0 auto;
 }
 .zona-map{
   width:100%;
-  max-width:340px;
+  max-width:320px;
   height:auto;
   flex-shrink:0;
   filter:drop-shadow(0 2px 6px rgba(16,24,40,.08));
 }
 .zona-fill{transition:opacity .15s ease;}
 .zona-fill:hover{opacity:.85;}
-.zona-norte{fill:#c7ccd6;}
-.zona-oeste{fill:#a9b0bd;}
-.zona-capital{fill:#525a68;}
-.zona-sur{fill:var(--purple);}
+.zona-norte{fill:#e3eaf6;}
+.zona-oeste{fill:#aec2dc;}
+.zona-capital{fill:var(--navy);}
+.zona-sur{fill:var(--blue);}
 .zona-label-bg{
   fill:#ffffff;
   stroke:#1c2333;
@@ -364,7 +372,7 @@ body{
   fill:#6b7280;
   font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
 }
-.zona-legend{min-width:200px;flex:1;}
+.zona-legend{min-width:220px;max-width:260px;flex:0 1 auto;}
 .zona-legend .dot{width:11px;height:11px;border-radius:3px;}
 .zona-legend li.otros{border-top:1px dashed var(--border);margin-top:6px;padding-top:10px;color:var(--text-muted);}
 @media(max-width:560px){

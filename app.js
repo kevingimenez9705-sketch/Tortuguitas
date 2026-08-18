@@ -202,11 +202,11 @@
   }
   function zonaFor(local) { return ZONA_BASE[normalizeLocal(local)] || 'otros'; }
   const ZONA_INFO = {
-    norte: { label: 'Zona Norte', color: '#c7ccd6', svgId: 'zonaSvgNorte' },
-    oeste: { label: 'Zona Oeste', color: '#a9b0bd', svgId: 'zonaSvgOeste' },
-    sur: { label: 'Zona Sur', color: '#7c5cf0', svgId: 'zonaSvgSur' },
-    capital: { label: 'Capital Federal', color: '#525a68', svgId: 'zonaSvgCapital' },
-    otros: { label: 'Otros (fuera de zona)', color: '#8a94a6', svgId: null },
+    norte: { label: 'Zona Norte', color: '#e3eaf6', svgId: 'zonaSvgNorte' },
+    oeste: { label: 'Zona Oeste', color: '#aec2dc', svgId: 'zonaSvgOeste' },
+    sur: { label: 'Zona Sur', color: '#4c7cf0', svgId: 'zonaSvgSur' },
+    capital: { label: 'Capital Federal', color: '#0f1c3f', svgId: 'zonaSvgCapital' },
+    otros: { label: 'Otros (fuera de zona)', color: '#94a3b8', svgId: null },
   };
   function renderZonas(altasF) {
     if (member) return; // sección oculta para vistas por integrante
