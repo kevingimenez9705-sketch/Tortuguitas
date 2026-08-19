@@ -676,10 +676,13 @@ body{
 .copy-btn.copied{background:var(--green);border-color:var(--green);color:#fff;}
 .org-card--preview:hover .org-preview,
 .org-card--preview:focus-within .org-preview,
+.org-card--preview.preview-open .org-preview,
 .mini-person--preview:hover .org-preview,
 .mini-person--preview:focus-within .org-preview,
+.mini-person--preview.preview-open .org-preview,
 .division-header--preview:hover .org-preview,
-.division-header--preview:focus-within .org-preview{
+.division-header--preview:focus-within .org-preview,
+.division-header--preview.preview-open .org-preview{
   opacity:1;
   transform:translateY(0) scale(1);
   pointer-events:auto;
@@ -694,9 +697,19 @@ body{
 }
 .mini-person--preview:hover,
 .mini-person--preview:focus-within,
+.mini-person--preview.preview-open,
 .division-header--preview:hover,
-.division-header--preview:focus-within{
+.division-header--preview:focus-within,
+.division-header--preview.preview-open{
   z-index:6;
+}
+/* .preview-open: en touch (celular/tablet) no existe :hover — el <script>
+   al pie de index.html togglea esta clase al tocar la tarjeta, así el
+   teléfono/mail también se puede abrir con un tap, no solo pasando el mouse. */
+.org-card--preview.preview-open{
+  z-index:6;
+  transform:scale(1.045);
+  box-shadow:0 14px 30px rgba(15,23,42,.16);
 }
 .org-avatar{
   width:56px;

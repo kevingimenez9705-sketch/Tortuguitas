@@ -328,8 +328,8 @@
                     </div>
                   </article>
                   <article class="mini-person mini-person--preview">
-                    <div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/romina-rogoni.jpg" alt="Romina Rogoni"></div>
-                    <h3>Romina Rogoni</h3>
+                    <div class="org-avatar"><img loading="lazy" src="https://raw.githubusercontent.com/agustinmarquez-dev/las-tortuguitas-ninja/main/assets/images/team/romina-rogoni.jpg" alt="Romina Rigoni"></div>
+                    <h3>Romina Rigoni</h3>
                     <p>Selector</p>
                     <div class="org-preview">
                       <div class="org-contact-row">
@@ -337,8 +337,8 @@
                         <button class="copy-btn" type="button" data-copy="+541154903836" aria-label="Copiar teléfono">⧉</button>
                       </div>
                       <div class="org-contact-row">
-                        <a class="org-preview-contact" href="mailto:romina.rogoni@gastrobsas.com.ar">✉️ romina.rogoni@gastrobsas.com.ar</a>
-                        <button class="copy-btn" type="button" data-copy="romina.rogoni@gastrobsas.com.ar" aria-label="Copiar email">⧉</button>
+                        <a class="org-preview-contact" href="mailto:romina.rigoni@gastrobsas.com.ar">✉️ romina.rigoni@gastrobsas.com.ar</a>
+                        <button class="copy-btn" type="button" data-copy="romina.rigoni@gastrobsas.com.ar" aria-label="Copiar email">⧉</button>
                       </div>
                     </div>
                   </article>
@@ -484,6 +484,37 @@
       } else {
         legacyCopy(value);
         flashCopied();
+      }
+    });
+  })();
+
+  // El teléfono/mail de cada tarjeta del organigrama se revela con :hover,
+  // que en celular/tablet no existe — acá se togglea la misma clase con un
+  // tap, tocando en cualquier lado de la tarjeta que no sea el link
+  // (tel:/mailto:) ni el botón de copiar, que ya hacen lo suyo. Solo una
+  // tarjeta abierta a la vez; tocar afuera la cierra.
+  (function () {
+    const TRIGGER_SELECTOR = '.org-card--preview, .mini-person--preview, .division-header--preview';
+    let openEl = null;
+
+    function closeOpen() {
+      if (openEl) {
+        openEl.classList.remove('preview-open');
+        openEl = null;
+      }
+    }
+
+    document.addEventListener('click', (e) => {
+      if (e.target.closest('.copy-btn, .org-preview-contact')) return;
+
+      const trigger = e.target.closest(TRIGGER_SELECTOR);
+      if (!trigger) { closeOpen(); return; }
+
+      const wasOpen = trigger === openEl;
+      closeOpen();
+      if (!wasOpen) {
+        trigger.classList.add('preview-open');
+        openEl = trigger;
       }
     });
   })();
