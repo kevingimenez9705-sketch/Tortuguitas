@@ -102,6 +102,49 @@ const Charts = (() => {
     return instances[id];
   }
 
+  // Radar (spider) chart — usado para el "Perfil de competencias" (autoevaluación
+  // vs. evaluación real superpuestas). datasets: [{ label, data, color, dashed, hidden }]
+  function radar(id, labels, datasets, opts = {}) {
+    destroy(id);
+    const ctx = document.getElementById(id).getContext('2d');
+    instances[id] = new Chart(ctx, {
+      type: 'radar',
+      data: {
+        labels,
+        datasets: datasets.map(d => ({
+          label: d.label,
+          data: d.data,
+          borderColor: d.color,
+          backgroundColor: d.color + '2e',
+          borderWidth: 2,
+          borderDash: d.dashed ? [6, 4] : [],
+          pointBackgroundColor: d.color,
+          pointRadius: 3,
+          hidden: !!d.hidden,
+        })),
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: true, position: 'bottom' },
+          tooltip: { enabled: true },
+        },
+        scales: {
+          r: {
+            min: 0,
+            max: opts.max || 10,
+            ticks: { stepSize: opts.step || 2, backdropColor: 'transparent' },
+            grid: { color: '#e4e8f0' },
+            angleLines: { color: '#e4e8f0' },
+            pointLabels: { font: { size: 11 } },
+          },
+        },
+      },
+    });
+    return instances[id];
+  }
+
   function baseOptions(opts = {}) {
     return {
       responsive: true,
@@ -117,5 +160,5 @@ const Charts = (() => {
     };
   }
 
-  return { line, stackedBar, horizontalBar, donut, COLORS };
+  return { line, stackedBar, horizontalBar, donut, radar, COLORS };
 })();
