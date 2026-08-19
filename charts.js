@@ -73,10 +73,10 @@ const Charts = (() => {
     const ctx = document.getElementById(id).getContext('2d');
     instances[id] = new Chart(ctx, {
       type: 'bar',
-      // categoryPercentage alto: con solo 5 categorías (Top 5) el chart-wrap
-      // quedaba con huecos grandes entre barras — así ocupan más del alto
-      // disponible.
-      data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4, barPercentage: 0.9, categoryPercentage: 0.95 }] },
+      // El chart-wrap.small ahora es más alto para que el "Top 5" respire
+      // más — categoryPercentage más bajo que 0.95 le devuelve separación
+      // real entre barras en vez de quedar todas pegadas.
+      data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4, barPercentage: 0.85, categoryPercentage: 0.7 }] },
       options: {
         indexAxis: 'y',
         plugins: { legend: { display: false }, tooltip: { enabled: true } },
