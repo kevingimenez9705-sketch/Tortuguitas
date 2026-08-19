@@ -113,22 +113,53 @@
     document.getElementById('compWeak').textContent = `${labels[weakI]} · ${self[weakI]}/10 (real: ${real[weakI]})`;
 
     // Resumen: se arma en base a los datos (no está escrito a mano), como el
-    // texto descriptivo de la imagen de referencia.
+    // texto descriptivo de la imagen de referencia. Tono cuidado a propósito
+    // (nunca "se autopercibe mejor" ni frases que suenen a reproche): la
+    // brecha entre autoevaluación y evaluación real es información neutral,
+    // no un juicio sobre la persona.
     const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
     const avgSelf = avg(self);
     const avgReal = avg(real);
     const brecha = Math.round((avgSelf - avgReal) * 10) / 10;
     const nombreCorto = comp.nombre.split(' ')[0];
-    let brechaTxt;
-    if (brecha > 0.8) {
-      brechaTxt = `se autopercibe algo mejor de lo que refleja la evaluación real, con una brecha promedio de ${brecha} puntos`;
-    } else if (brecha < -0.3) {
-      brechaTxt = 'la evaluación real lo ubica por encima de su propia autopercepción';
-    } else {
-      brechaTxt = 'su autopercepción está alineada con la evaluación real, sin brechas significativas';
+
+    let realTopI = 0, realWeakI = 0;
+    real.forEach((v, i) => {
+      if (v > real[realTopI]) realTopI = i;
+      if (v < real[realWeakI]) realWeakI = i;
+    });
+
+    const sentences = [];
+    sentences.push(
+      `${nombreCorto} presenta un perfil parejo a lo largo de las diez competencias evaluadas, con ${labels[topI].toLowerCase()} como su fortaleza más marcada (${self[topI]}/10) y ${labels[weakI].toLowerCase()} como la competencia con más margen para seguir creciendo (${self[weakI]}/10).`
+    );
+    if (realTopI === topI && realWeakI === weakI) {
+      sentences.push(
+        `Tanto su autoevaluación como la evaluación real coinciden en señalar ${labels[topI].toLowerCase()} como su punto más fuerte y ${labels[weakI].toLowerCase()} como el que más margen tiene para crecer, lo que confirma que ambos son rasgos consolidados y no solo una percepción propia.`
+      );
+    } else if (realTopI === topI) {
+      sentences.push(
+        `Tanto su autoevaluación como la evaluación real coinciden en señalar ${labels[topI].toLowerCase()} como su punto más fuerte, lo que confirma que es un rasgo consolidado y no solo una percepción propia.`
+      );
+    } else if (realWeakI === weakI) {
+      sentences.push(
+        `La evaluación real también identifica a ${labels[weakI].toLowerCase()} como la competencia con más margen para crecer, en línea con su propia autoevaluación.`
+      );
     }
-    document.getElementById('compSummary').textContent =
-      `${nombreCorto} se destaca en ${labels[topI].toLowerCase()} (${self[topI]}/10) y tiene su punto más flojo en ${labels[weakI].toLowerCase()} (${self[weakI]}/10). En conjunto, ${brechaTxt}.`;
+    if (brecha > 0.8) {
+      sentences.push(
+        `En el resto de las competencias, su autoevaluación resulta apenas un poco más generosa que la mirada externa —una diferencia promedio de ${brecha} puntos—, algo bastante habitual cuando alguien se autoevalúa con entusiasmo: ambas miradas describen, en definitiva, el mismo perfil, solo con matices distintos de intensidad.`
+      );
+    } else if (brecha < -0.3) {
+      sentences.push(
+        `Llama la atención que la evaluación real lo ubica incluso por encima de su propia autopercepción, lo que sugiere una mirada exigente consigo mismo más que una limitación real.`
+      );
+    } else {
+      sentences.push(
+        `Su autopercepción y la evaluación real están muy alineadas entre sí, sin diferencias relevantes entre ambas miradas.`
+      );
+    }
+    document.getElementById('compSummary').textContent = sentences.join(' ');
   }
   renderCompetencias();
 
