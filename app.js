@@ -679,7 +679,7 @@
     document.getElementById('rankPresentismo').innerHTML = order2.map(([n, p]) => `
       <li class="${isMe(n) ? 'me' : ''}">
         <span class="name" style="width:90px;">${n}</span>
-        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${col('green')}"></span></span>
+        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)}"></span></span>
         <span class="val">${fmtPct(p)}</span>
       </li>`).join('');
 
