@@ -66,98 +66,113 @@
   })();
 
   // ---------- Perfil de competencias (radar autoevaluación vs. real) ----------
-  // Solo se muestra en el dashboard de integrantes que tienen entrada en
-  // COMPETENCIAS_DATA (competencias.js) — hoy en día, solo Agustín. No
-  // depende del período elegido en el toolbar, así que se arma una sola vez.
+  // Se muestra en el dashboard de cualquier integrante con entrada en
+  // COMPETENCIAS_DATA (competencias.js) — sin ?miembro= se usa 'kevin' (el
+  // panel general es "el suyo", mismo criterio que themeHero más arriba).
+  // No depende del período elegido en el toolbar, así que se arma una sola vez.
   function renderCompetencias() {
     const section = document.getElementById('competenciasSection');
     if (!section) return;
-    const comp = window.COMPETENCIAS_DATA && MIEMBRO_KEY && window.COMPETENCIAS_DATA[MIEMBRO_KEY];
+    const compKey = MIEMBRO_KEY || 'kevin';
+    const comp = window.COMPETENCIAS_DATA && window.COMPETENCIAS_DATA[compKey];
     if (!comp) { section.style.display = 'none'; return; }
     section.style.display = '';
 
-    const labels = comp.categorias.map(c => c.label);
+    const labels = window.COMPETENCIAS_CATEGORIAS.map(c => c.label);
     const self = comp.autoevaluacion;
-    const real = comp.real;
-    const selfColor = (member && member.color) || Charts.COLORS.purple;
+    const real = comp.real; // puede no existir todavía para algún integrante
+    const selfColor = member ? member.color : KEVIN_COLOR;
     const realColor = Charts.COLORS.orange;
 
     document.getElementById('competenciasNombre').textContent = `Perfil de competencias — ${comp.nombre}`;
 
-    const chart = Charts.radar('chartCompetencias', labels, [
-      { label: 'Autoevaluación', data: self, color: selfColor },
-      { label: 'Evaluación real', data: real, color: realColor, dashed: true, hidden: true },
-    ]);
+    const datasets = [{ label: 'Autoevaluación', data: self, color: selfColor }];
+    if (real) datasets.push({ label: 'Evaluación real', data: real, color: realColor, dashed: true, hidden: true });
+    const chart = Charts.radar('chartCompetencias', labels, datasets);
 
     // Botón "Real": superpone la segunda serie sobre la primera, sin volver
     // a crear el gráfico (mismo canvas, mismos ejes) para que se vea "una
-    // arriba de la otra" con su propio color/trazo (línea punteada).
+    // arriba de la otra" con su propio color/trazo (línea punteada). Si
+    // todavía no hay evaluación real cargada para este integrante, el botón
+    // queda deshabilitado en vez de escondido, para que quede claro que la
+    // función existe pero falta el dato.
     const toggleBtn = document.getElementById('toggleReal');
-    const setToggle = (on) => {
-      chart.data.datasets[1].hidden = !on;
-      chart.update();
-      toggleBtn.setAttribute('aria-pressed', String(on));
-      toggleBtn.textContent = on ? 'Ocultar evaluación real' : 'Ver evaluación real';
-    };
-    setToggle(false);
-    toggleBtn.onclick = () => setToggle(toggleBtn.getAttribute('aria-pressed') !== 'true');
+    if (!real) {
+      toggleBtn.disabled = true;
+      toggleBtn.setAttribute('aria-pressed', 'false');
+      toggleBtn.textContent = 'Evaluación real: sin datos';
+      toggleBtn.onclick = null;
+    } else {
+      toggleBtn.disabled = false;
+      const setToggle = (on) => {
+        chart.data.datasets[1].hidden = !on;
+        chart.update();
+        toggleBtn.setAttribute('aria-pressed', String(on));
+        toggleBtn.textContent = on ? 'Ocultar evaluación real' : 'Ver evaluación real';
+      };
+      setToggle(false);
+      toggleBtn.onclick = () => setToggle(toggleBtn.getAttribute('aria-pressed') !== 'true');
+    }
 
     // Punto más alto / más flojo, según la autoevaluación (el radar de base,
-    // siempre visible), con el valor real al lado como referencia.
+    // siempre visible), con el valor real al lado como referencia cuando existe.
     let topI = 0, weakI = 0;
     self.forEach((v, i) => {
       if (v > self[topI]) topI = i;
       if (v < self[weakI]) weakI = i;
     });
-    document.getElementById('compTop').textContent = `${labels[topI]} · ${self[topI]}/10 (real: ${real[topI]})`;
-    document.getElementById('compWeak').textContent = `${labels[weakI]} · ${self[weakI]}/10 (real: ${real[weakI]})`;
+    const realSuffix = (i) => real ? ` (real: ${real[i]})` : '';
+    document.getElementById('compTop').textContent = `${labels[topI]} · ${self[topI]}/10${realSuffix(topI)}`;
+    document.getElementById('compWeak').textContent = `${labels[weakI]} · ${self[weakI]}/10${realSuffix(weakI)}`;
 
     // Resumen: se arma en base a los datos (no está escrito a mano), como el
     // texto descriptivo de la imagen de referencia. Tono cuidado a propósito
     // (nunca "se autopercibe mejor" ni frases que suenen a reproche): la
     // brecha entre autoevaluación y evaluación real es información neutral,
     // no un juicio sobre la persona.
-    const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const avgSelf = avg(self);
-    const avgReal = avg(real);
-    const brecha = Math.round((avgSelf - avgReal) * 10) / 10;
     const nombreCorto = comp.nombre.split(' ')[0];
-
-    let realTopI = 0, realWeakI = 0;
-    real.forEach((v, i) => {
-      if (v > real[realTopI]) realTopI = i;
-      if (v < real[realWeakI]) realWeakI = i;
-    });
-
     const sentences = [];
     sentences.push(
       `${nombreCorto} presenta un perfil parejo a lo largo de las diez competencias evaluadas, con ${labels[topI].toLowerCase()} como su fortaleza más marcada (${self[topI]}/10) y ${labels[weakI].toLowerCase()} como la competencia con más margen para seguir creciendo (${self[weakI]}/10).`
     );
-    if (realTopI === topI && realWeakI === weakI) {
-      sentences.push(
-        `Tanto su autoevaluación como la evaluación real coinciden en señalar ${labels[topI].toLowerCase()} como su punto más fuerte y ${labels[weakI].toLowerCase()} como el que más margen tiene para crecer, lo que confirma que ambos son rasgos consolidados y no solo una percepción propia.`
-      );
-    } else if (realTopI === topI) {
-      sentences.push(
-        `Tanto su autoevaluación como la evaluación real coinciden en señalar ${labels[topI].toLowerCase()} como su punto más fuerte, lo que confirma que es un rasgo consolidado y no solo una percepción propia.`
-      );
-    } else if (realWeakI === weakI) {
-      sentences.push(
-        `La evaluación real también identifica a ${labels[weakI].toLowerCase()} como la competencia con más margen para crecer, en línea con su propia autoevaluación.`
-      );
-    }
-    if (brecha > 0.8) {
-      sentences.push(
-        `En el resto de las competencias, su autoevaluación resulta apenas un poco más generosa que la mirada externa —una diferencia promedio de ${brecha} puntos—, algo bastante habitual cuando alguien se autoevalúa con entusiasmo: ambas miradas describen, en definitiva, el mismo perfil, solo con matices distintos de intensidad.`
-      );
-    } else if (brecha < -0.3) {
-      sentences.push(
-        `Llama la atención que la evaluación real lo ubica incluso por encima de su propia autopercepción, lo que sugiere una mirada exigente consigo mismo más que una limitación real.`
-      );
+
+    if (!real) {
+      sentences.push('Todavía no hay una evaluación real cargada para comparar, así que este resumen se basa únicamente en su autoevaluación.');
     } else {
-      sentences.push(
-        `Su autopercepción y la evaluación real están muy alineadas entre sí, sin diferencias relevantes entre ambas miradas.`
-      );
+      const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+      const brecha = Math.round((avg(self) - avg(real)) * 10) / 10;
+      let realTopI = 0, realWeakI = 0;
+      real.forEach((v, i) => {
+        if (v > real[realTopI]) realTopI = i;
+        if (v < real[realWeakI]) realWeakI = i;
+      });
+
+      if (realTopI === topI && realWeakI === weakI) {
+        sentences.push(
+          `Tanto su autoevaluación como la evaluación real coinciden en señalar ${labels[topI].toLowerCase()} como su punto más fuerte y ${labels[weakI].toLowerCase()} como el que más margen tiene para crecer, lo que confirma que ambos son rasgos consolidados y no solo una percepción propia.`
+        );
+      } else if (realTopI === topI) {
+        sentences.push(
+          `Tanto su autoevaluación como la evaluación real coinciden en señalar ${labels[topI].toLowerCase()} como su punto más fuerte, lo que confirma que es un rasgo consolidado y no solo una percepción propia.`
+        );
+      } else if (realWeakI === weakI) {
+        sentences.push(
+          `La evaluación real también identifica a ${labels[weakI].toLowerCase()} como la competencia con más margen para crecer, en línea con su propia autoevaluación.`
+        );
+      }
+      if (brecha > 0.8) {
+        sentences.push(
+          `En el resto de las competencias, su autoevaluación resulta apenas un poco más generosa que la mirada externa —una diferencia promedio de ${brecha} puntos—, algo bastante habitual cuando alguien se autoevalúa con entusiasmo: ambas miradas describen, en definitiva, el mismo perfil, solo con matices distintos de intensidad.`
+        );
+      } else if (brecha < -0.3) {
+        sentences.push(
+          `Llama la atención que la evaluación real lo ubica incluso por encima de su propia autopercepción, lo que sugiere una mirada exigente consigo mismo más que una limitación real.`
+        );
+      } else {
+        sentences.push(
+          'Su autopercepción y la evaluación real están muy alineadas entre sí, sin diferencias relevantes entre ambas miradas.'
+        );
+      }
     }
     document.getElementById('compSummary').textContent = sentences.join(' ');
   }
