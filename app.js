@@ -297,9 +297,9 @@
     Seleccion: '#0f1c3f',
     Facundo: '#3fbf7f',
     Mariano: '#f0a94c',
-    Emiliano: '#8a94a6',
+    Emiliano: '#06b6d4',
   };
-  const PALETTE = ['#7c5cf0', '#4c7cf0', '#e05263', '#3fbf7f', '#f0a94c', '#8a94a6', '#c74fb0', '#0f1c3f'];
+  const PALETTE = ['#7c5cf0', '#4c7cf0', '#e05263', '#3fbf7f', '#f0a94c', '#06b6d4', '#c74fb0', '#0f1c3f'];
   function colorFor(selector) {
     if (!SELECTOR_COLORS[selector]) {
       const used = Object.keys(SELECTOR_COLORS).length;
