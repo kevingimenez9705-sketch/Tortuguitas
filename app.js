@@ -586,7 +586,11 @@
       const val = rows.length ? (100 - pct(rows.filter(r => r.presente).length, rows.length) * 100) : 0;
       return round1(val);
     });
-    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: col('grey') });
+    // Color fijo (no col('grey')/THEME): esa combinación tiraba a un tono
+    // casi blanco —tanto en el panel general como en el de cada
+    // integrante— que se perdía contra el fondo. Rojo además le da sentido
+    // (es la métrica "mala": gente que no se presentó).
+    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: Charts.COLORS.red });
   }
 
   function topN(rows, keyFn, n = 5) {

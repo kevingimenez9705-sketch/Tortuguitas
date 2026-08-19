@@ -182,13 +182,14 @@ body{
 .rank-list li.me{background:rgba(140,90,53,.08);border-radius:8px;padding:4px 8px;margin-left:-8px;margin-right:-8px;}
 .rank-list li.me .name{font-weight:800;}
 
-/* Fondo gris clarito atrás de cada gráfico (línea, barra, dona, radar):
-   antes el canvas quedaba transparente directo sobre la tarjeta blanca y
-   las líneas/barras más pálidas (grey, blueLight) casi no se distinguían
-   del fondo de la página. */
-.chart-wrap{position:relative;height:260px;background:#f7f8fb;border-radius:12px;padding:12px;}
+/* Fondo atrás de cada gráfico (línea, barra, dona, radar): antes el canvas
+   quedaba transparente directo sobre la tarjeta blanca y las líneas/barras
+   más pálidas (grey, blueLight) casi no se distinguían del fondo de la
+   página. #f7f8fb (primer intento) era casi imperceptible al lado del
+   blanco de la tarjeta — este tono es notoriamente más oscuro. */
+.chart-wrap{position:relative;height:260px;background:#e4e9f2;border-radius:12px;padding:12px;}
 .chart-wrap.small{height:200px;}
-.donut-wrap{position:relative;height:180px;display:flex;align-items:center;justify-content:center;background:#f7f8fb;border-radius:12px;padding:12px;}
+.donut-wrap{position:relative;height:180px;display:flex;align-items:center;justify-content:center;background:#e4e9f2;border-radius:12px;padding:12px;}
 
 .footer-note{font-size:11px;color:var(--text-muted);text-align:right;margin:8px 4px 30px;}
 
