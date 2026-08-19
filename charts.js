@@ -73,7 +73,10 @@ const Charts = (() => {
     const ctx = document.getElementById(id).getContext('2d');
     instances[id] = new Chart(ctx, {
       type: 'bar',
-      data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4 }] },
+      // categoryPercentage alto: con solo 5 categorías (Top 5) el chart-wrap
+      // quedaba con huecos grandes entre barras — así ocupan más del alto
+      // disponible.
+      data: { labels, datasets: [{ data, backgroundColor: color, borderRadius: 4, barPercentage: 0.9, categoryPercentage: 0.95 }] },
       options: {
         indexAxis: 'y',
         plugins: { legend: { display: false }, tooltip: { enabled: true } },
@@ -135,8 +138,11 @@ const Charts = (() => {
             min: 0,
             max: opts.max || 10,
             ticks: { stepSize: opts.step || 2, backdropColor: 'transparent' },
-            grid: { color: '#e4e8f0' },
-            angleLines: { color: '#e4e8f0' },
+            // #e4e8f0 (el gris original) quedaba casi invisible contra el
+            // fondo del chart-wrap (#e4e9f2, prácticamente el mismo tono) —
+            // se oscurece para que las líneas de referencia se sigan viendo.
+            grid: { color: '#b7c0d6' },
+            angleLines: { color: '#b7c0d6' },
             pointLabels: { font: { size: 11 } },
           },
         },

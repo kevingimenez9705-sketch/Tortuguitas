@@ -10,8 +10,10 @@
   --text:#1c2333;
   --text-muted:#6b7280;
   --bg:#ffffff;
-  --card:#ffffff;
-  --border:#e4e8f0;
+  /* Antes igual a --bg (blanco puro): las tarjetas no se distinguían del
+     fondo de la página, solo por una sombra sutil de 1px. */
+  --card:#f2f4f9;
+  --border:#dde2ec;
   --radius:14px;
 }
 *{box-sizing:border-box;}
@@ -169,17 +171,24 @@ body{
 .legend-list li{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
 .legend-list .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:8px;}
 
-.rank-list{list-style:none;margin:0;padding:0;}
+/* Mismo fondo gris que los chart-wrap, para que el ranking se lea como un
+   panel propio y no como texto suelto sobre la tarjeta blanca. */
+.rank-list{list-style:none;margin:0;padding:14px 16px;background:#e4e9f2;border-radius:12px;}
 .rank-list li{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:13px;}
+.rank-list li:last-child{margin-bottom:0;}
 .rank-list .idx{
-  width:20px;height:20px;border-radius:50%;background:#eef1f6;
+  width:22px;height:22px;border-radius:50%;background:#fff;
   display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;
+  box-shadow:0 0 0 1px rgba(15,23,42,.06);
 }
+/* Top 3: la medalla (🥇🥈🥉) ya tiene color propio, así que el círculo
+   blanco de atrás se saca — se agranda un poco para que se note el ícono. */
+.rank-list .idx.idx--medal{background:transparent;box-shadow:none;font-size:16px;}
 .rank-list .name{width:80px;flex-shrink:0;}
-.rank-list .bar-track{flex:1;background:#e4e8f0;border-radius:6px;height:10px;overflow:hidden;}
+.rank-list .bar-track{flex:1;background:#fff;border-radius:6px;height:10px;overflow:hidden;}
 .rank-list .bar-fill{height:100%;border-radius:6px;min-width:3px;}
 .rank-list .val{width:48px;text-align:right;font-weight:700;flex-shrink:0;}
-.rank-list li.me{background:rgba(140,90,53,.08);border-radius:8px;padding:4px 8px;margin-left:-8px;margin-right:-8px;}
+.rank-list li.me{background:rgba(140,90,53,.14);border-radius:8px;padding:4px 8px;margin-left:-8px;margin-right:-8px;}
 .rank-list li.me .name{font-weight:800;}
 
 /* Fondo atrás de cada gráfico (línea, barra, dona, radar): antes el canvas
@@ -188,7 +197,7 @@ body{
    página. #f7f8fb (primer intento) era casi imperceptible al lado del
    blanco de la tarjeta — este tono es notoriamente más oscuro. */
 .chart-wrap{position:relative;height:260px;background:#e4e9f2;border-radius:12px;padding:12px;}
-.chart-wrap.small{height:200px;}
+.chart-wrap.small{height:175px;}
 .donut-wrap{position:relative;height:180px;display:flex;align-items:center;justify-content:center;background:#e4e9f2;border-radius:12px;padding:12px;}
 
 .footer-note{font-size:11px;color:var(--text-muted);text-align:right;margin:8px 4px 30px;}
