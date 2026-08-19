@@ -23,6 +23,31 @@
     </div>
   </div>
 
+  <div class="card competencias-card" id="competenciasSection" style="display:none;">
+    <div class="section-label" style="margin-top:0;">Perfil de competencias</div>
+    <div class="competencias-layout">
+      <div class="competencias-chart-col">
+        <div class="competencias-chart-head">
+          <h3 id="competenciasNombre">Perfil de competencias</h3>
+          <button class="chip toggle-real" id="toggleReal" type="button" aria-pressed="false">Ver evaluación real</button>
+        </div>
+        <p class="desc">Autoevaluación vs. evaluación real, por competencia · escala 0–10</p>
+        <div class="chart-wrap radar-wrap"><canvas id="chartCompetencias"></canvas></div>
+      </div>
+      <div class="competencias-side">
+        <div class="comp-stat">
+          <span class="comp-stat-label">Punto más alto</span>
+          <span class="comp-stat-value comp-stat-value--up" id="compTop">—</span>
+        </div>
+        <div class="comp-stat">
+          <span class="comp-stat-label">Punto más flojo</span>
+          <span class="comp-stat-value comp-stat-value--down" id="compWeak">—</span>
+        </div>
+        <p class="comp-summary" id="compSummary"></p>
+      </div>
+    </div>
+  </div>
+
   <div class="card sd-card" id="sdState" style="display:none;">
     <div class="sd-icon">S/D</div>
     <h3>Sin datos disponibles</h3>
@@ -149,6 +174,7 @@
 </div>
 
 <script src="data.js"></script>
+<script src="competencias.js"></script>
 <script src="charts.js"></script>
 <script src="app.js"></script>
 </body>

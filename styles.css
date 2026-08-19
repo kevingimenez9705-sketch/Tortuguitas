@@ -526,6 +526,26 @@ body{
   .zona-map-wrap{justify-content:center;}
 }
 
+/* ================= Perfil de competencias (radar autoevaluación vs. real) ================= */
+/* Solo se muestra cuando el integrante filtrado (?miembro=) tiene datos en
+   COMPETENCIAS_DATA (competencias.js) — ver renderCompetencias en app.js.
+   Por ahora solo Agustín tiene puntajes cargados. */
+.competencias-card{margin-bottom:20px;}
+.competencias-layout{display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:start;}
+@media(max-width:900px){.competencias-layout{grid-template-columns:1fr;}}
+.competencias-chart-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.competencias-chart-head h3{margin:0;font-size:15px;}
+.toggle-real{background:#fff;}
+.toggle-real[aria-pressed="true"]{background:var(--orange);border-color:var(--orange);color:#fff;}
+.radar-wrap{height:320px;}
+.competencias-side{display:flex;flex-direction:column;gap:14px;padding-top:4px;}
+.comp-stat{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border-radius:12px;background:#f7f8fb;border:1px solid var(--border);}
+.comp-stat-label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.03em;}
+.comp-stat-value{font-size:15px;font-weight:800;}
+.comp-stat-value--up{color:var(--green);}
+.comp-stat-value--down{color:var(--red);}
+.comp-summary{margin:0;font-size:13px;line-height:1.55;color:var(--text);}
+
 /* ================= Estado sin datos (S/D) ================= */
 .sd-card{
   text-align:center;

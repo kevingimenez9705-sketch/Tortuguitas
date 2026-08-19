@@ -65,6 +65,73 @@
     }
   })();
 
+  // ---------- Perfil de competencias (radar autoevaluación vs. real) ----------
+  // Solo se muestra en el dashboard de integrantes que tienen entrada en
+  // COMPETENCIAS_DATA (competencias.js) — hoy en día, solo Agustín. No
+  // depende del período elegido en el toolbar, así que se arma una sola vez.
+  function renderCompetencias() {
+    const section = document.getElementById('competenciasSection');
+    if (!section) return;
+    const comp = window.COMPETENCIAS_DATA && MIEMBRO_KEY && window.COMPETENCIAS_DATA[MIEMBRO_KEY];
+    if (!comp) { section.style.display = 'none'; return; }
+    section.style.display = '';
+
+    const labels = comp.categorias.map(c => c.label);
+    const self = comp.autoevaluacion;
+    const real = comp.real;
+    const selfColor = (member && member.color) || Charts.COLORS.purple;
+    const realColor = Charts.COLORS.orange;
+
+    document.getElementById('competenciasNombre').textContent = `Perfil de competencias — ${comp.nombre}`;
+
+    const chart = Charts.radar('chartCompetencias', labels, [
+      { label: 'Autoevaluación', data: self, color: selfColor },
+      { label: 'Evaluación real', data: real, color: realColor, dashed: true, hidden: true },
+    ]);
+
+    // Botón "Real": superpone la segunda serie sobre la primera, sin volver
+    // a crear el gráfico (mismo canvas, mismos ejes) para que se vea "una
+    // arriba de la otra" con su propio color/trazo (línea punteada).
+    const toggleBtn = document.getElementById('toggleReal');
+    const setToggle = (on) => {
+      chart.data.datasets[1].hidden = !on;
+      chart.update();
+      toggleBtn.setAttribute('aria-pressed', String(on));
+      toggleBtn.textContent = on ? 'Ocultar evaluación real' : 'Ver evaluación real';
+    };
+    setToggle(false);
+    toggleBtn.onclick = () => setToggle(toggleBtn.getAttribute('aria-pressed') !== 'true');
+
+    // Punto más alto / más flojo, según la autoevaluación (el radar de base,
+    // siempre visible), con el valor real al lado como referencia.
+    let topI = 0, weakI = 0;
+    self.forEach((v, i) => {
+      if (v > self[topI]) topI = i;
+      if (v < self[weakI]) weakI = i;
+    });
+    document.getElementById('compTop').textContent = `${labels[topI]} · ${self[topI]}/10 (real: ${real[topI]})`;
+    document.getElementById('compWeak').textContent = `${labels[weakI]} · ${self[weakI]}/10 (real: ${real[weakI]})`;
+
+    // Resumen: se arma en base a los datos (no está escrito a mano), como el
+    // texto descriptivo de la imagen de referencia.
+    const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const avgSelf = avg(self);
+    const avgReal = avg(real);
+    const brecha = Math.round((avgSelf - avgReal) * 10) / 10;
+    const nombreCorto = comp.nombre.split(' ')[0];
+    let brechaTxt;
+    if (brecha > 0.8) {
+      brechaTxt = `se autopercibe algo mejor de lo que refleja la evaluación real, con una brecha promedio de ${brecha} puntos`;
+    } else if (brecha < -0.3) {
+      brechaTxt = 'la evaluación real lo ubica por encima de su propia autopercepción';
+    } else {
+      brechaTxt = 'su autopercepción está alineada con la evaluación real, sin brechas significativas';
+    }
+    document.getElementById('compSummary').textContent =
+      `${nombreCorto} se destaca en ${labels[topI].toLowerCase()} (${self[topI]}/10) y tiene su punto más flojo en ${labels[weakI].toLowerCase()} (${self[weakI]}/10). En conjunto, ${brechaTxt}.`;
+  }
+  renderCompetencias();
+
   // Paleta del informe: en la vista de un integrante (o "Otros"), todos los
   // gráficos usan tonos de su propio color en vez de la paleta azul/gris
   // genérica, para que todo el informe se sienta "de esa persona". El panel
