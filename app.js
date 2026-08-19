@@ -308,6 +308,20 @@
     return SELECTOR_COLORS[selector];
   }
 
+  // Medalla + color acorde al puesto, usada en los 3 rankings de "Por
+  // selector"/"Cumplimiento de selección" (y en las insignias del hero).
+  const MEDAL_COLORS = ['#b8860b', '#6b7280', '#b5651d']; // oro, plata, bronce
+  function medal(i) { return i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`; }
+  function medalColor(i) { return MEDAL_COLORS[i] || null; }
+  function rankIdxHtml(i) {
+    const cls = medalColor(i) ? 'idx idx--medal' : 'idx';
+    return `<span class="${cls}">${medal(i)}</span>`;
+  }
+  function rankColorCss(i) {
+    const c = medalColor(i);
+    return c ? `color:${c};` : '';
+  }
+
   // ---------- Mapa de zonas (solo panel general de Kevin) ----------
   // data.js no tiene una columna de zona geográfica: "zonal" y "regional" son
   // nombres de personas (zonal/regional manager), no regiones. Para poder
@@ -479,7 +493,7 @@
   function renderHeroBadges(rankVolumen, rankPresentismo, rankCumplimiento) {
     const el = document.getElementById('heroBadges');
     if (!el) return;
-    const medal = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`;
+    // medal() está definido más arriba (se reusa en los rankings de "Por selector").
     // Grupo con más de un selector (p. ej. "Otros"): no tiene un puesto único
     // en el ranking general, pero cada selector adentro sí tiene el suyo —
     // se muestra su puesto en el equipo + el lugar que ocupa en cada uno de
@@ -586,11 +600,11 @@
       const val = rows.length ? (100 - pct(rows.filter(r => r.presente).length, rows.length) * 100) : 0;
       return round1(val);
     });
-    // Color fijo (no col('grey')/THEME): esa combinación tiraba a un tono
-    // casi blanco —tanto en el panel general como en el de cada
-    // integrante— que se perdía contra el fondo. Rojo además le da sentido
-    // (es la métrica "mala": gente que no se presentó).
-    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: Charts.COLORS.red });
+    // col('blue') en vez de col('grey'): en el dashboard de un integrante
+    // esto resuelve al color de esa persona (THEME.base) — igual que el
+    // resto de sus gráficos —, y en el panel general cae en el azul de
+    // marca en vez del gris casi invisible que tenía antes.
+    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: col('blue') });
   }
 
   function topN(rows, keyFn, n = 5) {
@@ -668,10 +682,10 @@
     const maxVal = Math.max(...rankVals, 1);
     document.getElementById('rankSelectores').innerHTML = rankOrder.map(([n, v], i) => `
       <li class="${isMe(n) ? 'me' : ''}">
-        <span class="idx">${i + 1}</span>
-        <span class="name">${n}</span>
+        ${rankIdxHtml(i)}
+        <span class="name" style="${rankColorCss(i)}">${n}</span>
         <span class="bar-track"><span class="bar-fill" style="width:${(v / maxVal) * 100}%;background:${colorFor(n)}"></span></span>
-        <span class="val">${fmtInt(v)}</span>
+        <span class="val" style="${rankColorCss(i)}">${fmtInt(v)}</span>
       </li>`).join('');
 
     // Presentismo por selector (todo el equipo)
@@ -680,11 +694,12 @@
       return pct(rows.filter(r => r.presente).length, rows.length);
     });
     const order2 = rankNames.map((n, i) => [n, presentismo[i]]).sort((a, b) => b[1] - a[1]);
-    document.getElementById('rankPresentismo').innerHTML = order2.map(([n, p]) => `
+    document.getElementById('rankPresentismo').innerHTML = order2.map(([n, p], i) => `
       <li class="${isMe(n) ? 'me' : ''}">
-        <span class="name" style="width:90px;">${n}</span>
+        ${rankIdxHtml(i)}
+        <span class="name" style="width:90px;${rankColorCss(i)}">${n}</span>
         <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)}"></span></span>
-        <span class="val">${fmtPct(p)}</span>
+        <span class="val" style="${rankColorCss(i)}">${fmtPct(p)}</span>
       </li>`).join('');
 
     return { rankVolumen: rankOrder, rankPresentismo: order2 };
@@ -727,10 +742,10 @@
 
     document.getElementById('rankCumplimiento').innerHTML = ranking.map(([n, p], i) => `
       <li class="${memberSelectorSet && memberSelectorSet.has(n) ? 'me' : ''}">
-        <span class="idx">${i + 1}</span>
-        <span class="name">${n}</span>
+        ${rankIdxHtml(i)}
+        <span class="name" style="${rankColorCss(i)}">${n}</span>
         <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)}"></span></span>
-        <span class="val">${fmtPct(p)}</span>
+        <span class="val" style="${rankColorCss(i)}">${fmtPct(p)}</span>
       </li>`).join('');
 
     return ranking;
