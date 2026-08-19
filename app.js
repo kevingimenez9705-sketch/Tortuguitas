@@ -66,6 +66,83 @@
   })();
 
   // ---------- Perfil de competencias (radar autoevaluación vs. real) ----------
+  // Arma el resumen narrativo siguiendo los números puntuales de cada
+  // persona (no una plantilla fija): de dónde sale su fortaleza, si se
+  // sostiene puertas afuera, si el punto más flojo es en realidad más fuerte
+  // de lo que cree, y si hay alguna competencia con una distancia notable
+  // que valga la pena nombrar aparte. round1 se declara más abajo en este
+  // mismo archivo (function, así que queda "hoisteada" y disponible acá).
+  function buildResumenCompetencias(nombreCorto, cats, self, real, topI, weakI) {
+    const labels = cats.map(c => c.label);
+    const pronombre = (i) => cats[i].genero === 'm' ? 'lo' : 'la';
+    const parejo = (i) => cats[i].genero === 'm' ? 'parejo' : 'pareja';
+    const sentences = [];
+    const spread = round1(Math.max(...self) - Math.min(...self));
+    const perfilTxt = spread <= 2.5
+      ? 'presenta un perfil bastante parejo entre sus diez competencias evaluadas'
+      : 'presenta un perfil con matices bien marcados entre sus diez competencias evaluadas';
+    sentences.push(
+      `${nombreCorto} ${perfilTxt}, con ${labels[topI].toLowerCase()} como su fortaleza más marcada (${self[topI]}/10) y ${labels[weakI].toLowerCase()} como la competencia con más margen para seguir creciendo (${self[weakI]}/10).`
+    );
+
+    if (!real) {
+      sentences.push('Todavía no hay una evaluación real cargada para comparar, así que este resumen se basa únicamente en su autoevaluación.');
+      return sentences.join(' ');
+    }
+
+    const gaps = self.map((v, i) => round1(v - real[i])); // >0: se autoevalúa más alto que la mirada externa
+    let maxGapI = 0, minGapI = 0;
+    gaps.forEach((g, i) => {
+      if (g > gaps[maxGapI]) maxGapI = i;
+      if (g < gaps[minGapI]) minGapI = i;
+    });
+    const avgGap = round1(gaps.reduce((a, b) => a + b, 0) / gaps.length);
+
+    // ¿La fortaleza que más destaca se sostiene puertas afuera, o es ahí
+    // donde más se abre la distancia con la mirada externa?
+    if (gaps[topI] >= 2) {
+      sentences.push(
+        `Vale la pena nombrarlo: es justo en ${labels[topI].toLowerCase()} donde más se abre la distancia con la mirada externa (${real[topI]}/10 contra ${self[topI]}/10) — más que una debilidad, una buena oportunidad para confirmar puertas afuera lo que ya sabe que puede dar.`
+      );
+    } else if (gaps[topI] <= 0.5) {
+      sentences.push(
+        `Y no es solo autopercepción: la evaluación externa también ubica a ${labels[topI].toLowerCase()} entre lo más sólido (${real[topI]}/10), así que es un rasgo bien afianzado.`
+      );
+    }
+
+    // ¿El punto más flojo en la autoevaluación en realidad se ve igual o
+    // mejor desde afuera? Es una forma de nombrar la debilidad sin que
+    // suene tan dura.
+    if (gaps[weakI] <= 0) {
+      sentences.push(
+        `En ${labels[weakI].toLowerCase()} —lo que menos destaca en su propia mirada— la evaluación externa ${pronombre(weakI)} ubica ${parejo(weakI)} o incluso mejor (${real[weakI]}/10), así que probablemente no sea un punto tan flojo como parece.`
+      );
+    }
+
+    // Mayor distancia puntual en el resto del perfil (si no fue mencionada ya).
+    if (maxGapI !== topI && gaps[maxGapI] >= 2) {
+      sentences.push(
+        `También aparece una distancia a tener en cuenta en ${labels[maxGapI].toLowerCase()}: ${self[maxGapI]}/10 en su autoevaluación contra ${real[maxGapI]}/10 en la mirada externa.`
+      );
+    }
+
+    // Cierre con la brecha general del perfil completo.
+    if (avgGap > 1.2) {
+      sentences.push(
+        `En conjunto, la autoevaluación resulta más generosa que la mirada externa en casi todas las competencias —unos ${avgGap} puntos de diferencia en promedio—, algo para tener presente sin que le reste mérito a las fortalezas reales de fondo.`
+      );
+    } else if (avgGap < -0.3) {
+      sentences.push(
+        'En conjunto, la evaluación externa puntúa incluso por encima de la propia autopercepción, lo que habla más de una mirada autocrítica que de una limitación real.'
+      );
+    } else {
+      sentences.push(
+        'En conjunto, la autopercepción y la evaluación externa están bastante alineadas, sin diferencias relevantes entre ambas.'
+      );
+    }
+    return sentences.join(' ');
+  }
+
   // Se muestra en el dashboard de cualquier integrante con entrada en
   // COMPETENCIAS_DATA (competencias.js) — sin ?miembro= se usa 'kevin' (el
   // panel general es "el suyo", mismo criterio que themeHero más arriba).
@@ -126,55 +203,19 @@
     document.getElementById('compWeak').textContent = `${labels[weakI]} · ${self[weakI]}/10${realSuffix(weakI)}`;
 
     // Resumen: se arma en base a los datos (no está escrito a mano), como el
-    // texto descriptivo de la imagen de referencia. Tono cuidado a propósito
-    // (nunca "se autopercibe mejor" ni frases que suenen a reproche): la
-    // brecha entre autoevaluación y evaluación real es información neutral,
-    // no un juicio sobre la persona.
+    // texto descriptivo de la imagen de referencia. Cada persona tiene un
+    // patrón de números distinto (dónde coincide con la mirada externa, dónde
+    // se aleja, qué tan parejo es su perfil), así que el texto sigue esos
+    // datos en vez de una plantilla fija — para que no todos los resúmenes
+    // digan lo mismo con el nombre cambiado. El tono es honesto pero cuidado:
+    // una brecha grande se nombra (con el número y la competencia puntual),
+    // pero siempre encuadrada como algo a tener en cuenta, nunca como un
+    // reproche ("se autopercibe mejor" quedó afuera a propósito). Se evitan
+    // pronombres con género (lo/la, "consigo mismo/a") porque no sabemos el
+    // género de cada integrante desde los datos.
     const nombreCorto = comp.nombre.split(' ')[0];
-    const sentences = [];
-    sentences.push(
-      `${nombreCorto} presenta un perfil parejo a lo largo de las diez competencias evaluadas, con ${labels[topI].toLowerCase()} como su fortaleza más marcada (${self[topI]}/10) y ${labels[weakI].toLowerCase()} como la competencia con más margen para seguir creciendo (${self[weakI]}/10).`
-    );
-
-    if (!real) {
-      sentences.push('Todavía no hay una evaluación real cargada para comparar, así que este resumen se basa únicamente en su autoevaluación.');
-    } else {
-      const avg = (arr) => arr.reduce((a, b) => a + b, 0) / arr.length;
-      const brecha = Math.round((avg(self) - avg(real)) * 10) / 10;
-      let realTopI = 0, realWeakI = 0;
-      real.forEach((v, i) => {
-        if (v > real[realTopI]) realTopI = i;
-        if (v < real[realWeakI]) realWeakI = i;
-      });
-
-      if (realTopI === topI && realWeakI === weakI) {
-        sentences.push(
-          `Tanto su autoevaluación como la evaluación real coinciden en señalar ${labels[topI].toLowerCase()} como su punto más fuerte y ${labels[weakI].toLowerCase()} como el que más margen tiene para crecer, lo que confirma que ambos son rasgos consolidados y no solo una percepción propia.`
-        );
-      } else if (realTopI === topI) {
-        sentences.push(
-          `Tanto su autoevaluación como la evaluación real coinciden en señalar ${labels[topI].toLowerCase()} como su punto más fuerte, lo que confirma que es un rasgo consolidado y no solo una percepción propia.`
-        );
-      } else if (realWeakI === weakI) {
-        sentences.push(
-          `La evaluación real también identifica a ${labels[weakI].toLowerCase()} como la competencia con más margen para crecer, en línea con su propia autoevaluación.`
-        );
-      }
-      if (brecha > 0.8) {
-        sentences.push(
-          `En el resto de las competencias, su autoevaluación resulta apenas un poco más generosa que la mirada externa —una diferencia promedio de ${brecha} puntos—, algo bastante habitual cuando alguien se autoevalúa con entusiasmo: ambas miradas describen, en definitiva, el mismo perfil, solo con matices distintos de intensidad.`
-        );
-      } else if (brecha < -0.3) {
-        sentences.push(
-          `Llama la atención que la evaluación real lo ubica incluso por encima de su propia autopercepción, lo que sugiere una mirada exigente consigo mismo más que una limitación real.`
-        );
-      } else {
-        sentences.push(
-          'Su autopercepción y la evaluación real están muy alineadas entre sí, sin diferencias relevantes entre ambas miradas.'
-        );
-      }
-    }
-    document.getElementById('compSummary').textContent = sentences.join(' ');
+    document.getElementById('compSummary').textContent =
+      buildResumenCompetencias(nombreCorto, window.COMPETENCIAS_CATEGORIAS, self, real, topI, weakI);
   }
   renderCompetencias();
 
