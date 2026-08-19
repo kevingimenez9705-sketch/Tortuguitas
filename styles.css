@@ -650,13 +650,53 @@ body{
   pointer-events:none;
 }
 .org-preview p{margin:0 0 4px;font-size:11px;font-weight:700;color:var(--text);}
-.org-preview-contact{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--blue);text-decoration:none;}
+.org-contact-row{display:flex;align-items:center;justify-content:center;gap:5px;margin:0 0 4px;}
+.org-contact-row:last-child{margin-bottom:0;}
+.org-preview-contact{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:var(--blue);text-decoration:none;overflow-wrap:anywhere;text-align:left;}
 .org-preview-contact:hover{text-decoration:underline;}
+/* Botón de copiar al lado del teléfono/mail — la lógica de click (Clipboard
+   API + fallback) está en el <script> al pie de index.html. */
+.copy-btn{
+  flex:0 0 auto;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:19px;
+  height:19px;
+  padding:0;
+  border:1px solid var(--border);
+  border-radius:6px;
+  background:#f7f8fb;
+  color:var(--text-muted);
+  font-size:10px;
+  line-height:1;
+  cursor:pointer;
+}
+.copy-btn:hover{background:#eef1f6;color:var(--text);}
+.copy-btn.copied{background:var(--green);border-color:var(--green);color:#fff;}
 .org-card--preview:hover .org-preview,
-.org-card--preview:focus-within .org-preview{
+.org-card--preview:focus-within .org-preview,
+.mini-person--preview:hover .org-preview,
+.mini-person--preview:focus-within .org-preview,
+.division-header--preview:hover .org-preview,
+.division-header--preview:focus-within .org-preview{
   opacity:1;
   transform:translateY(0) scale(1);
   pointer-events:auto;
+}
+/* Mismo hover/focus-reveal que .org-card--preview, pero sin el zoom de la
+   tarjeta: en el roster (grillas de 4 columnas) y en la barra de división
+   agrandar la card/barra entera queda feo y pisa a la vecina. */
+.mini-person--preview,
+.division-header--preview{
+  position:relative;
+  z-index:1;
+}
+.mini-person--preview:hover,
+.mini-person--preview:focus-within,
+.division-header--preview:hover,
+.division-header--preview:focus-within{
+  z-index:6;
 }
 .org-avatar{
   width:56px;
@@ -703,19 +743,26 @@ body{
   flex:1;
   border:1px solid var(--border);
   border-top:3px solid var(--border);
-  border-radius:16px;
   background:#fbfbfd;
-  overflow:hidden;
+  /* Antes tenía overflow:hidden (solo para recortar las puntas cuadradas de
+     .division-header contra el borde redondeado de acá arriba) — se saca
+     porque cortaba el preview de contacto de Ángel/Soledad al abrirse hacia
+     abajo. El recorte de las puntas ahora lo hace el propio border-radius
+     de .division-header. */
+  border-radius:16px;
 }
 .division-angel{border-top-color:var(--blue);}
 .division-soledad{border-top-color:#14b8a6;}
 .division-header{
+  position:relative;
   display:flex;
   align-items:center;
   gap:12px;
   padding:14px 16px;
   background:#f3f4f7;
   border-bottom:1px solid var(--border);
+  border-top-left-radius:15px;
+  border-top-right-radius:15px;
 }
 .division-lead-avatar{
   width:44px;
@@ -755,10 +802,22 @@ body{
 .subteam{padding:14px;border:1px solid #c4b5fd;border-radius:14px;background:#fff;}
 .subteam-title{display:flex;justify-content:space-between;gap:6px;margin-bottom:12px;color:#5b3ea6;font-size:12px;font-weight:900;}
 .roster{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:12px;}
-.mini-person{min-width:0;padding:9px 5px;border:1px solid var(--border);border-radius:12px;background:#fff;text-align:center;}
+.mini-person{position:relative;min-width:0;padding:9px 5px;border:1px solid var(--border);border-radius:12px;background:#fff;text-align:center;}
 .mini-person .org-avatar{width:48px;height:48px;margin:0 auto 6px;}
 .mini-person h3{margin:0 0 2px;overflow:hidden;font-size:10px;text-overflow:ellipsis;white-space:nowrap;}
 .mini-person p{margin:0;color:var(--text-muted);font-size:9px;font-weight:700;}
+/* Frase distintiva (la misma que en las tarjetas del equipo, index.html) —
+   solo la tiene el equipo de Selección; el resto de las divisiones no. */
+.org-tagline{margin-top:2px;font-size:10px;font-weight:700;font-style:italic;}
+.mini-person .org-tagline{font-size:8px;margin-top:1px;white-space:normal;}
+/* El mini-person es angosto (grilla de 4 columnas): el preview de contacto
+   se hace más ancho que la propia tarjeta y centrado, si no el teléfono/mail
+   se cortan en demasiadas líneas. left/margin-left en vez de transform:
+   translateX para no pisar el translateY+scale de la animación de hover. */
+.mini-person .org-preview{left:50%;right:auto;width:168px;margin-left:-84px;}
+@media(max-width:600px){
+  .mini-person .org-preview{width:150px;margin-left:-75px;}
+}
 .vacancy{border-style:dashed;}
 .vacancy .org-avatar{display:grid;place-items:center;color:#94a3b8;font-size:18px;font-weight:900;}
 
