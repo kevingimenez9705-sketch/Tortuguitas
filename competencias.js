@@ -7,18 +7,21 @@
 // renderCompetencias en app.js.
 //
 // Las 10 competencias son siempre las mismas y en el mismo orden para todos,
-// así que se definen una sola vez acá.
+// así que se definen una sola vez acá. "genero" (m/f) es el género
+// gramatical del sustantivo (el liderazgo, la planificación...), usado en
+// app.js para elegir el pronombre correcto ("lo"/"la") al armar el resumen
+// — no tiene relación con el género de la persona evaluada.
 window.COMPETENCIAS_CATEGORIAS = [
-  { key: 'adaptabilidad', label: 'Adaptabilidad' },
-  { key: 'decisiones', label: 'Toma de decisiones' },
-  { key: 'planificacion', label: 'Planificación' },
-  { key: 'equipo', label: 'Trabajo en equipo' },
-  { key: 'liderazgo', label: 'Liderazgo' },
-  { key: 'conflictos', label: 'Resolución de conflictos' },
-  { key: 'innovacion', label: 'Innovación' },
-  { key: 'comunicacion', label: 'Comunicación' },
-  { key: 'problemas', label: 'Resolución de problemas' },
-  { key: 'creatividad', label: 'Creatividad' },
+  { key: 'adaptabilidad', label: 'Adaptabilidad', genero: 'f' },
+  { key: 'decisiones', label: 'Toma de decisiones', genero: 'f' },
+  { key: 'planificacion', label: 'Planificación', genero: 'f' },
+  { key: 'equipo', label: 'Trabajo en equipo', genero: 'm' },
+  { key: 'liderazgo', label: 'Liderazgo', genero: 'm' },
+  { key: 'conflictos', label: 'Resolución de conflictos', genero: 'f' },
+  { key: 'innovacion', label: 'Innovación', genero: 'f' },
+  { key: 'comunicacion', label: 'Comunicación', genero: 'f' },
+  { key: 'problemas', label: 'Resolución de problemas', genero: 'f' },
+  { key: 'creatividad', label: 'Creatividad', genero: 'f' },
 ];
 
 window.COMPETENCIAS_DATA = {
