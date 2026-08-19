@@ -197,7 +197,7 @@ body{
    página. #f7f8fb (primer intento) era casi imperceptible al lado del
    blanco de la tarjeta — este tono es notoriamente más oscuro. */
 .chart-wrap{position:relative;height:260px;background:#e4e9f2;border-radius:12px;padding:12px;}
-.chart-wrap.small{height:175px;}
+.chart-wrap.small{height:230px;}
 .donut-wrap{position:relative;height:180px;display:flex;align-items:center;justify-content:center;background:#e4e9f2;border-radius:12px;padding:12px;}
 
 .footer-note{font-size:11px;color:var(--text-muted);text-align:right;margin:8px 4px 30px;}
