@@ -687,13 +687,14 @@ body{
   transform:translateY(0) scale(1);
   pointer-events:auto;
 }
-/* Mismo hover/focus-reveal que .org-card--preview, pero sin el zoom de la
-   tarjeta: en el roster (grillas de 4 columnas) y en la barra de división
-   agrandar la card/barra entera queda feo y pisa a la vecina. */
+/* Mismo hover/focus-reveal que .org-card--preview, con el mismo zoom de
+   tarjeta (antes solo lo tenía Kevin) — el z-index ya sube por encima de la
+   vecina de al lado, así que agrandarse un poco no la tapa mal. */
 .mini-person--preview,
 .division-header--preview{
   position:relative;
   z-index:1;
+  transition:transform .2s ease, box-shadow .2s ease;
 }
 .mini-person--preview:hover,
 .mini-person--preview:focus-within,
@@ -702,6 +703,8 @@ body{
 .division-header--preview:focus-within,
 .division-header--preview.preview-open{
   z-index:6;
+  transform:scale(1.045);
+  box-shadow:0 14px 30px rgba(15,23,42,.16);
 }
 /* .preview-open: en touch (celular/tablet) no existe :hover — el <script>
    al pie de index.html togglea esta clase al tocar la tarjeta, así el
