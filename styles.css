@@ -449,6 +449,11 @@ body{
 }
 .unit-name{font-weight:800;font-size:17px;color:var(--text);}
 .unit-role{margin-top:2px;font-size:12px;font-weight:700;color:var(--text-muted);}
+/* Palabra/frase que define a cada integrante, según su perfil de
+   competencias (competencias.js): su rasgo más marcado y, cuando hay
+   evaluación real cargada, confirmado por ambas miradas (no solo su propia
+   autoevaluación) — ver el resumen de cada dashboard para el detalle. */
+.unit-tagline{margin-top:6px;font-size:12px;font-weight:700;font-style:italic;}
 .unit-link{margin-top:14px;font-size:13px;font-weight:700;color:#8a5a35;}
 
 .btn-primary{
