@@ -50,7 +50,6 @@ window.COMPETENCIAS_DATA = {
   kevin: {
     nombre: 'Kevin García',
     autoevaluacion: [8.5, 8.5, 9, 8, 9.5, 9, 7, 7.5, 9, 6.5],
-    // Todavía no se cargó su evaluación real: el botón "Ver evaluación
-    // real" queda deshabilitado hasta que se sume ese dato (ver app.js).
+    real: [8, 9, 9, 8, 9, 9, 8, 9, 9, 7],
   },
 };
