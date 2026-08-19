@@ -220,17 +220,20 @@
   renderCompetencias();
 
   // Paleta del informe: en la vista de un integrante (o "Otros"), todos los
-  // gráficos usan tonos de su propio color en vez de la paleta azul/gris
-  // genérica, para que todo el informe se sienta "de esa persona". El panel
-  // general de Kevin mantiene la paleta multicolor (necesita distinguir
-  // selectores entre sí) y usa su color solo en el header.
-  const THEME = member ? {
-    base: member.color,
-    light: tint(member.color, 0.45),
-    lighter: tint(member.color, 0.75),
-  } : null;
+  // gráficos "agregados" (no desglosados por selector) usan tonos de su
+  // propio color en vez de la paleta azul/gris genérica, para que todo el
+  // informe se sienta "de esa persona". El panel general también es "de
+  // alguien" (Kevin) y ahora usa su color con el mismo criterio en vez de
+  // reservarlo solo para el header. Los widgets que sí necesitan distinguir
+  // selectores entre sí (Participación por selector, los 3 rankings) NO
+  // pasan por col() — usan colorFor(selector), así que siguen multicolor
+  // sin importar este THEME.
+  const THEME = {
+    base: member ? member.color : KEVIN_COLOR,
+    light: tint(member ? member.color : KEVIN_COLOR, 0.45),
+    lighter: tint(member ? member.color : KEVIN_COLOR, 0.75),
+  };
   function col(key) {
-    if (!THEME) return Charts.COLORS[key];
     if (key === 'blueLight') return THEME.light;
     if (key === 'grey') return THEME.lighter;
     return THEME.base; // blue, purple, green, navy...
@@ -552,10 +555,11 @@
       { label: 'CUMPLIMIENTO PROMEDIO', value: fmtPct(cumplProm), sub: 'Enviados / vacantes totales', cls: 'c-purple' },
     ];
 
-    // En la vista de un integrante, las 5 tarjetas comparten su color (en vez
-    // de azul/verde/violeta genéricos) para que el panel se sienta unificado.
+    // Las 5 tarjetas comparten el color de THEME (en vez de azul/verde/violeta
+    // genéricos) para que el panel se sienta "de esa persona" — Kevin
+    // incluido, con el suyo.
     document.getElementById('kpis').innerHTML = kpis.map(k => `
-      <div class="kpi ${k.cls}"${THEME ? ` style="border-top-color:${THEME.base}"` : ''}>
+      <div class="kpi ${k.cls}" style="border-top-color:${THEME.base}">
         <div class="label">${k.label}</div>
         <div class="value">${k.value}</div>
         <div class="sub">${k.sub}</div>
