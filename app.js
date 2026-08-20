@@ -17,8 +17,8 @@
   const MEMBER_MAP = {
     agustin: { label: 'Agustín Márquez', selectors: ['Agustin'], color: '#5b2d78', avatar: 'images/agustin-marquez.jpg', tortuga: 'images/tortuga-agustin.jpg' },
     agustina: { label: 'Agustina Castillo', selectors: ['Agustina'], color: '#cc2f2f', avatar: 'images/agustina-castillo.jpg', tortuga: 'images/tortuga-agustina.jpg' },
-    rafael: { label: 'Rafael Barberi', selectors: [], color: '#e2721f', avatar: 'images/rafael-barberi.jpg', tortuga: 'images/tortuga-rafael.jpg' },
-    gustavo: { label: 'Gustavo Sotelo', selectors: [], color: '#4f8fc9', avatar: 'images/gustavo-sotelo.jpg', tortuga: 'images/tortuga-gustavo.jpg' },
+    rafael: { label: 'Rafael Barberi', selectors: ['Rafael'], color: '#e2721f', avatar: 'images/rafael-barberi.jpg', tortuga: 'images/tortuga-rafael.jpg' },
+    gustavo: { label: 'Gustavo Sotelo', selectors: ['Gustavo'], color: '#4f8fc9', avatar: 'images/gustavo-sotelo.jpg', tortuga: 'images/tortuga-gustavo.jpg' },
     otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a', avatar: null, tortuga: 'images/muertos en el camino.jpg' },
   };
   // Puesto de cada selector agrupado dentro de "Otros" (no tienen tarjeta

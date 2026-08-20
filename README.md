@@ -20,7 +20,8 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 - **Kevin García** → sin filtro (`dashboard.html` sin query param): ve el panel ejecutivo completo, como coordinador.
 - **Agustín Márquez** → `selector: "Agustin"`.
 - **Agustina Castillo** → `selector: "Agustina"`.
-- **Rafael Barberi** y **Gustavo Sotelo** → todavía no tienen `selector` propio en `data.js`, así que su página muestra un estado "S/D" (sin datos) en vez de gráficos vacíos. En cuanto la planilla fuente tenga altas con su nombre como selector, agregar la clave correspondiente en `MEMBER_MAP` y van a mostrar datos automáticamente.
+- **Rafael Barberi** → `selector: "Rafael"` (con altas desde agosto 2026).
+- **Gustavo Sotelo** → `selector: "Gustavo"` (con altas desde agosto 2026).
 - **Otros** → agrupa `Emiliano`, `Mariano`, `Facundo` y `Seleccion` (altas sin selector puntual asignado en la planilla) en un solo resultado combinado.
 
 ## Cómo actualizar los datos
