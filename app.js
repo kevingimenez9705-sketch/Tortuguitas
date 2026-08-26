@@ -436,6 +436,16 @@
   const ALL_MONTHS = [...new Set(ALTAS.map(r => r.mes))].sort();
   const CUMPL_MONTHS = [...new Set(CUMPL.map(r => r.mes))].sort();
 
+  // Meses de cumplimiento a usar para un período seleccionado: intersección
+  // con los meses que realmente tienen datos de cumplimiento cargados: si el
+  // filtro de altas no tiene equivalente en cumplimiento, se muestra el rango
+  // completo disponible en vez de quedar vacío.
+  function activeCumMonths(months) {
+    const monthSet = new Set(months);
+    const cumMonths = CUMPL_MONTHS.filter(m => monthSet.has(m));
+    return cumMonths.length ? cumMonths : CUMPL_MONTHS;
+  }
+
   let periodType = '12';
   let customSelected = new Set();
 
@@ -476,7 +486,7 @@
     const allAltasF = member ? DATA.altas.filter(r => monthSet.has(r.mes)) : altasF;
 
     renderZonas(altasF);
-    renderKpis(altasF);
+    renderKpis(altasF, months);
     renderAltasMes(months, altasF);
     renderAltasMarcaMes(months, altasF);
     renderDistribucionMarca(altasF);
@@ -535,14 +545,18 @@
       .join('');
   }
 
-  function renderKpis(altasF) {
+  function renderKpis(altasF, months) {
     const total = altasF.length;
     const presentes = altasF.filter(r => r.presente).length;
     const noPresentados = total - presentes;
     const sabores = altasF.filter(r => r.marca === 'Sabores').length;
     const extremas = altasF.filter(r => r.marca === 'Extremas').length;
 
-    const cumplRows = CUMPL; // ranking usa el rango disponible de cumplimiento (ver renderCumplimiento)
+    // Antes usaba CUMPL entero sin filtrar por período: el KPI quedaba fijo
+    // sin importar el filtro de meses elegido. Ahora usa el mismo rango de
+    // meses (con el mismo fallback) que el ranking de abajo (renderCumplimiento).
+    const cumMonths = activeCumMonths(months);
+    const cumplRows = CUMPL.filter(r => cumMonths.includes(r.mes));
     const totalEnv = cumplRows.reduce((a, r) => a + (r.enviados || 0), 0);
     const totalVac = cumplRows.reduce((a, r) => a + (r.total || 0), 0);
     const cumplProm = pct(totalEnv, totalVac);
@@ -710,9 +724,7 @@
   }
 
   function renderCumplimiento(months) {
-    const monthSet = new Set(months);
-    let cumMonths = CUMPL_MONTHS.filter(m => monthSet.has(m));
-    if (cumMonths.length === 0) cumMonths = CUMPL_MONTHS; // fallback: mostrar rango completo disponible
+    const cumMonths = activeCumMonths(months);
 
     const rangeLabel = cumMonths.length
       ? `${monthLabel(cumMonths[0])} a ${monthLabel(cumMonths[cumMonths.length - 1])}`
