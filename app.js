@@ -19,6 +19,7 @@
     agustina: { label: 'Agustina Castillo', selectors: ['Agustina'], color: '#cc2f2f', avatar: 'images/agustina-castillo.jpg', tortuga: 'images/tortuga-agustina.jpg' },
     rafael: { label: 'Rafael Barberi', selectors: ['Rafael'], color: '#e2721f', avatar: 'images/rafael-barberi.jpg', tortuga: 'images/tortuga-rafael.jpg' },
     gustavo: { label: 'Gustavo Sotelo', selectors: ['Gustavo'], color: '#4f8fc9', avatar: 'images/gustavo-sotelo.jpg', tortuga: 'images/tortuga-gustavo.jpg' },
+    albana: { label: 'Albana Pais', selectors: [], color: '#1f8a8a', avatar: 'images/Albana-pais.jpeg', tortuga: 'images/tortuga-albana.jpg' },
     otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a', avatar: null, tortuga: 'images/muertos en el camino.jpg' },
   };
   // Puesto de cada selector agrupado dentro de "Otros" (no tienen tarjeta
