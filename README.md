@@ -9,7 +9,7 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 - `styles.css` — estilos de ambas páginas.
 - `data.js` — `window.ALTAS_DATA`: datos crudos normalizados (altas + cumplimiento). Reemplazar con la exportación actualizada del Excel para refrescar el dashboard.
 - `charts.js` — helpers genéricos para instanciar/actualizar gráficos Chart.js (línea, barra apilada, barra horizontal, dona).
-- `app.js` — lógica de filtros de período (6/12/histórico/meses específicos), filtro por integrante (`?miembro=`) y agregaciones que alimentan KPIs, gráficos y rankings.
+- `app.js` — lógica de filtros de período (mes actual/3/6/12/histórico/meses específicos), filtro por integrante (`?miembro=`) y agregaciones que alimentan KPIs, gráficos y rankings.
 - `vendor/chart.umd.min.js` — copia local de Chart.js 4.4.4. Se dejó de cargar desde el CDN (`cdnjs.cloudflare.com`) porque en varias redes (firewalls corporativos, bloqueadores de contenido) esa URL queda bloqueada y el script nunca llega a definir `Chart`; eso hacía que todos los gráficos quedaran en blanco aunque `data.js` sí tuviera datos. Al servir el archivo desde el propio sitio, los gráficos ya no dependen de una red externa.
 - `images/` — fotos de cada integrante (avatar circular en la tarjeta) y las imágenes `tortuga-*.jpg`, que se muestran como fondo de la tarjeta al pasar el cursor por encima (hover) en `index.html`.
 
