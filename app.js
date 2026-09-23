@@ -548,8 +548,11 @@
 
   function renderKpis(altasF, months) {
     const total = altasF.length;
-    const presentes = altasF.filter(r => r.presente).length;
-    const noPresentados = total - presentes;
+    // presente === null: alta sin dato de ingreso cargado todavía. Se excluye
+    // del presentismo para no contarla como ausencia.
+    const conDato = altasF.filter(r => r.presente !== null);
+    const presentes = conDato.filter(r => r.presente).length;
+    const noPresentados = conDato.length - presentes;
     const sabores = altasF.filter(r => r.marca === 'Sabores').length;
     const extremas = altasF.filter(r => r.marca === 'Extremas').length;
 
@@ -564,7 +567,7 @@
 
     const kpis = [
       { label: 'ALTAS TOTALES', value: fmtInt(total), sub: '', cls: 'c-blue' },
-      { label: 'PRESENTISMO DÍA 1', value: fmtPct(pct(presentes, total)), sub: `${fmtInt(noPresentados)} no presentados`, cls: 'c-green' },
+      { label: 'PRESENTISMO DÍA 1', value: fmtPct(pct(presentes, conDato.length)), sub: `${fmtInt(noPresentados)} no presentados`, cls: 'c-green' },
       { label: 'SABORES EXPRESS', value: fmtInt(sabores), sub: `${fmtPct(pct(sabores, total))} del total`, cls: 'c-blue' },
       { label: 'HAMBURGUESAS EXTREMAS', value: fmtInt(extremas), sub: `${fmtPct(pct(extremas, total))} del total`, cls: 'c-blue' },
       { label: 'CUMPLIMIENTO PROMEDIO', value: fmtPct(cumplProm), sub: 'Enviados / vacantes totales', cls: 'c-purple' },
@@ -615,7 +618,7 @@
 
   function renderNoPresentados(months, altasF) {
     const data = months.map(m => {
-      const rows = altasF.filter(r => r.mes === m);
+      const rows = altasF.filter(r => r.mes === m && r.presente !== null);
       const val = rows.length ? (100 - pct(rows.filter(r => r.presente).length, rows.length) * 100) : 0;
       return round1(val);
     });
@@ -709,7 +712,7 @@
 
     // Presentismo por selector (todo el equipo)
     const presentismo = rankNames.map(s => {
-      const rows = allAltasF.filter(r => r.selector === s);
+      const rows = allAltasF.filter(r => r.selector === s && r.presente !== null);
       return pct(rows.filter(r => r.presente).length, rows.length);
     });
     const order2 = rankNames.map((n, i) => [n, presentismo[i]]).sort((a, b) => b[1] - a[1]);
