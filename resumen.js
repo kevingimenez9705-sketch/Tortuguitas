@@ -301,7 +301,7 @@ window.ResumenAnual = (() => {
           <ul class="wr-band">
             ${s.ranking.map(([n, v], i) => `
               <li class="wr-anim" style="--d:${0.45 + i * 0.12}s">
-                <span>${medal(i)}</span><b>${esc(n)}</b>
+                <span>${medal(i)}</span><b>${window.EX_EQUIPO && window.EX_EQUIPO.has(n) ? '🪦 ' : ''}${esc(n)}</b>
                 <span class="wr-band-bar"><i style="--w:${v * 100}%;--d:${(0.6 + i * 0.12).toFixed(2)}s"></i></span>
                 <small>${fmtPct(v)}</small>
               </li>`).join('')}

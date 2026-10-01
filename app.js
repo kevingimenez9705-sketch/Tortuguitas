@@ -38,6 +38,14 @@
     Giselle: { label: 'Giselle', puesto: 'Selectora' },
     Balbina: { label: 'Balbina', puesto: 'Selectora' },
   };
+  // Selectores que ya no forman parte del equipo: llevan una lápida junto
+  // al nombre en todos lados (rankings, insignias de "Otros", resumen).
+  const EX_EQUIPO = new Set(['Alexis', 'Agustin Monte', 'Luana', 'Araceli', 'Giselle', 'Balbina', 'Emiliano', 'Facundo', 'Mariano']);
+  window.EX_EQUIPO = EX_EQUIPO;
+  function nombreSel(n, label) {
+    const txt = label || n;
+    return EX_EQUIPO.has(n) ? `<span class="ex-equipo" title="Ya no forma parte del equipo">🪦 ${txt}</span>` : txt;
+  }
   const KEVIN_COLOR = '#5c2430';
   // Panel sin filtrar (sin ?miembro=): también es "de alguien" — Kevin.
   const KEVIN = { label: 'Kevin García', color: KEVIN_COLOR, avatar: 'images/kevin-garcia.jpg', tortuga: 'images/tortuga-kevin.jpg' };
@@ -536,7 +544,7 @@
             .filter(([, i]) => i > -1)
             .map(([label, i]) => `${medal(i)} ${label}`);
           const rankText = ranks.length ? ` — ${ranks.join(' · ')}` : '';
-          return `${role.label} · ${role.puesto}${rankText}`;
+          return `${nombreSel(s, role.label)} · ${role.puesto}${rankText}`;
         })
         .filter(Boolean)
         .map((t, i) => `<span class="hero-badge" style="--i:${i}">${t}</span>`)
@@ -717,7 +725,7 @@
     document.getElementById('rankPresentismo').innerHTML = order2.map(([n, p], i) => `
       <li class="${isMe(n) ? 'me' : ''}">
         ${rankIdxHtml(i)}
-        <span class="name" style="width:90px;${rankColorCss(i)}">${n}</span>
+        <span class="name" style="${rankColorCss(i)}">${nombreSel(n)}</span>
         <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)};--d:${i * 70}ms"></span></span>
         <span class="val" style="${rankColorCss(i)}">${fmtPct(p)}</span>
       </li>`).join('');
@@ -764,7 +772,7 @@
     document.getElementById('rankCumplimiento').innerHTML = ranking.map(([n, p], i) => `
       <li class="${memberSelectorSet && memberSelectorSet.has(n) ? 'me' : ''}">
         ${rankIdxHtml(i)}
-        <span class="name" style="${rankColorCss(i)}">${n}</span>
+        <span class="name" style="${rankColorCss(i)}">${nombreSel(n)}</span>
         <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)};--d:${i * 70}ms"></span></span>
         <span class="val" style="${rankColorCss(i)}">${fmtPct(p)}</span>
       </li>`).join('');
