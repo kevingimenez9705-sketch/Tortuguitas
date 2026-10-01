@@ -197,7 +197,9 @@ body{
 /* Top 3: la medalla (🥇🥈🥉) ya tiene color propio, así que el círculo
    blanco de atrás se saca — se agranda un poco para que se note el ícono. */
 .rank-list .idx.idx--medal{background:transparent;box-shadow:none;font-size:16px;}
-.rank-list .name{width:80px;flex-shrink:0;}
+.rank-list .name{width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Ex integrantes: lápida + nombre atenuado */
+.ex-equipo{opacity:.7;font-style:italic;}
 .rank-list .bar-track{flex:1;background:#fff;border-radius:6px;height:10px;overflow:hidden;}
 /* display:block: como <span> inline el width se ignoraba y las barras
    quedaban vacías. Crecen desde 0 con una demora escalonada (--d). */
