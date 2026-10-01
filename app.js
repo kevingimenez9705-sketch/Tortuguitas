@@ -230,7 +230,7 @@
   // informe se sienta "de esa persona". El panel general también es "de
   // alguien" (Kevin) y ahora usa su color con el mismo criterio en vez de
   // reservarlo solo para el header. Los widgets que sí necesitan distinguir
-  // selectores entre sí (Participación por selector, los 3 rankings) NO
+  // selectores entre sí (los 3 rankings) NO
   // pasan por col() — usan colorFor(selector), así que siguen multicolor
   // sin importar este THEME.
   const THEME = {
@@ -296,7 +296,7 @@
   };
 
   // Colores fijos por selector (no por orden de aparición): así el color de
-  // Agustín/Agustina en "Ranking de selectores", "Participación", etc. es
+  // Agustín/Agustina en "Ranking de selectores", "Presentismo", etc. es
   // siempre el mismo que el de su propia tarjeta/dashboard, en cualquier
   // página donde aparezcan (Kevin, Otros...).
   const SELECTOR_COLORS = {
@@ -495,8 +495,6 @@
     renderZonas(altasF);
     renderKpis(altasF, months);
     renderAltasMes(months, altasF);
-    renderAltasMarcaMes(months, altasF);
-    renderDistribucionMarca(altasF);
     renderNoPresentados(months, altasF);
     renderTops(altasF);
     const { rankVolumen, rankPresentismo } = renderPorSelector(months, altasF, allAltasF);
@@ -660,32 +658,6 @@
     Charts.line('chartAltasMes', months.map(monthLabel), data, { color: col('blue') });
   }
 
-  function renderAltasMarcaMes(months, altasF) {
-    const sab = months.map(m => altasF.filter(r => r.mes === m && r.marca === 'Sabores').length);
-    const ext = months.map(m => altasF.filter(r => r.mes === m && r.marca === 'Extremas').length);
-    Charts.stackedBar('chartAltasMarcaMes', months.map(monthLabel), [
-      { label: 'Sabores', data: sab, color: col('blue') },
-      { label: 'Extremas', data: ext, color: col('blueLight') },
-    ]);
-  }
-
-  function renderDistribucionMarca(altasF) {
-    const sabores = altasF.filter(r => r.marca === 'Sabores').length;
-    const extremas = altasF.filter(r => r.marca === 'Extremas').length;
-    const total = sabores + extremas;
-    Charts.donut('chartDistMarca', ['Sabores', 'Extremas'], [sabores, extremas],
-      [col('blue'), col('blueLight')], { center: { value: fmtInt(total), label: 'altas' } });
-    const legend = document.getElementById('legendDistMarca');
-    if (legend) {
-      legend.innerHTML = [
-        ['Sabores Express', sabores, col('blue')],
-        ['Hamburguesas Extremas', extremas, col('blueLight')],
-      ].map(([n, v, c]) => `
-        <li><span><span class="dot" style="background:${c}"></span>${n}</span><span>${fmtPct(pct(v, total))}</span></li>
-      `).join('');
-    }
-  }
-
   function renderNoPresentados(months, altasF) {
     const data = months.map(m => {
       const rows = altasF.filter(r => r.mes === m && r.presente !== null);
@@ -696,7 +668,12 @@
     // esto resuelve al color de esa persona (THEME.base) — igual que el
     // resto de sus gráficos —, y en el panel general cae en el azul de
     // marca en vez del gris casi invisible que tenía antes.
-    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: col('blue'), suffix: '%' });
+    // Promedio marcado = no presentados sobre el total del período (el
+    // complemento exacto del KPI "Presentismo día 1"), no el promedio simple
+    // de los % mensuales, que da otro número.
+    const conDato = altasF.filter(r => r.presente !== null);
+    const avg = round1(100 - pct(conDato.filter(r => r.presente).length, conDato.length) * 100);
+    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: col('blue'), suffix: '%', avg });
   }
 
   function topN(rows, keyFn, n = 5) {
@@ -726,42 +703,19 @@
     const names = order.map(x => x[0]);
     const vals = order.map(x => x[1]);
 
-    // Mezcla de marca por selector
-    const sabD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Sabores').length);
-    const extD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Extremas').length);
-    Charts.stackedBar('chartMezclaSelector', names, [
-      { label: 'Sabores', data: sabD, color: col('blue') },
-      { label: 'Extremas', data: extD, color: col('blueLight') },
-    ]);
-
-    // Participación: para el equipo completo (Kevin) se reparte por selector real;
-    // para un integrante/grupo filtrado, comparamos contra el resto del equipo
-    // (en ese período), que tiene más sentido que un gráfico de una sola porción.
-    // "Resto del equipo" queda siempre gris neutro (no es parte de su paleta).
-    if (member) {
-      const monthSet = new Set(months);
-      const restoTotal = DATA.altas.filter(r => monthSet.has(r.mes) && !memberSelectorSet.has(r.selector)).length;
-      const miTotal = altasF.length;
-      document.getElementById('participacionTitle').textContent = 'Participación vs. resto del equipo';
-      document.getElementById('participacionDesc').textContent = `${member.label} comparado con el resto del equipo, en volumen de altas`;
-      const totalTodos = miTotal + restoTotal;
-      Charts.donut('chartParticipacionSelector', [member.label, 'Resto del equipo'], [miTotal, restoTotal],
-        [THEME.base, Charts.COLORS.grey], { center: { value: fmtPct(pct(miTotal, totalTodos)), label: 'del equipo', color: THEME.base } });
-      document.getElementById('legendParticipacion').innerHTML = [
-        [member.label, miTotal, THEME.base],
-        ['Resto del equipo', restoTotal, Charts.COLORS.grey],
-      ].map(([n, v, c]) => `
-        <li><span><span class="dot" style="background:${c}"></span>${n}</span><span>${fmtPct(pct(v, totalTodos))}</span></li>
-      `).join('');
-    } else {
-      const total = vals.reduce((a, b) => a + b, 0);
-      const colors = names.map(colorFor);
-      document.getElementById('participacionTitle').textContent = 'Participación por selector';
-      document.getElementById('participacionDesc').textContent = '% del volumen total de altas · equipo completo';
-      Charts.donut('chartParticipacionSelector', names, vals, colors, { center: { value: fmtInt(total), label: 'altas' } });
-      document.getElementById('legendParticipacion').innerHTML = names.map((n, i) => `
-        <li><span><span class="dot" style="background:${colors[i]}"></span>${n}</span><span>${fmtPct(pct(vals[i], total))}</span></li>
-      `).join('');
+    // Mezcla de marca por selector: solo cuando hay varios selectores
+    // (Kevin, "Otros"). Para un selector individual sería una única barra
+    // que repite los KPIs de Sabores/Extremas, así que se oculta.
+    const mezclaCard = document.getElementById('mezclaCard');
+    const showMezcla = !member || member.selectors.length > 1;
+    if (mezclaCard) mezclaCard.style.display = showMezcla ? '' : 'none';
+    if (showMezcla) {
+      const sabD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Sabores').length);
+      const extD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Extremas').length);
+      Charts.stackedBar('chartMezclaSelector', names, [
+        { label: 'Sabores', data: sabD, color: col('blue') },
+        { label: 'Extremas', data: extD, color: col('blueLight') },
+      ]);
     }
 
     // Ranking de selectores (todo el equipo, ver comentario en render())
@@ -815,7 +769,10 @@
       const tot = rows.reduce((a, r) => a + (r.total || 0), 0);
       return round1(pct(env, tot) * 100);
     });
-    Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple'), suffix: '%' });
+    // Promedio marcado = total enviados / total vacantes del período: el
+    // mismo número que el KPI "Cumplimiento promedio" y el ranking de abajo.
+    const avg = round1(pct(cumF.reduce((a, r) => a + (r.enviados || 0), 0), cumF.reduce((a, r) => a + (r.total || 0), 0)) * 100);
+    Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple'), suffix: '%', avg });
 
     // Ranking de cumplimiento: todo el equipo en el mismo rango de meses (ver
     // comentario de allAltasF en render() — mismo criterio, para comparar

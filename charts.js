@@ -64,8 +64,10 @@ const Charts = (() => {
         ? ctx.dataIndex * step + ctx.datasetIndex * (step / 2) : 0,
     };
   }
+  // Porcentajes siempre con 1 decimal (como los KPIs: 89.0%); cantidades
+  // enteras con separador de miles (1.501).
   function fmtNum(v, suffix = '') {
-    const s = Number.isInteger(v) ? v.toLocaleString('es-AR') : v.toFixed(1);
+    const s = (suffix === '%' || !Number.isInteger(v)) ? v.toFixed(1) : v.toLocaleString('es-AR');
     return s + suffix;
   }
   function roundRect(c, x, y, w, h, r) {
@@ -103,68 +105,63 @@ const Charts = (() => {
         c.beginPath(); c.moveTo(x, area.top); c.lineTo(x, area.bottom); c.stroke();
       }
 
-      // Promedio
-      const avg = data.reduce((a, b) => a + b, 0) / data.length;
+      // Máximo: pastilla sobre el punto más alto (se dibuja al final, arriba
+      // de la línea del promedio).
+      let mi = 0;
+      data.forEach((v, i) => { if (v > data[mi]) mi = i; });
+      const pt = meta.data[mi];
+      let pill = null;
+      if (data[mi] > 0 && pt && !hovering) { // con tooltip abierto se oculta para no taparlo
+        const text = `Máx ${fmtNum(data[mi], opts.suffix)}`;
+        c.font = `800 11px ${FONT}`;
+        const w = c.measureText(text).width + 14;
+        const h = 20;
+        const x = Math.max(area.left, Math.min(area.right - w, pt.x - w / 2));
+        let yTop = pt.y - h - 12;
+        if (yTop < 2) yTop = pt.y + 12; // sin lugar arriba: va debajo
+        pill = { text, x, y: yTop, w, h };
+      }
+
+      // Promedio: opts.avg cuando el gráfico tiene un promedio "oficial"
+      // (el mismo del KPI y del ranking: total enviados / total vacantes,
+      // no el promedio simple de los % de cada mes, que da otro número).
+      const avg = opts.avg != null ? opts.avg : data.reduce((a, b) => a + b, 0) / data.length;
       const yAvg = y.getPixelForValue(avg);
       c.setLineDash([5, 5]);
       c.strokeStyle = rgba(color, 0.5);
       c.lineWidth = 1;
       c.beginPath(); c.moveTo(area.left, yAvg); c.lineTo(area.right, yAvg); c.stroke();
       c.setLineDash([]);
-      c.font = `700 10px ${FONT}`;
-      c.fillStyle = rgba(color, 0.85);
-      c.textAlign = 'right';
-      c.textBaseline = 'bottom';
-      c.fillText(`Prom. ${fmtNum(Math.round(avg * 10) / 10, opts.suffix)}`, area.right - 4, yAvg - 3);
+      // Etiqueta del promedio afuera del área del gráfico (margen derecho),
+      // como marca del eje: así nunca se pisa con la línea ni con "Máx".
+      const label = fmtNum(Math.round(avg * 10) / 10, opts.suffix);
+      c.font = `800 10px ${FONT}`;
+      const lw = c.measureText(label).width + 10;
+      const lx = area.right + 6;
+      c.fillStyle = rgba(color, 0.14);
+      roundRect(c, lx, yAvg - 9, lw, 18, 9);
+      c.fill();
+      c.fillStyle = color;
+      c.textAlign = 'left';
+      c.textBaseline = 'middle';
+      c.fillText(label, lx + 5, yAvg + 0.5);
+      c.font = `700 9px ${FONT}`;
+      c.fillStyle = rgba(color, 0.75);
+      c.textBaseline = 'top';
+      c.fillText('PROM.', lx + 2, yAvg + 11);
 
-      // Máximo
-      let mi = 0;
-      data.forEach((v, i) => { if (v > data[mi]) mi = i; });
-      const pt = meta.data[mi];
-      if (data[mi] > 0 && pt && !hovering) { // con tooltip abierto se oculta para no taparlo
-        const text = `Máx ${fmtNum(data[mi], opts.suffix)}`;
+      if (pill) {
         c.font = `800 11px ${FONT}`;
-        const w = c.measureText(text).width + 14;
-        const h = 20;
-        let x = pt.x - w / 2;
-        x = Math.max(area.left, Math.min(area.right - w, x));
-        let yTop = pt.y - h - 12;
-        if (yTop < 2) yTop = pt.y + 12; // sin lugar arriba: va debajo
         c.fillStyle = color;
         c.shadowColor = 'rgba(15,28,63,.25)';
         c.shadowBlur = 6;
-        roundRect(c, x, yTop, w, h, 10);
+        roundRect(c, pill.x, pill.y, pill.w, pill.h, 10);
         c.fill();
         c.shadowBlur = 0;
         c.fillStyle = '#fff';
         c.textAlign = 'center';
         c.textBaseline = 'middle';
-        c.fillText(text, x + w / 2, yTop + h / 2 + 0.5);
-      }
-      c.restore();
-    },
-  });
-
-  // Donas: valor principal en el centro (total de altas o % propio).
-  Chart.register({
-    id: 'centerText',
-    afterDraw(chart, args, opts) {
-      if (!opts || !opts.value) return;
-      const arc = chart.getDatasetMeta(0).data[0];
-      if (!arc) return;
-      const { x, y, innerRadius } = arc;
-      const c = chart.ctx;
-      const size = Math.max(12, Math.min(24, innerRadius * 0.42));
-      c.save();
-      c.textAlign = 'center';
-      c.textBaseline = 'middle';
-      c.fillStyle = opts.color || '#1c2333';
-      c.font = `800 ${size}px ${FONT}`;
-      c.fillText(opts.value, x, y - (opts.label ? size * 0.32 : 0));
-      if (opts.label) {
-        c.fillStyle = '#6b7280';
-        c.font = `700 10px ${FONT}`;
-        c.fillText(opts.label.toUpperCase(), x, y + size * 0.62);
+        c.fillText(pill.text, pill.x + pill.w / 2, pill.y + pill.h / 2 + 0.5);
       }
       c.restore();
     },
@@ -229,7 +226,8 @@ const Charts = (() => {
     }
   }
 
-  // opts: { color, suffix ('%'), insights (false para apagar Máx/Prom.) }
+  // opts: { color, suffix ('%'), avg (promedio a marcar; si no, el simple),
+  //         insights (false para apagar Máx/Prom.) }
   function line(id, labels, data, opts = {}) {
     const color = opts.color || COLORS.blue;
     const suffix = opts.suffix || '';
@@ -257,13 +255,14 @@ const Charts = (() => {
       },
       options: {
         ...base,
-        layout: { padding: { top: 26 } },
+        // top: lugar para la pastilla "Máx"; right: etiqueta del promedio.
+        layout: { padding: { top: 34, right: opts.insights === false ? 0 : 58 } },
         interaction: { mode: 'index', intersect: false },
         animation: stagger(60),
         plugins: {
           ...base.plugins,
           tooltip: { callbacks: { label: (ctx) => ' ' + fmtNum(ctx.parsed.y, suffix) } },
-          insights: { enabled: opts.insights !== false, color, suffix },
+          insights: { enabled: opts.insights !== false, color, suffix, avg: opts.avg },
         },
       },
     });
@@ -331,25 +330,6 @@ const Charts = (() => {
     });
   }
 
-  // opts.center: { value, label, color } — texto en el centro de la dona.
-  function donut(id, labels, data, colors, opts = {}) {
-    const { center, ...rest } = opts;
-    return mount(id, {
-      type: 'doughnut',
-      data: {
-        labels,
-        datasets: [{ data, backgroundColor: colors, borderWidth: 0, borderRadius: 6, spacing: 2, hoverOffset: 8 }],
-      },
-      options: {
-        cutout: '72%',
-        layout: { padding: 8 },
-        animation: { animateRotate: true, animateScale: true },
-        plugins: { legend: { display: false }, tooltip: { enabled: true }, centerText: center || {} },
-        ...rest,
-      },
-    });
-  }
-
   // Radar (spider) chart — usado para el "Perfil de competencias" (autoevaluación
   // vs. evaluación real superpuestas). datasets: [{ label, data, color, dashed, hidden }]
   // Se monta siempre de inmediato: app.js usa la instancia para el botón
@@ -411,5 +391,5 @@ const Charts = (() => {
     };
   }
 
-  return { line, stackedBar, horizontalBar, donut, radar, COLORS };
+  return { line, stackedBar, horizontalBar, radar, COLORS };
 })();
