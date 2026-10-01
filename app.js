@@ -58,6 +58,7 @@
     if (!hero) return;
     const person = member || KEVIN;
     hero.style.background = `linear-gradient(135deg, ${person.color}, ${darken(person.color, 0.6)})`;
+    hero.dataset.color = person.color; // lo usa transition.js para el portal de vuelta
     if (person.tortuga) hero.style.setProperty('--tortuga-bg', `url('${person.tortuga}')`);
     const avatarEl = document.getElementById('heroAvatar');
     if (avatarEl && person.avatar) {

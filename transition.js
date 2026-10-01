@@ -1,8 +1,9 @@
-// transition.js — efecto "portal" al entrar a la hoja de cada integrante.
-// index.html: al tocar una tarjeta, un círculo con el color y la tortuga de
-// la persona se expande desde la tarjeta hasta cubrir la pantalla y recién
-// ahí navega. dashboard.html: si se llegó por el portal, la cortina se abre
-// y el contenido entra con un leve zoom.
+// transition.js — transiciones "portal" entre index.html y dashboard.html.
+// Al tocar una tarjeta (o "← Equipo") un círculo con el color y la tortuga de
+// la persona se expande desde el elemento tocado hasta cubrir la pantalla y
+// recién ahí navega. En la página de llegada esa cortina se cierra hacia el
+// centro y el contenido entra en cascada (también en cargas directas, sin
+// cortina). Respeta prefers-reduced-motion y Ctrl/Cmd+clic (nueva pestaña).
 (() => {
   const KEY = 'tortuga-portal';
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -11,6 +12,7 @@
     set(v) { try { sessionStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} },
     clear() { try { sessionStorage.removeItem(KEY); } catch (e) {} },
   };
+  const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   function buildOverlay(p) {
     const o = document.createElement('div');
@@ -22,49 +24,79 @@
     o.innerHTML =
       '<div class="portal-ring"></div><div class="portal-ring r2"></div>' +
       '<div class="portal-center">' +
-      (p.avatar ? `<img class="portal-avatar" src="${p.avatar}" alt="" />` : '') +
-      `<div class="portal-name">${p.name || ''}</div></div>`;
+      (p.avatar ? `<img class="portal-avatar" src="${esc(p.avatar)}" alt="" />` : '') +
+      `<div class="portal-name">${esc(p.name)}</div></div>`;
     document.body.appendChild(o);
     return o;
   }
 
-  // ---------- Salida (index.html) ----------
-  document.querySelectorAll('.unit-card').forEach(card => {
-    card.addEventListener('click', e => {
-      if (reduce || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+  // Engancha un link: describe(el) arma { color, bg, avatar, name } del portal.
+  function portalLink(el, describe) {
+    el.addEventListener('click', e => {
+      if (reduce || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
       e.preventDefault();
-      const r = card.getBoundingClientRect();
-      const img = card.querySelector('img.unit-avatar');
-      const p = {
-        color: card.style.borderTopColor || '#5c2430',
-        bg: card.style.getPropertyValue('--tortuga-bg').trim(),
-        avatar: img ? img.getAttribute('src') : null,
-        name: (card.querySelector('.unit-name') || {}).textContent,
-        x: r.left + r.width / 2,
-        y: r.top + r.height / 2,
-      };
-      card.classList.add('unit-card--launch');
+      const r = el.getBoundingClientRect();
+      const p = { ...describe(el), x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      el.style.setProperty('--portal-glow', p.color);
+      el.classList.add('portal-launch');
       buildOverlay(p);
       store.set({ color: p.color, bg: p.bg, avatar: p.avatar, name: p.name });
-      setTimeout(() => { location.href = card.href; }, 950);
+      setTimeout(() => { location.href = el.href; }, 800);
+    });
+  }
+
+  // index.html -> hoja de cada integrante
+  document.querySelectorAll('.unit-card').forEach(card => portalLink(card, c => {
+    const img = c.querySelector('img.unit-avatar');
+    return {
+      color: c.style.borderTopColor || '#5c2430',
+      bg: c.style.getPropertyValue('--tortuga-bg').trim(),
+      avatar: img ? img.getAttribute('src') : null,
+      name: (c.querySelector('.unit-name') || {}).textContent,
+    };
+  }));
+
+  // dashboard.html -> equipo (← Equipo / ← Volver al equipo)
+  const hero = document.querySelector('.hero');
+  if (hero) {
+    document.querySelectorAll('a[href="index.html"]').forEach(a => portalLink(a, () => ({
+      color: hero.dataset.color || '#5c2430',
+      bg: hero.style.getPropertyValue('--tortuga-bg').trim(),
+      avatar: null,
+      name: 'Equipo',
+    })));
+  }
+
+  // ---------- Llegada ----------
+  if (reduce) { store.clear(); return; }
+  const arrived = store.get();
+  store.clear();
+  if (arrived) {
+    const o = buildOverlay({ ...arrived, x: innerWidth / 2, y: innerHeight / 2 });
+    o.classList.add('portal--open', 'portal--exit');
+    setTimeout(() => o.remove(), 900);
+  }
+  // Entrada en cascada: tarjetas del equipo, o hero + bloques del dashboard.
+  const items = hero
+    ? [hero, ...document.querySelectorAll('.container > *:not(.hero)')]
+    : [...document.querySelectorAll('.unit-card')];
+  const base = arrived ? 300 : 0;
+  items.forEach((el, i) => {
+    el.style.setProperty('--reveal-delay', (base + Math.min(i, 8) * 70) + 'ms');
+    el.classList.add('reveal');
+    // Se saca al terminar: la animación con fill "both" pisaría el transform
+    // del :hover de las tarjetas.
+    el.addEventListener('animationend', function done(ev) {
+      if (ev.target !== el) return;
+      el.classList.remove('reveal');
+      el.removeEventListener('animationend', done);
     });
   });
-  // Volver con "atrás" (bfcache): sacar la cortina vieja.
+
+  // Volver con "atrás" (bfcache): sacar la cortina que quedó tapando.
   window.addEventListener('pageshow', e => {
     if (!e.persisted) return;
     document.querySelectorAll('.portal').forEach(n => n.remove());
-    document.querySelectorAll('.unit-card--launch').forEach(n => n.classList.remove('unit-card--launch'));
+    document.querySelectorAll('.portal-launch').forEach(n => n.classList.remove('portal-launch'));
   });
-
-  // ---------- Entrada (dashboard.html) ----------
-  if (document.querySelector('.hero')) {
-    const p = store.get();
-    store.clear();
-    if (!p || reduce) return;
-    const o = buildOverlay({ ...p, x: innerWidth / 2, y: innerHeight / 2 });
-    o.classList.add('portal--open', 'portal--exit');
-    document.body.classList.add('portal-arrive');
-    setTimeout(() => o.remove(), 900);
-    setTimeout(() => document.body.classList.remove('portal-arrive'), 1100);
-  }
 })();
