@@ -156,10 +156,12 @@ body.wr-open{overflow:hidden;}
 
 /* Presentismo: anillo */
 .wr-ring{position:relative;width:220px;height:220px;}
-.wr-ring svg{width:100%;height:100%;transform:rotate(-90deg);}
+/* El brillo va en el <svg> (no en el círculo): un filter sobre el <circle>
+   se recortaba al viewport y dejaba un recuadro más claro. */
+.wr-ring svg{width:100%;height:100%;transform:rotate(-90deg);overflow:visible;filter:drop-shadow(0 0 8px rgba(255,255,255,.45));}
 .wr-ring circle{fill:none;stroke-width:14;}
 .wr-ring-bg{stroke:rgba(255,255,255,.18);}
-.wr-ring-fg{stroke:#fff;stroke-linecap:round;stroke-dasharray:var(--c);stroke-dashoffset:var(--c);filter:drop-shadow(0 0 8px rgba(255,255,255,.5));}
+.wr-ring-fg{stroke:#fff;stroke-linecap:round;stroke-dasharray:var(--c);stroke-dashoffset:var(--c);}
 .wr-slide.is-active .wr-ring-fg{animation:wr-ring 1.6s cubic-bezier(.2,.8,.2,1) .4s forwards;}
 @keyframes wr-ring{to{stroke-dashoffset:var(--off);}}
 .wr-ring span{position:absolute;inset:0;display:grid;place-items:center;font-size:42px;font-weight:900;font-variant-numeric:tabular-nums;}
