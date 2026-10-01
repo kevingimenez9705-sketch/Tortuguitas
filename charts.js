@@ -268,34 +268,6 @@ const Charts = (() => {
     });
   }
 
-  function stackedBar(id, labels, series, opts = {}) {
-    return mount(id, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: series.map(s => ({
-          label: s.label,
-          data: s.data,
-          backgroundColor: s.color,
-          hoverBackgroundColor: rgba(s.color, 0.8),
-          stack: 'stack1',
-          borderRadius: 6,
-          borderSkipped: false,
-          barPercentage: 0.75,
-        })),
-      },
-      options: {
-        ...baseOptions(opts),
-        interaction: { mode: 'index', intersect: false },
-        animation: stagger(70),
-        scales: {
-          x: { stacked: true, grid: { display: false } },
-          y: { stacked: true, grid: { color: '#eef1f6' } },
-        },
-      },
-    });
-  }
-
   function horizontalBar(id, labels, data, color = COLORS.blue, opts = {}) {
     return mount(id, {
       type: 'bar',
@@ -391,5 +363,5 @@ const Charts = (() => {
     };
   }
 
-  return { line, stackedBar, horizontalBar, radar, COLORS };
+  return { line, horizontalBar, radar, COLORS };
 })();

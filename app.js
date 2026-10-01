@@ -701,27 +701,6 @@
   }
 
   function renderPorSelector(months, altasF, allAltasF) {
-    const selectores = [...new Set(altasF.map(r => r.selector))];
-    const totals = selectores.map(s => altasF.filter(r => r.selector === s).length);
-    const order = selectores.map((s, i) => [s, totals[i]]).sort((a, b) => b[1] - a[1]);
-    const names = order.map(x => x[0]);
-    const vals = order.map(x => x[1]);
-
-    // Mezcla de marca por selector: solo cuando hay varios selectores
-    // (Kevin, "Otros"). Para un selector individual sería una única barra
-    // que repite los KPIs de Sabores/Extremas, así que se oculta.
-    const mezclaCard = document.getElementById('mezclaCard');
-    const showMezcla = !member || member.selectors.length > 1;
-    if (mezclaCard) mezclaCard.style.display = showMezcla ? '' : 'none';
-    if (showMezcla) {
-      const sabD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Sabores').length);
-      const extD = names.map(s => altasF.filter(r => r.selector === s && r.marca === 'Extremas').length);
-      Charts.stackedBar('chartMezclaSelector', names, [
-        { label: 'Sabores', data: sabD, color: col('blue') },
-        { label: 'Extremas', data: extD, color: col('blueLight') },
-      ]);
-    }
-
     // Ranking por volumen (todo el equipo): ya no se muestra como tarjeta,
     // pero se usa para la insignia del hero y el orden de presentismo.
     const rankOrder = [...new Set(allAltasF.map(r => r.selector))]
