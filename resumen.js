@@ -1,14 +1,12 @@
 // resumen.js — "Resumen de tu año": historia a pantalla completa con
-// estética de resumen musical anual (slides que avanzan solos con barras de
-// progreso, tocar a la derecha/izquierda para avanzar/volver, mantener
-// apretado para pausar) y una base musical generada en el navegador.
+// estética de resumen anual tipo stories (slides que avanzan solos con
+// barras de progreso, tocar a la derecha/izquierda para avanzar/volver,
+// mantener apretado para pausar) y una base musical generada en el navegador.
 //
 // Solo LEE los mismos datos que ya usa el dashboard (window.ALTAS_DATA y
-// COMPETENCIAS_DATA): no modifica nada. Las "metáforas musicales" son
-// traducciones de métricas reales:
-//   canción del año -> local con más altas · artista -> zonal con más altas
-//   productor -> regional con más altas · mes en loop -> mes con más altas
-//   género -> marca predominante · escuchados hasta el final -> presentismo día 1
+// COMPETENCIAS_DATA): no modifica nada. Período fijo: enero a diciembre
+// 2026 (YEAR). Los textos hablan del trabajo en sí: altas, mejor mes,
+// regional, local y zonal con más altas, marca, presentismo y ranking.
 // No hay slide por día de la semana a propósito: en varios meses la fecha
 // de las altas viene cargada como día 1 del mes, así que daría un dato falso.
 //
@@ -16,6 +14,7 @@
 window.ResumenAnual = (() => {
   const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const MES_ABBR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const YEAR = '2026'; // el resumen cubre enero a diciembre de este año
   const DUR = 7000; // ms por slide
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -31,19 +30,36 @@ window.ResumenAnual = (() => {
     rows.forEach(r => { const k = keyFn(r); m.set(k, (m.get(k) || 0) + 1); });
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }
+  // Aura de cada integrante (definida por el equipo): estilo de percepción
+  // + dos rasgos. El estilo elige la paleta de la slide.
+  const AURAS = {
+    agustina: ['Kinestésica', 'Organizadora', 'Amable'],
+    agustin: ['Visual', 'Perfeccionista', 'Correcto'],
+    kevin: ['Visual', 'Serio', 'Resolutivo'],
+    rafael: ['Auditivo', 'Reservado', 'Paciente'],
+    gustavo: ['Visual', 'Carismático', 'Colaborador'],
+    albana: ['Auditiva', 'Tranquila', 'Independiente'],
+  };
+  function auraEstilo(estilo) {
+    const e = estilo.toLowerCase();
+    if (e.startsWith('audit')) return { bg: ['#00b894', '#03261f'], aura: '#00d4a4, #3a86ff, #c4f000, #7fffd4, #00d4a4' };
+    if (e.startsWith('kinest')) return { bg: ['#ff7a59', '#3b0a2a'], aura: '#ff8fd8, #ff6b35, #ffd23f, #ff4f9a, #ff8fd8' };
+    return { bg: ['#5b6cff', '#120a3a'], aura: '#3a86ff, #7b2ff7, #00d4ff, #c4b5fd, #3a86ff' }; // visual
+  }
   const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`);
 
   // ---------- Números del año ----------
   function compute(ctx) {
     const D = ctx.data;
-    const year = D.altas.reduce((y, r) => (r.mes > y ? r.mes : y), '').slice(0, 4);
-    const inYear = (r) => r.mes.startsWith(year);
+    const year = YEAR;
+    const inYear = (r) => r.mes.startsWith(year + '-');
     const yearAltas = D.altas.filter(inYear);
     const set = ctx.selectors ? new Set(ctx.selectors) : null;
     const mine = set ? yearAltas.filter(r => set.has(r.selector)) : yearAltas;
     if (!mine.length) return null;
 
-    const months = [...new Set(yearAltas.map(r => r.mes))].sort();
+    // Los 12 meses del año, aunque alguno todavía no tenga altas cargadas.
+    const months = MES_ABBR.map((_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
     const perMonth = months.map(m => [m, mine.filter(r => r.mes === m).length]);
     const best = perMonth.reduce((a, b) => (b[1] > a[1] ? b : a));
     const activeMonths = perMonth.filter(([, n]) => n > 0).length;
@@ -70,7 +86,7 @@ window.ResumenAnual = (() => {
 
     return {
       year,
-      rangeLabel: `${MES_ABBR[+months[0].slice(5) - 1]}–${MES_ABBR[+months[months.length - 1].slice(5) - 1]} ${year}`,
+      rangeLabel: `Ene–Dic ${year}`,
       total: mine.length,
       perMonth,
       best,
@@ -86,7 +102,7 @@ window.ResumenAnual = (() => {
       single,
       rankVol, rankPres, rankCum,
       posVol: pos(rankVol), posPres: pos(rankPres), posCum: pos(rankCum),
-      banda: (set ? rankVol.filter(([n]) => set.has(n)) : rankVol).slice(0, 8),
+      ranking: (set ? rankVol.filter(([n]) => set.has(n)) : rankVol).slice(0, 8),
     };
   }
 
@@ -100,19 +116,21 @@ window.ResumenAnual = (() => {
     const who = team ? 'el equipo' : group ? 'el grupo' : null;
     const slides = [];
 
-    // 1. Intro: vinilo girando con la foto
+    const de = who === 'el equipo' ? 'del equipo' : 'del grupo'; // "el mejor mes del equipo"
+
+    // 1. Intro: foto con aro de color girando
     const label = ctx.avatar
-      ? `<div class="wr-vinyl-label" style="background-image:url('${esc(ctx.avatar)}')"></div>`
-      : `<div class="wr-vinyl-label wr-vinyl-label--txt">${esc(ctx.name.slice(0, 2))}</div>`;
+      ? `<div class="wr-portrait-img" style="background-image:url('${esc(ctx.avatar)}')"></div>`
+      : `<div class="wr-portrait-img wr-portrait-img--txt">${esc(ctx.name.slice(0, 2))}</div>`;
     slides.push({
       bg: [ctx.color, '#0b0b14'],
       photo: ctx.tortuga,
       html: `
         <div class="wr-center">
-          <div class="wr-vinyl wr-anim" style="--d:.1s">${label}</div>
-          <p class="wr-anim wr-kicker" style="--d:.35s">Resumen de tu año · ${s.rangeLabel}</p>
+          <div class="wr-portrait wr-anim" style="--d:.1s">${label}</div>
+          <p class="wr-anim wr-kicker" style="--d:.35s">Resumen de tu año · Enero a diciembre</p>
           <h1 class="wr-anim wr-huge" style="--d:.5s">${s.year}</h1>
-          <p class="wr-anim wr-lead" style="--d:.7s">${group ? `Le dimos play al año del grupo ${esc(ctx.label)}` : `${esc(ctx.name)}, le dimos play a ${team ? 'tu año con el equipo' : 'tu año'}`} en Selección.</p>
+          <p class="wr-anim wr-lead" style="--d:.7s">${group ? `Este es el año del grupo ${esc(ctx.label)}` : `${esc(ctx.name)}, este es ${team ? 'el año de tu equipo' : 'tu año'}`} en Selección.</p>
           <p class="wr-anim wr-hint" style="--d:1.1s">Tocá para avanzar ▸</p>
         </div>`,
     });
@@ -122,14 +140,14 @@ window.ResumenAnual = (() => {
       bg: ['#ff4f9a', '#6a1bd1'],
       html: `
         <div class="wr-center">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Este año ${who ? `${who} puso` : 'pusiste'} a sonar</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">En ${s.year} ${who ? `${who} concretó` : 'concretaste'}</p>
           <div class="wr-anim wr-giant" style="--d:.3s" data-count="${s.total}">0</div>
           <p class="wr-anim wr-big" style="--d:.5s">altas</p>
-          <p class="wr-anim wr-lead" style="--d:.9s">Un promedio de <b>${fmtInt(s.avgMonth)}</b> por mes, en <b>${s.activeMonths}</b> ${s.activeMonths === 1 ? 'mes activo' : 'meses activos'}.</p>
+          <p class="wr-anim wr-lead" style="--d:.9s">Un promedio de <b>${fmtInt(s.avgMonth)}</b> por mes, en <b>${s.activeMonths}</b> ${s.activeMonths === 1 ? 'mes con altas' : 'meses con altas'}.</p>
         </div>`,
     });
 
-    // 3. Mes en loop: ecualizador con las altas de cada mes
+    // 3. Mejor mes: barras con las altas de cada mes del año
     const maxM = Math.max(...s.perMonth.map(([, n]) => n), 1);
     const bestIdx = s.perMonth.indexOf(s.best);
     slides.push({
@@ -137,13 +155,13 @@ window.ResumenAnual = (() => {
       dark: true,
       html: `
         <div class="wr-top-copy">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu mes en loop</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'El mes más productivo' : 'Tu mes más productivo'}</p>
           <h2 class="wr-anim wr-title" style="--d:.25s">${cap(MESES[+s.best[0].slice(5) - 1])}</h2>
-          <p class="wr-anim wr-lead" style="--d:.4s"><b>${fmtInt(s.best[1])}</b> altas: ${who ? `el mes que más sonó ${who}` : 'el mes que más te escuchamos'}.</p>
+          <p class="wr-anim wr-lead" style="--d:.4s"><b>${fmtInt(s.best[1])}</b> altas: ${who ? `el mejor mes ${de}` : 'tu mejor mes del año'}.</p>
         </div>
         <div class="wr-eq">
           ${s.perMonth.map(([m, n], i) => `
-            <div class="wr-eq-col ${i === bestIdx ? 'is-best' : ''}" style="--d:${(0.45 + i * 0.07).toFixed(2)}s">
+            <div class="wr-eq-col ${i === bestIdx ? 'is-best' : ''} ${n ? '' : 'is-empty'}" style="--d:${(0.45 + i * 0.07).toFixed(2)}s">
               <span class="wr-eq-val">${n ? fmtInt(n) : ''}</span>
               <span class="wr-eq-bar" style="--h:${Math.max(4, n / maxM * 100)}%"></span>
               <span class="wr-eq-lbl">${MES_ABBR[+m.slice(5) - 1]}</span>
@@ -151,15 +169,15 @@ window.ResumenAnual = (() => {
         </div>`,
     });
 
-    // 4. Productor del año: regional con más altas
+    // 4. Regional del año: regional con más altas
     const maxR = Math.max(...s.regionales.map(([, v]) => v), 1);
     slides.push({
       bg: ['#00d4a4', '#064e3b'],
       html: `
         <div class="wr-top-copy">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu productor del año</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'Regional del año' : 'Tu regional del año'}</p>
           <h2 class="wr-anim wr-title" style="--d:.25s">${esc(titleCase(s.regionales[0][0]))}</h2>
-          <p class="wr-anim wr-lead" style="--d:.4s">El regional con el que más ${who ? 'sonó ' + who : 'grabaste'}: <b>${fmtInt(s.regionales[0][1])}</b> altas.</p>
+          <p class="wr-anim wr-lead" style="--d:.4s">El regional con el que más altas ${who ? `concretó ${who}` : 'concretaste'}: <b>${fmtInt(s.regionales[0][1])}</b> altas.</p>
         </div>
         <ul class="wr-band wr-band--light">
           ${s.regionales.map(([n, v], i) => `
@@ -171,14 +189,14 @@ window.ResumenAnual = (() => {
         </ul>`,
     });
 
-    // 5. Canción del año + playlist: locales con más altas
+    // 5. Local del año + top 5 de locales
     slides.push({
       bg: ['#3a86ff', '#0a1550'],
       html: `
         <div class="wr-top-copy">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu canción del año</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'Local del año' : 'Tu local del año'}</p>
           <h2 class="wr-anim wr-title" style="--d:.25s">${esc(titleCase(s.locales[0][0]))}</h2>
-          <p class="wr-anim wr-lead" style="--d:.4s">El local que más ${who ? 'sonó' : 'pusiste'}: <b>${fmtInt(s.locales[0][1])}</b> altas.</p>
+          <p class="wr-anim wr-lead" style="--d:.4s">El local donde más altas ${who ? `concretó ${who}` : 'concretaste'}: <b>${fmtInt(s.locales[0][1])}</b> altas.</p>
         </div>
         <ol class="wr-playlist">
           ${s.locales.map(([n, v], i) => `
@@ -186,27 +204,27 @@ window.ResumenAnual = (() => {
               <span class="wr-track-n">${i + 1}</span>
               <span class="wr-cover" style="--hue:${(i * 57 + 200) % 360}">${esc(n.slice(0, 1))}</span>
               <span class="wr-track"><b>${esc(titleCase(n))}</b><small>${fmtInt(v)} altas</small></span>
-              ${i === 0 ? '<span class="wr-playing"><i></i><i></i><i></i></span>' : ''}
+              ${i === 0 ? '<span class="wr-top1">★ #1</span>' : ''}
             </li>`).join('')}
         </ol>`,
     });
 
-    // 6. Artista del año: zonal con más altas
+    // 6. Zonal del año: zonal con más altas
     const [z1, ...zRest] = s.zonales;
     slides.push({
       bg: ['#c4f000', '#2b3a00'],
       dark: true,
       html: `
         <div class="wr-center">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu artista del año</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'Zonal del año' : 'Tu zonal del año'}</p>
           <div class="wr-anim wr-artist" style="--d:.3s">${esc(z1[0].split(' ').map(w => w[0]).slice(0, 2).join(''))}</div>
           <h2 class="wr-anim wr-title" style="--d:.5s">${esc(titleCase(z1[0]))}</h2>
-          <p class="wr-anim wr-lead" style="--d:.7s"><b>${fmtInt(z1[1])}</b> altas juntos.</p>
-          ${zRest.length ? `<p class="wr-anim wr-small" style="--d:1s">También en ${who ? `la rotación ${who === 'el equipo' ? 'del equipo' : 'del grupo'}` : 'tu rotación'}: ${zRest.map(([n]) => esc(titleCase(n))).join(' y ')}.</p>` : ''}
+          <p class="wr-anim wr-lead" style="--d:.7s"><b>${fmtInt(z1[1])}</b> altas trabajando juntos.</p>
+          ${zRest.length ? `<p class="wr-anim wr-small" style="--d:1s">Le siguen: ${zRest.map(([n]) => esc(titleCase(n))).join(' y ')}.</p>` : ''}
         </div>`,
     });
 
-    // 7. Género: marca predominante
+    // 7. Marca del año: marca predominante
     const tot = s.sabores + s.extremas;
     const pS = pct(s.sabores, tot), pE = pct(s.extremas, tot);
     const top = pS >= pE ? ['Sabores Express', pS] : ['Hamburguesas Extremas', pE];
@@ -214,9 +232,9 @@ window.ResumenAnual = (() => {
       bg: ['#ff5d5d', '#5c0b2e'],
       html: `
         <div class="wr-top-copy">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu género del año</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'Marca del año' : 'Tu marca del año'}</p>
           <h2 class="wr-anim wr-title" style="--d:.25s">${top[0]}</h2>
-          <p class="wr-anim wr-lead" style="--d:.4s">${who ? `${cap(who)} es` : 'Sos'} <b>${fmtPct(top[1])}</b> ${top[0]}.</p>
+          <p class="wr-anim wr-lead" style="--d:.4s">El <b>${fmtPct(top[1])}</b> de ${who ? `las altas ${de}` : 'tus altas'} fue para ${top[0]}.</p>
         </div>
         <div class="wr-bubbles">
           <div class="wr-bubble" style="--s:${0.45 + pS * 0.55};--d:.6s"><b>${fmtPct(pS)}</b><span>Sabores</span></div>
@@ -224,22 +242,22 @@ window.ResumenAnual = (() => {
         </div>`,
     });
 
-    // 8. Escuchados hasta el final: presentismo día 1
+    // 8. Presentismo día 1
     const R = 70, C = 2 * Math.PI * R;
     slides.push({
       bg: ['#7b2ff7', '#12063a'],
       html: `
         <div class="wr-center">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Escuchados hasta el final</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">Presentismo día 1</p>
           <div class="wr-anim wr-ring" style="--d:.3s">
             <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="${R}" class="wr-ring-bg"/><circle cx="80" cy="80" r="${R}" class="wr-ring-fg" style="--c:${C};--off:${C * (1 - s.presentismo)}"/></svg>
             <span data-count="${s.presentismo}" data-fmt="pct">0%</span>
           </div>
-          <p class="wr-anim wr-lead" style="--d:.7s">De ${who ? `las altas ${who === 'el equipo' ? 'del equipo' : 'del grupo'}` : 'tus altas'}, el <b>${fmtPct(s.presentismo)}</b> se presentó el primer día.</p>
+          <p class="wr-anim wr-lead" style="--d:.7s">De ${who ? `las altas ${de}` : 'tus altas'}, el <b>${fmtPct(s.presentismo)}</b> se presentó el primer día.</p>
         </div>`,
     });
 
-    // 9. Ranking (selector) o "tu banda" (equipo / grupo)
+    // 9. Ranking (selector) o ranking de altas del equipo / grupo
     if (s.single) {
       const rows = [
         ['Volumen de altas', s.posVol, s.rankVol.length],
@@ -261,17 +279,17 @@ window.ResumenAnual = (() => {
           </div>`,
       });
     } else {
-      const maxB = Math.max(...s.banda.map(([, v]) => v), 1);
+      const maxB = Math.max(...s.ranking.map(([, v]) => v), 1);
       slides.push({
         bg: ['#ffb703', '#7a3b00'],
         dark: true,
         html: `
           <div class="wr-top-copy">
-            <p class="wr-anim wr-kicker" style="--d:.1s">${team ? 'Tu banda' : 'La banda del grupo'}</p>
-            <h2 class="wr-anim wr-title" style="--d:.25s">Los que más sonaron</h2>
+            <p class="wr-anim wr-kicker" style="--d:.1s">${team ? 'Tu equipo' : 'El grupo'}</p>
+            <h2 class="wr-anim wr-title" style="--d:.25s">Ranking de altas</h2>
           </div>
           <ul class="wr-band">
-            ${s.banda.map(([n, v], i) => `
+            ${s.ranking.map(([n, v], i) => `
               <li class="wr-anim" style="--d:${0.45 + i * 0.12}s">
                 <span>${medal(i)}</span><b>${esc(n)}</b>
                 <span class="wr-band-bar"><i style="--w:${v / maxB * 100}%;--d:${(0.6 + i * 0.12).toFixed(2)}s"></i></span>
@@ -281,37 +299,55 @@ window.ResumenAnual = (() => {
       });
     }
 
-    // 10. Aura: competencia más alta de la autoevaluación
-    if (ctx.comp) {
-      const cats = window.COMPETENCIAS_CATEGORIAS || [];
-      const self = ctx.comp.autoevaluacion || [];
-      const top3 = self.map((v, i) => [cats[i] ? cats[i].label : '', v]).sort((a, b) => b[1] - a[1]).slice(0, 3);
-      if (top3.length) {
-        slides.push({
-          bg: ['#ff8fd8', '#3b0a45'],
-          html: `
-            <div class="wr-center">
-              <p class="wr-anim wr-kicker" style="--d:.1s">Tu aura del año</p>
-              <div class="wr-anim wr-aura" style="--d:.3s"></div>
-              <h2 class="wr-anim wr-title" style="--d:.5s">${esc(top3[0][0])}</h2>
-              <p class="wr-anim wr-lead" style="--d:.7s">Tu competencia más fuerte según tu autoevaluación: <b>${top3[0][1]}/10</b>.</p>
-              <div class="wr-chips">${top3.map(([l, v], i) => `<span class="wr-anim" style="--d:${0.9 + i * 0.12}s">${esc(l)} · ${v}</span>`).join('')}</div>
-            </div>`,
-        });
-      }
+    // 10. Aura: estilo + rasgos (AURAS) y, si hay datos, la competencia
+    // más fuerte de la autoevaluación. Sin aura cargada, queda solo la
+    // slide de competencia.
+    const aura = AURAS[ctx.key];
+    const cats = window.COMPETENCIAS_CATEGORIAS || [];
+    const self = (ctx.comp && ctx.comp.autoevaluacion) || [];
+    const top3 = self.map((v, i) => [cats[i] ? cats[i].label : '', v]).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    if (aura) {
+      const st = auraEstilo(aura[0]);
+      slides.push({
+        bg: st.bg,
+        html: `
+          <div class="wr-center">
+            <p class="wr-anim wr-kicker" style="--d:.1s">Tu aura</p>
+            <div class="wr-anim wr-aura" style="--d:.3s;--aura:${st.aura}"></div>
+            <div class="wr-aura-words">
+              ${aura.map((w, i) => `<span class="wr-anim" style="--d:${(0.5 + i * 0.22).toFixed(2)}s">${esc(w)}</span>`).join('')}
+            </div>
+            ${top3.length ? `<p class="wr-anim wr-lead" style="--d:1.2s">Tu competencia más fuerte según tu autoevaluación: <b>${esc(top3[0][0])} (${top3[0][1]}/10)</b>.</p>` : ''}
+          </div>`,
+      });
+    } else if (top3.length) {
+      slides.push({
+        bg: ['#ff8fd8', '#3b0a45'],
+        html: `
+          <div class="wr-center">
+            <p class="wr-anim wr-kicker" style="--d:.1s">Tu competencia del año</p>
+            <div class="wr-anim wr-aura" style="--d:.3s"></div>
+            <h2 class="wr-anim wr-title" style="--d:.5s">${esc(top3[0][0])}</h2>
+            <p class="wr-anim wr-lead" style="--d:.7s">Tu competencia más fuerte según tu autoevaluación: <b>${top3[0][1]}/10</b>.</p>
+            <div class="wr-chips">${top3.map(([l, v], i) => `<span class="wr-anim" style="--d:${0.9 + i * 0.12}s">${esc(l)} · ${v}</span>`).join('')}</div>
+          </div>`,
+      });
     }
 
     // 11. Tarjeta final
     const cells = [
       ['Altas', fmtInt(s.total)],
-      ['Mes en loop', cap(MESES[+s.best[0].slice(5) - 1])],
-      ['Canción', titleCase(s.locales[0][0])],
-      ['Artista', titleCase(z1[0])],
-      ['Género', top[0] === 'Sabores Express' ? 'Sabores' : 'Extremas'],
+      ['Mejor mes', cap(MESES[+s.best[0].slice(5) - 1])],
+      ['Local', titleCase(s.locales[0][0])],
+      ['Zonal', titleCase(z1[0])],
+      ['Marca', top[0] === 'Sabores Express' ? 'Sabores' : 'Extremas'],
       ['Presentismo', fmtPct(s.presentismo)],
     ];
     if (s.single && s.posVol > -1) cells.push(['Ranking', `${medal(s.posVol)} en volumen`]);
     else if (s.cumplimiento != null) cells.push(['Cumplimiento', fmtPct(s.cumplimiento)]);
+    // Celdas de ancho completo: el aura (arriba) y la última si quedó sola.
+    if (cells.length % 2) cells[cells.length - 1].push(true);
+    if (aura) cells.unshift(['Aura', aura.join(' · '), true]);
     slides.push({
       bg: [ctx.color, '#0b0b14'],
       final: true,
@@ -323,7 +359,7 @@ window.ResumenAnual = (() => {
               <div><small>Resumen de tu año</small><b>${esc(ctx.label)} · ${s.year}</b></div>
             </div>
             <div class="wr-card-grid">
-              ${cells.map(([k, v], i) => `<div class="wr-anim" style="--d:${0.3 + i * 0.08}s"><small>${k}</small><b>${esc(v)}</b></div>`).join('')}
+              ${cells.map(([k, v, wide], i) => `<div class="wr-anim${wide ? ' wr-wide' : ''}" style="--d:${(0.3 + i * 0.08).toFixed(2)}s"><small>${k}</small><b>${esc(v)}</b></div>`).join('')}
             </div>
             <div class="wr-card-foot">Las Tortuguitas Ninja · Selección · ${s.rangeLabel}</div>
           </div>
@@ -337,13 +373,74 @@ window.ResumenAnual = (() => {
   }
 
   // ---------- Música (Web Audio, sin archivos) ----------
-  // Base lo-fi simple a 92 BPM: acordes, bajo, bombo/caja/hi-hat y un
-  // arpegio suave. Se genera en vivo, arranca con el clic del botón (los
-  // navegadores no dejan reproducir audio sin un gesto del usuario).
+  // Cada integrante tiene su propio tema, armado según su perfil (ver
+  // PERFILES): tempo, tonalidad, timbre y ritmo distintos. Se genera en
+  // vivo en el navegador y arranca con el clic del botón (los navegadores no
+  // dejan reproducir audio sin un gesto del usuario).
+  // Patrones en una grilla de 16 semicorcheas por compás; bass: 1 = raíz,
+  // 2 = raíz una octava arriba.
+  const TEMAS = {
+    // Visual, serio, resolutivo: menor, firme, graves marcados.
+    kevin: {
+      bpm: 90, prog: [[60, 63, 67, 70], [56, 60, 63, 67], [55, 58, 63, 67], [58, 62, 65, 70]],
+      pad: 'sawtooth', padGain: 0.022, padCut: 900,
+      kick: [0, 8, 10], snare: [4, 12], hat: 2, hatGain: 0.025,
+      bass: [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0], bassWave: 'square', bassGain: 0.08,
+      arp: { wave: 'sine', gain: 0.03, oct: 1, steps: [0, 4, 8, 12], order: 'down', len: 3 },
+    },
+    // Visual, perfeccionista, correcto: arpegio de semicorcheas exacto, sin swing.
+    agustin: {
+      bpm: 100, prog: [[62, 65, 69, 72], [58, 62, 65, 69], [53, 57, 60, 64], [55, 60, 64, 67]],
+      pad: 'triangle', padGain: 0.035, padCut: 1800,
+      kick: [0, 4, 8, 12], snare: [4, 12], hat: 1, hatGain: 0.018,
+      bass: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], bassWave: 'sine', bassGain: 0.2,
+      arp: { wave: 'sine', gain: 0.025, oct: 1, steps: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], order: 'up', len: 0.9 },
+    },
+    // Kinestésica, organizadora, amable: mayor, cálido, con groove y swing.
+    agustina: {
+      bpm: 104, swing: 0.16, prog: [[53, 57, 60, 64], [55, 59, 62, 67], [52, 55, 59, 62], [57, 60, 64, 67]],
+      pad: 'triangle', padGain: 0.04, padCut: 2200,
+      kick: [0, 6, 8], snare: [4, 12], hat: 1, hatGain: 0.03,
+      bass: [1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0, 2, 0], bassWave: 'triangle', bassGain: 0.2,
+      arp: { wave: 'triangle', gain: 0.035, oct: 1, steps: [0, 2, 3, 6, 8, 10, 11, 14], order: 'updown', len: 1.5 },
+    },
+    // Auditivo, reservado, paciente: lento, espacioso, notas largas.
+    rafael: {
+      bpm: 72, prog: [[63, 67, 70, 74], [60, 63, 67, 70], [56, 60, 63, 67], [58, 62, 65, 67]],
+      pad: 'sine', padGain: 0.05, padCut: 1400,
+      kick: [0], snare: [12], snareGain: 0.06, hat: 4, hatGain: 0.015,
+      bass: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], bassWave: 'sine', bassGain: 0.2, bassLen: 14,
+      arp: { wave: 'sine', gain: 0.035, oct: 1, steps: [0, 6, 10], order: 'up', len: 6 },
+    },
+    // Visual, carismático, colaborador: mayor, funky, alegre.
+    gustavo: {
+      bpm: 112, prog: [[55, 59, 62, 67], [57, 62, 66, 69], [55, 59, 64, 67], [55, 60, 64, 67]],
+      pad: 'triangle', padGain: 0.03, padCut: 2400,
+      kick: [0, 3, 8, 11], snare: [4, 12], clap: true, hat: 1, hatGain: 0.025,
+      bass: [1, 0, 2, 0, 0, 1, 0, 2, 1, 0, 2, 0, 0, 1, 2, 0], bassWave: 'square', bassGain: 0.07,
+      arp: { wave: 'square', gain: 0.018, oct: 1, steps: [2, 6, 7, 10, 14, 15], order: 'random', len: 0.6 },
+    },
+    // Auditiva, tranquila, independiente: suave, aireado, sin apuro.
+    albana: {
+      bpm: 76, prog: [[57, 61, 64, 68], [54, 57, 61, 64], [50, 54, 57, 61], [52, 57, 59, 64]],
+      pad: 'sine', padGain: 0.05, padCut: 1600,
+      kick: [0, 10], snare: [], hat: 4, hatGain: 0.02,
+      bass: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], bassWave: 'sine', bassGain: 0.18, bassLen: 8,
+      arp: { wave: 'triangle', gain: 0.03, oct: 1, steps: [0, 3, 6, 9, 12], order: 'random', len: 4 },
+    },
+    // "Otros" y cualquier otro caso: base lo-fi neutra.
+    default: {
+      bpm: 92, prog: [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 65]],
+      pad: 'triangle', padGain: 0.045, padCut: 1600,
+      kick: [0, 10], snare: [4, 12], hat: 2, hatGain: 0.035,
+      bass: [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0], bassWave: 'sine', bassGain: 0.22,
+      arp: { wave: 'triangle', gain: 0.03, oct: 1, steps: [2, 6, 10, 14], order: 'up', len: 3 },
+    },
+  };
+
   const Music = (() => {
     let ac = null, master = null, pad = null, noiseBuf = null, timer = null, nextT = 0, step = 0, on = false;
-    const BPM = 92, S8 = 60 / BPM / 2;
-    const PROG = [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 65]]; // Am7 Fmaj7 Cmaj7 G7
+    let T = TEMAS.default;
     const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
     function tone(t, f, dur, type, gain, dest) {
       const o = ac.createOscillator(), g = ac.createGain();
@@ -367,34 +464,54 @@ window.ResumenAnual = (() => {
       g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
       o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.35);
     }
-    function play(s, t) {
-      const b8 = s % 8, chord = PROG[Math.floor(s / 8) % 4];
-      if (b8 === 0) chord.forEach(n => tone(t, hz(n), S8 * 8, 'triangle', 0.045, pad));
-      if (b8 === 0 || b8 === 5) kick(t);
-      if (b8 === 0 || b8 === 3 || b8 === 4) tone(t, hz(chord[0] - 24), S8 * 2.5, 'sine', 0.22);
-      if (b8 === 2 || b8 === 6) noise(t, 0.16, 0.12, 1200);
-      noise(t, 0.035, b8 % 2 ? 0.025 : 0.04, 7000);
-      if (b8 % 2 === 1) tone(t, hz(chord[(s >> 1) % 4] + 12), S8 * 1.6, 'triangle', 0.03, pad);
+    let arpN = 0;
+    function arpNote(chord) {
+      const n = chord.length, k = arpN++;
+      if (T.arp.order === 'down') return chord[n - 1 - (k % n)];
+      if (T.arp.order === 'updown') { const seq = [0, 1, 2, 3, 2, 1]; return chord[seq[k % seq.length] % n]; }
+      if (T.arp.order === 'random') return chord[(k * 7 + (k >> 2) * 3) % n]; // "aleatorio" pero repetible
+      return chord[k % n];
+    }
+    function play(s, t0) {
+      const S = 60 / T.bpm / 4;
+      const s16 = s % 16;
+      const t = t0 + (T.swing && s16 % 4 === 2 ? T.swing * S : 0);
+      const chord = T.prog[Math.floor(s / 16) % T.prog.length];
+      if (s16 === 0) chord.forEach(n => tone(t, hz(n), S * 16, T.pad, T.padGain, pad));
+      if (T.kick.includes(s16)) kick(t);
+      if (T.snare.includes(s16)) {
+        noise(t, 0.16, T.snareGain || 0.12, 1200);
+        if (T.clap) noise(t + 0.012, 0.1, 0.08, 1800);
+      }
+      if (T.hat && s16 % T.hat === 0) noise(t, 0.035, T.hatGain * (s16 % 4 === 0 ? 1 : 0.6), 7000);
+      if (T.bass[s16]) {
+        let r = chord[0];
+        while (r > 45) r -= 12;
+        tone(t, hz(r + (T.bass[s16] === 2 ? 12 : 0)), S * (T.bassLen || 2.5), T.bassWave, T.bassGain);
+      }
+      if (T.arp.steps.includes(s16)) tone(t, hz(arpNote(chord) + 12 * T.arp.oct), S * T.arp.len, T.arp.wave, T.arp.gain, pad);
     }
     function tick() {
-      while (nextT < ac.currentTime + 0.12) { play(step, nextT); nextT += S8; step++; }
+      while (nextT < ac.currentTime + 0.12) { play(step, nextT); nextT += 60 / T.bpm / 4; step++; }
     }
-    function start() {
+    function start(key) {
+      if (key) T = TEMAS[key] || TEMAS.default;
       try {
         if (!ac) {
           ac = new (window.AudioContext || window.webkitAudioContext)();
           const comp = ac.createDynamicsCompressor();
           master = ac.createGain(); master.gain.value = 0;
-          pad = ac.createBiquadFilter(); pad.type = 'lowpass'; pad.frequency.value = 1600; pad.connect(master);
+          pad = ac.createBiquadFilter(); pad.type = 'lowpass'; pad.connect(master);
           master.connect(comp); comp.connect(ac.destination);
           noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
           const ch = noiseBuf.getChannelData(0);
           for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
         }
         ac.resume();
+        pad.frequency.value = T.padCut;
         master.gain.cancelScheduledValues(ac.currentTime);
         master.gain.setTargetAtTime(0.55, ac.currentTime, 0.4);
-        nextT = ac.currentTime + 0.05; step = 0;
+        nextT = ac.currentTime + 0.05; step = 0; arpN = 0;
         clearInterval(timer); timer = setInterval(tick, 25);
         on = true;
       } catch (e) { on = false; }
@@ -520,7 +637,7 @@ window.ResumenAnual = (() => {
     tap.addEventListener('pointercancel', () => { paused = false; root.classList.remove('wr--paused'); });
     root.querySelector('.wr-close').addEventListener('click', close);
     root.querySelector('.wr-sound').addEventListener('click', () => {
-      if (Music.isOn()) Music.stop(); else Music.start();
+      if (Music.isOn()) Music.stop(); else Music.start(ctxRef.key);
       setSoundBtn();
     });
     root.addEventListener('click', (e) => {
@@ -531,7 +648,7 @@ window.ResumenAnual = (() => {
     });
     document.addEventListener('keydown', onKey);
 
-    Music.start();
+    Music.start(ctxRef.key);
     setSoundBtn();
     idx = 0; last = 0; paused = false;
     requestAnimationFrame(() => { root.classList.add('wr--in'); go(0); });
@@ -553,7 +670,8 @@ window.ResumenAnual = (() => {
     if (launcher) launcher.focus({ preventScroll: true });
   }
 
-  // ctx: { data, selectors (null = todo el equipo), name, label, color,
+  // ctx: { key (agustina, kevin...: tema musical y aura), data,
+  //        selectors (null = todo el equipo), name, label, color,
   //        avatar, tortuga, comp }
   function init(ctx) {
     ctxRef = ctx;
