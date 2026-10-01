@@ -895,4 +895,19 @@
   initToolbar();
   render();
   initScrollReveal();
+
+  // Botón "Resumen de tu año" (resumen.js): solo lee los mismos datos.
+  if (window.ResumenAnual) {
+    const person = member || KEVIN;
+    window.ResumenAnual.init({
+      data: DATA,
+      selectors: member ? member.selectors : null,
+      name: person.label.split(' ')[0],
+      label: person.label,
+      color: person.color,
+      avatar: person.avatar,
+      tortuga: person.tortuga,
+      comp: (window.COMPETENCIAS_DATA && window.COMPETENCIAS_DATA[MIEMBRO_KEY || 'kevin']) || null,
+    });
+  }
 })();
