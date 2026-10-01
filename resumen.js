@@ -1,14 +1,12 @@
 // resumen.js — "Resumen de tu año": historia a pantalla completa con
-// estética de resumen musical anual (slides que avanzan solos con barras de
-// progreso, tocar a la derecha/izquierda para avanzar/volver, mantener
-// apretado para pausar) y una base musical generada en el navegador.
+// estética de resumen anual tipo stories (slides que avanzan solos con
+// barras de progreso, tocar a la derecha/izquierda para avanzar/volver,
+// mantener apretado para pausar) y una base musical generada en el navegador.
 //
 // Solo LEE los mismos datos que ya usa el dashboard (window.ALTAS_DATA y
-// COMPETENCIAS_DATA): no modifica nada. Las "metáforas musicales" son
-// traducciones de métricas reales:
-//   canción del año -> local con más altas · artista -> zonal con más altas
-//   productor -> regional con más altas · mes en loop -> mes con más altas
-//   género -> marca predominante · escuchados hasta el final -> presentismo día 1
+// COMPETENCIAS_DATA): no modifica nada. Período fijo: enero a diciembre
+// 2026 (YEAR). Los textos hablan del trabajo en sí: altas, mejor mes,
+// regional, local y zonal con más altas, marca, presentismo y ranking.
 // No hay slide por día de la semana a propósito: en varios meses la fecha
 // de las altas viene cargada como día 1 del mes, así que daría un dato falso.
 //
@@ -16,6 +14,7 @@
 window.ResumenAnual = (() => {
   const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
   const MES_ABBR = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+  const YEAR = '2026'; // el resumen cubre enero a diciembre de este año
   const DUR = 7000; // ms por slide
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -36,14 +35,15 @@ window.ResumenAnual = (() => {
   // ---------- Números del año ----------
   function compute(ctx) {
     const D = ctx.data;
-    const year = D.altas.reduce((y, r) => (r.mes > y ? r.mes : y), '').slice(0, 4);
-    const inYear = (r) => r.mes.startsWith(year);
+    const year = YEAR;
+    const inYear = (r) => r.mes.startsWith(year + '-');
     const yearAltas = D.altas.filter(inYear);
     const set = ctx.selectors ? new Set(ctx.selectors) : null;
     const mine = set ? yearAltas.filter(r => set.has(r.selector)) : yearAltas;
     if (!mine.length) return null;
 
-    const months = [...new Set(yearAltas.map(r => r.mes))].sort();
+    // Los 12 meses del año, aunque alguno todavía no tenga altas cargadas.
+    const months = MES_ABBR.map((_, i) => `${year}-${String(i + 1).padStart(2, '0')}`);
     const perMonth = months.map(m => [m, mine.filter(r => r.mes === m).length]);
     const best = perMonth.reduce((a, b) => (b[1] > a[1] ? b : a));
     const activeMonths = perMonth.filter(([, n]) => n > 0).length;
@@ -70,7 +70,7 @@ window.ResumenAnual = (() => {
 
     return {
       year,
-      rangeLabel: `${MES_ABBR[+months[0].slice(5) - 1]}–${MES_ABBR[+months[months.length - 1].slice(5) - 1]} ${year}`,
+      rangeLabel: `Ene–Dic ${year}`,
       total: mine.length,
       perMonth,
       best,
@@ -86,7 +86,7 @@ window.ResumenAnual = (() => {
       single,
       rankVol, rankPres, rankCum,
       posVol: pos(rankVol), posPres: pos(rankPres), posCum: pos(rankCum),
-      banda: (set ? rankVol.filter(([n]) => set.has(n)) : rankVol).slice(0, 8),
+      ranking: (set ? rankVol.filter(([n]) => set.has(n)) : rankVol).slice(0, 8),
     };
   }
 
@@ -100,19 +100,21 @@ window.ResumenAnual = (() => {
     const who = team ? 'el equipo' : group ? 'el grupo' : null;
     const slides = [];
 
-    // 1. Intro: vinilo girando con la foto
+    const de = who === 'el equipo' ? 'del equipo' : 'del grupo'; // "el mejor mes del equipo"
+
+    // 1. Intro: foto con aro de color girando
     const label = ctx.avatar
-      ? `<div class="wr-vinyl-label" style="background-image:url('${esc(ctx.avatar)}')"></div>`
-      : `<div class="wr-vinyl-label wr-vinyl-label--txt">${esc(ctx.name.slice(0, 2))}</div>`;
+      ? `<div class="wr-portrait-img" style="background-image:url('${esc(ctx.avatar)}')"></div>`
+      : `<div class="wr-portrait-img wr-portrait-img--txt">${esc(ctx.name.slice(0, 2))}</div>`;
     slides.push({
       bg: [ctx.color, '#0b0b14'],
       photo: ctx.tortuga,
       html: `
         <div class="wr-center">
-          <div class="wr-vinyl wr-anim" style="--d:.1s">${label}</div>
-          <p class="wr-anim wr-kicker" style="--d:.35s">Resumen de tu año · ${s.rangeLabel}</p>
+          <div class="wr-portrait wr-anim" style="--d:.1s">${label}</div>
+          <p class="wr-anim wr-kicker" style="--d:.35s">Resumen de tu año · Enero a diciembre</p>
           <h1 class="wr-anim wr-huge" style="--d:.5s">${s.year}</h1>
-          <p class="wr-anim wr-lead" style="--d:.7s">${group ? `Le dimos play al año del grupo ${esc(ctx.label)}` : `${esc(ctx.name)}, le dimos play a ${team ? 'tu año con el equipo' : 'tu año'}`} en Selección.</p>
+          <p class="wr-anim wr-lead" style="--d:.7s">${group ? `Este es el año del grupo ${esc(ctx.label)}` : `${esc(ctx.name)}, este es ${team ? 'el año de tu equipo' : 'tu año'}`} en Selección.</p>
           <p class="wr-anim wr-hint" style="--d:1.1s">Tocá para avanzar ▸</p>
         </div>`,
     });
@@ -122,14 +124,14 @@ window.ResumenAnual = (() => {
       bg: ['#ff4f9a', '#6a1bd1'],
       html: `
         <div class="wr-center">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Este año ${who ? `${who} puso` : 'pusiste'} a sonar</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">En ${s.year} ${who ? `${who} concretó` : 'concretaste'}</p>
           <div class="wr-anim wr-giant" style="--d:.3s" data-count="${s.total}">0</div>
           <p class="wr-anim wr-big" style="--d:.5s">altas</p>
-          <p class="wr-anim wr-lead" style="--d:.9s">Un promedio de <b>${fmtInt(s.avgMonth)}</b> por mes, en <b>${s.activeMonths}</b> ${s.activeMonths === 1 ? 'mes activo' : 'meses activos'}.</p>
+          <p class="wr-anim wr-lead" style="--d:.9s">Un promedio de <b>${fmtInt(s.avgMonth)}</b> por mes, en <b>${s.activeMonths}</b> ${s.activeMonths === 1 ? 'mes con altas' : 'meses con altas'}.</p>
         </div>`,
     });
 
-    // 3. Mes en loop: ecualizador con las altas de cada mes
+    // 3. Mejor mes: barras con las altas de cada mes del año
     const maxM = Math.max(...s.perMonth.map(([, n]) => n), 1);
     const bestIdx = s.perMonth.indexOf(s.best);
     slides.push({
@@ -137,13 +139,13 @@ window.ResumenAnual = (() => {
       dark: true,
       html: `
         <div class="wr-top-copy">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu mes en loop</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'El mes más productivo' : 'Tu mes más productivo'}</p>
           <h2 class="wr-anim wr-title" style="--d:.25s">${cap(MESES[+s.best[0].slice(5) - 1])}</h2>
-          <p class="wr-anim wr-lead" style="--d:.4s"><b>${fmtInt(s.best[1])}</b> altas: ${who ? `el mes que más sonó ${who}` : 'el mes que más te escuchamos'}.</p>
+          <p class="wr-anim wr-lead" style="--d:.4s"><b>${fmtInt(s.best[1])}</b> altas: ${who ? `el mejor mes ${de}` : 'tu mejor mes del año'}.</p>
         </div>
         <div class="wr-eq">
           ${s.perMonth.map(([m, n], i) => `
-            <div class="wr-eq-col ${i === bestIdx ? 'is-best' : ''}" style="--d:${(0.45 + i * 0.07).toFixed(2)}s">
+            <div class="wr-eq-col ${i === bestIdx ? 'is-best' : ''} ${n ? '' : 'is-empty'}" style="--d:${(0.45 + i * 0.07).toFixed(2)}s">
               <span class="wr-eq-val">${n ? fmtInt(n) : ''}</span>
               <span class="wr-eq-bar" style="--h:${Math.max(4, n / maxM * 100)}%"></span>
               <span class="wr-eq-lbl">${MES_ABBR[+m.slice(5) - 1]}</span>
@@ -151,15 +153,15 @@ window.ResumenAnual = (() => {
         </div>`,
     });
 
-    // 4. Productor del año: regional con más altas
+    // 4. Regional del año: regional con más altas
     const maxR = Math.max(...s.regionales.map(([, v]) => v), 1);
     slides.push({
       bg: ['#00d4a4', '#064e3b'],
       html: `
         <div class="wr-top-copy">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu productor del año</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'Regional del año' : 'Tu regional del año'}</p>
           <h2 class="wr-anim wr-title" style="--d:.25s">${esc(titleCase(s.regionales[0][0]))}</h2>
-          <p class="wr-anim wr-lead" style="--d:.4s">El regional con el que más ${who ? 'sonó ' + who : 'grabaste'}: <b>${fmtInt(s.regionales[0][1])}</b> altas.</p>
+          <p class="wr-anim wr-lead" style="--d:.4s">El regional con el que más altas ${who ? `concretó ${who}` : 'concretaste'}: <b>${fmtInt(s.regionales[0][1])}</b> altas.</p>
         </div>
         <ul class="wr-band wr-band--light">
           ${s.regionales.map(([n, v], i) => `
@@ -171,14 +173,14 @@ window.ResumenAnual = (() => {
         </ul>`,
     });
 
-    // 5. Canción del año + playlist: locales con más altas
+    // 5. Local del año + top 5 de locales
     slides.push({
       bg: ['#3a86ff', '#0a1550'],
       html: `
         <div class="wr-top-copy">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu canción del año</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'Local del año' : 'Tu local del año'}</p>
           <h2 class="wr-anim wr-title" style="--d:.25s">${esc(titleCase(s.locales[0][0]))}</h2>
-          <p class="wr-anim wr-lead" style="--d:.4s">El local que más ${who ? 'sonó' : 'pusiste'}: <b>${fmtInt(s.locales[0][1])}</b> altas.</p>
+          <p class="wr-anim wr-lead" style="--d:.4s">El local donde más altas ${who ? `concretó ${who}` : 'concretaste'}: <b>${fmtInt(s.locales[0][1])}</b> altas.</p>
         </div>
         <ol class="wr-playlist">
           ${s.locales.map(([n, v], i) => `
@@ -186,27 +188,27 @@ window.ResumenAnual = (() => {
               <span class="wr-track-n">${i + 1}</span>
               <span class="wr-cover" style="--hue:${(i * 57 + 200) % 360}">${esc(n.slice(0, 1))}</span>
               <span class="wr-track"><b>${esc(titleCase(n))}</b><small>${fmtInt(v)} altas</small></span>
-              ${i === 0 ? '<span class="wr-playing"><i></i><i></i><i></i></span>' : ''}
+              ${i === 0 ? '<span class="wr-top1">★ #1</span>' : ''}
             </li>`).join('')}
         </ol>`,
     });
 
-    // 6. Artista del año: zonal con más altas
+    // 6. Zonal del año: zonal con más altas
     const [z1, ...zRest] = s.zonales;
     slides.push({
       bg: ['#c4f000', '#2b3a00'],
       dark: true,
       html: `
         <div class="wr-center">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu artista del año</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'Zonal del año' : 'Tu zonal del año'}</p>
           <div class="wr-anim wr-artist" style="--d:.3s">${esc(z1[0].split(' ').map(w => w[0]).slice(0, 2).join(''))}</div>
           <h2 class="wr-anim wr-title" style="--d:.5s">${esc(titleCase(z1[0]))}</h2>
-          <p class="wr-anim wr-lead" style="--d:.7s"><b>${fmtInt(z1[1])}</b> altas juntos.</p>
-          ${zRest.length ? `<p class="wr-anim wr-small" style="--d:1s">También en ${who ? `la rotación ${who === 'el equipo' ? 'del equipo' : 'del grupo'}` : 'tu rotación'}: ${zRest.map(([n]) => esc(titleCase(n))).join(' y ')}.</p>` : ''}
+          <p class="wr-anim wr-lead" style="--d:.7s"><b>${fmtInt(z1[1])}</b> altas trabajando juntos.</p>
+          ${zRest.length ? `<p class="wr-anim wr-small" style="--d:1s">Le siguen: ${zRest.map(([n]) => esc(titleCase(n))).join(' y ')}.</p>` : ''}
         </div>`,
     });
 
-    // 7. Género: marca predominante
+    // 7. Marca del año: marca predominante
     const tot = s.sabores + s.extremas;
     const pS = pct(s.sabores, tot), pE = pct(s.extremas, tot);
     const top = pS >= pE ? ['Sabores Express', pS] : ['Hamburguesas Extremas', pE];
@@ -214,9 +216,9 @@ window.ResumenAnual = (() => {
       bg: ['#ff5d5d', '#5c0b2e'],
       html: `
         <div class="wr-top-copy">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Tu género del año</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">${who ? 'Marca del año' : 'Tu marca del año'}</p>
           <h2 class="wr-anim wr-title" style="--d:.25s">${top[0]}</h2>
-          <p class="wr-anim wr-lead" style="--d:.4s">${who ? `${cap(who)} es` : 'Sos'} <b>${fmtPct(top[1])}</b> ${top[0]}.</p>
+          <p class="wr-anim wr-lead" style="--d:.4s">El <b>${fmtPct(top[1])}</b> de ${who ? `las altas ${de}` : 'tus altas'} fue para ${top[0]}.</p>
         </div>
         <div class="wr-bubbles">
           <div class="wr-bubble" style="--s:${0.45 + pS * 0.55};--d:.6s"><b>${fmtPct(pS)}</b><span>Sabores</span></div>
@@ -224,22 +226,22 @@ window.ResumenAnual = (() => {
         </div>`,
     });
 
-    // 8. Escuchados hasta el final: presentismo día 1
+    // 8. Presentismo día 1
     const R = 70, C = 2 * Math.PI * R;
     slides.push({
       bg: ['#7b2ff7', '#12063a'],
       html: `
         <div class="wr-center">
-          <p class="wr-anim wr-kicker" style="--d:.1s">Escuchados hasta el final</p>
+          <p class="wr-anim wr-kicker" style="--d:.1s">Presentismo día 1</p>
           <div class="wr-anim wr-ring" style="--d:.3s">
             <svg viewBox="0 0 160 160"><circle cx="80" cy="80" r="${R}" class="wr-ring-bg"/><circle cx="80" cy="80" r="${R}" class="wr-ring-fg" style="--c:${C};--off:${C * (1 - s.presentismo)}"/></svg>
             <span data-count="${s.presentismo}" data-fmt="pct">0%</span>
           </div>
-          <p class="wr-anim wr-lead" style="--d:.7s">De ${who ? `las altas ${who === 'el equipo' ? 'del equipo' : 'del grupo'}` : 'tus altas'}, el <b>${fmtPct(s.presentismo)}</b> se presentó el primer día.</p>
+          <p class="wr-anim wr-lead" style="--d:.7s">De ${who ? `las altas ${de}` : 'tus altas'}, el <b>${fmtPct(s.presentismo)}</b> se presentó el primer día.</p>
         </div>`,
     });
 
-    // 9. Ranking (selector) o "tu banda" (equipo / grupo)
+    // 9. Ranking (selector) o ranking de altas del equipo / grupo
     if (s.single) {
       const rows = [
         ['Volumen de altas', s.posVol, s.rankVol.length],
@@ -261,17 +263,17 @@ window.ResumenAnual = (() => {
           </div>`,
       });
     } else {
-      const maxB = Math.max(...s.banda.map(([, v]) => v), 1);
+      const maxB = Math.max(...s.ranking.map(([, v]) => v), 1);
       slides.push({
         bg: ['#ffb703', '#7a3b00'],
         dark: true,
         html: `
           <div class="wr-top-copy">
-            <p class="wr-anim wr-kicker" style="--d:.1s">${team ? 'Tu banda' : 'La banda del grupo'}</p>
-            <h2 class="wr-anim wr-title" style="--d:.25s">Los que más sonaron</h2>
+            <p class="wr-anim wr-kicker" style="--d:.1s">${team ? 'Tu equipo' : 'El grupo'}</p>
+            <h2 class="wr-anim wr-title" style="--d:.25s">Ranking de altas</h2>
           </div>
           <ul class="wr-band">
-            ${s.banda.map(([n, v], i) => `
+            ${s.ranking.map(([n, v], i) => `
               <li class="wr-anim" style="--d:${0.45 + i * 0.12}s">
                 <span>${medal(i)}</span><b>${esc(n)}</b>
                 <span class="wr-band-bar"><i style="--w:${v / maxB * 100}%;--d:${(0.6 + i * 0.12).toFixed(2)}s"></i></span>
@@ -281,7 +283,7 @@ window.ResumenAnual = (() => {
       });
     }
 
-    // 10. Aura: competencia más alta de la autoevaluación
+    // 10. Competencia del año: la más alta de la autoevaluación
     if (ctx.comp) {
       const cats = window.COMPETENCIAS_CATEGORIAS || [];
       const self = ctx.comp.autoevaluacion || [];
@@ -291,7 +293,7 @@ window.ResumenAnual = (() => {
           bg: ['#ff8fd8', '#3b0a45'],
           html: `
             <div class="wr-center">
-              <p class="wr-anim wr-kicker" style="--d:.1s">Tu aura del año</p>
+              <p class="wr-anim wr-kicker" style="--d:.1s">Tu competencia del año</p>
               <div class="wr-anim wr-aura" style="--d:.3s"></div>
               <h2 class="wr-anim wr-title" style="--d:.5s">${esc(top3[0][0])}</h2>
               <p class="wr-anim wr-lead" style="--d:.7s">Tu competencia más fuerte según tu autoevaluación: <b>${top3[0][1]}/10</b>.</p>
@@ -304,10 +306,10 @@ window.ResumenAnual = (() => {
     // 11. Tarjeta final
     const cells = [
       ['Altas', fmtInt(s.total)],
-      ['Mes en loop', cap(MESES[+s.best[0].slice(5) - 1])],
-      ['Canción', titleCase(s.locales[0][0])],
-      ['Artista', titleCase(z1[0])],
-      ['Género', top[0] === 'Sabores Express' ? 'Sabores' : 'Extremas'],
+      ['Mejor mes', cap(MESES[+s.best[0].slice(5) - 1])],
+      ['Local', titleCase(s.locales[0][0])],
+      ['Zonal', titleCase(z1[0])],
+      ['Marca', top[0] === 'Sabores Express' ? 'Sabores' : 'Extremas'],
       ['Presentismo', fmtPct(s.presentismo)],
     ];
     if (s.single && s.posVol > -1) cells.push(['Ranking', `${medal(s.posVol)} en volumen`]);
