@@ -316,7 +316,10 @@ window.ResumenAnual = (() => {
     // slide de competencia.
     const aura = AURAS[ctx.key];
     const cats = window.COMPETENCIAS_CATEGORIAS || [];
-    const self = (ctx.comp && ctx.comp.autoevaluacion) || [];
+    // Se usa la evaluación real; si todavía no está cargada, la autoevaluación.
+    const real = ctx.comp && ctx.comp.real;
+    const self = (ctx.comp && (real || ctx.comp.autoevaluacion)) || [];
+    const fuente = real ? 'la evaluación real' : 'tu autoevaluación';
     const top3 = self.map((v, i) => [cats[i] ? cats[i].label : '', v]).sort((a, b) => b[1] - a[1]).slice(0, 3);
     if (aura) {
       const st = auraEstilo(aura[0]);
@@ -329,7 +332,7 @@ window.ResumenAnual = (() => {
             <div class="wr-aura-words">
               ${aura.map((w, i) => `<span class="wr-anim" style="--d:${(0.5 + i * 0.22).toFixed(2)}s">${esc(w)}</span>`).join('')}
             </div>
-            ${top3.length ? `<p class="wr-anim wr-lead" style="--d:1.2s">Tu competencia más fuerte según tu autoevaluación: <b>${esc(top3[0][0])} (${top3[0][1]}/10)</b>.</p>` : ''}
+            ${top3.length ? `<p class="wr-anim wr-lead" style="--d:1.2s">Tu competencia más fuerte según ${fuente}: <b>${esc(top3[0][0])} (${top3[0][1]}/10)</b>.</p>` : ''}
           </div>`,
       });
     } else if (top3.length) {
@@ -340,7 +343,7 @@ window.ResumenAnual = (() => {
             <p class="wr-anim wr-kicker" style="--d:.1s">Tu competencia del año</p>
             <div class="wr-anim wr-aura" style="--d:.3s"></div>
             <h2 class="wr-anim wr-title" style="--d:.5s">${esc(top3[0][0])}</h2>
-            <p class="wr-anim wr-lead" style="--d:.7s">Tu competencia más fuerte según tu autoevaluación: <b>${top3[0][1]}/10</b>.</p>
+            <p class="wr-anim wr-lead" style="--d:.7s">Tu competencia más fuerte según ${fuente}: <b>${top3[0][1]}/10</b>.</p>
             <div class="wr-chips">${top3.map(([l, v], i) => `<span class="wr-anim" style="--d:${0.9 + i * 0.12}s">${esc(l)} · ${v}</span>`).join('')}</div>
           </div>`,
       });
