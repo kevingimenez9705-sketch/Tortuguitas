@@ -190,9 +190,12 @@ body.wr-open{overflow:hidden;}
 
 /* Competencia del año */
 .wr-aura{position:relative;width:180px;height:180px;}
-.wr-aura::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(#ff8fd8,#ffd23f,#00d4a4,#3a86ff,#7b2ff7,#ff8fd8);filter:blur(20px);animation:wr-spin 6s linear infinite;}
+.wr-aura::before{content:"";position:absolute;inset:0;border-radius:50%;background:conic-gradient(var(--aura, #ff8fd8, #ffd23f, #00d4a4, #3a86ff, #7b2ff7, #ff8fd8));filter:blur(20px);animation:wr-spin 6s linear infinite;}
 .wr-aura::after{content:"";position:absolute;inset:30%;border-radius:50%;background:radial-gradient(circle,#fff,rgba(255,255,255,0) 70%);animation:wr-breathe 3s ease-in-out infinite;}
 @keyframes wr-breathe{50%{transform:scale(1.3);opacity:.7;}}
+.wr-aura-words{display:flex;flex-direction:column;align-items:center;gap:2px;margin:6px 0 4px;}
+.wr-aura-words span{font-size:min(36px,9vw);font-weight:900;line-height:1.08;letter-spacing:-.02em;opacity:.9;}
+.wr-aura-words span:first-child{font-size:min(54px,13vw);opacity:1;text-shadow:0 0 30px rgba(255,255,255,.45);}
 .wr-chips{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:8px;}
 .wr-chips span{padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.16);font-size:12px;font-weight:800;}
 
@@ -207,6 +210,7 @@ body.wr-open{overflow:hidden;}
 .wr-card-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .wr-card-grid div{min-width:0;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.24);}
 .wr-card-grid small{display:block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;opacity:.7;}
+.wr-card-grid .wr-wide{grid-column:1 / -1;}
 .wr-card-grid b{display:block;font-size:16px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .wr-card-foot{margin-top:12px;text-align:center;font-size:10px;font-weight:700;opacity:.6;}
 .wr-final-actions{display:flex;justify-content:center;gap:10px;}

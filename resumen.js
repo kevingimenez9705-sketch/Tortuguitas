@@ -30,6 +30,22 @@ window.ResumenAnual = (() => {
     rows.forEach(r => { const k = keyFn(r); m.set(k, (m.get(k) || 0) + 1); });
     return [...m.entries()].sort((a, b) => b[1] - a[1]);
   }
+  // Aura de cada integrante (definida por el equipo): estilo de percepción
+  // + dos rasgos. El estilo elige la paleta de la slide.
+  const AURAS = {
+    agustina: ['Kinestésica', 'Organizadora', 'Amable'],
+    agustin: ['Visual', 'Perfeccionista', 'Correcto'],
+    kevin: ['Visual', 'Serio', 'Resolutivo'],
+    rafael: ['Auditivo', 'Reservado', 'Paciente'],
+    gustavo: ['Visual', 'Carismático', 'Colaborador'],
+    albana: ['Auditiva', 'Tranquila', 'Independiente'],
+  };
+  function auraEstilo(estilo) {
+    const e = estilo.toLowerCase();
+    if (e.startsWith('audit')) return { bg: ['#00b894', '#03261f'], aura: '#00d4a4, #3a86ff, #c4f000, #7fffd4, #00d4a4' };
+    if (e.startsWith('kinest')) return { bg: ['#ff7a59', '#3b0a2a'], aura: '#ff8fd8, #ff6b35, #ffd23f, #ff4f9a, #ff8fd8' };
+    return { bg: ['#5b6cff', '#120a3a'], aura: '#3a86ff, #7b2ff7, #00d4ff, #c4b5fd, #3a86ff' }; // visual
+  }
   const medal = (i) => (i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`);
 
   // ---------- Números del año ----------
@@ -283,24 +299,39 @@ window.ResumenAnual = (() => {
       });
     }
 
-    // 10. Competencia del año: la más alta de la autoevaluación
-    if (ctx.comp) {
-      const cats = window.COMPETENCIAS_CATEGORIAS || [];
-      const self = ctx.comp.autoevaluacion || [];
-      const top3 = self.map((v, i) => [cats[i] ? cats[i].label : '', v]).sort((a, b) => b[1] - a[1]).slice(0, 3);
-      if (top3.length) {
-        slides.push({
-          bg: ['#ff8fd8', '#3b0a45'],
-          html: `
-            <div class="wr-center">
-              <p class="wr-anim wr-kicker" style="--d:.1s">Tu competencia del año</p>
-              <div class="wr-anim wr-aura" style="--d:.3s"></div>
-              <h2 class="wr-anim wr-title" style="--d:.5s">${esc(top3[0][0])}</h2>
-              <p class="wr-anim wr-lead" style="--d:.7s">Tu competencia más fuerte según tu autoevaluación: <b>${top3[0][1]}/10</b>.</p>
-              <div class="wr-chips">${top3.map(([l, v], i) => `<span class="wr-anim" style="--d:${0.9 + i * 0.12}s">${esc(l)} · ${v}</span>`).join('')}</div>
-            </div>`,
-        });
-      }
+    // 10. Aura: estilo + rasgos (AURAS) y, si hay datos, la competencia
+    // más fuerte de la autoevaluación. Sin aura cargada, queda solo la
+    // slide de competencia.
+    const aura = AURAS[ctx.key];
+    const cats = window.COMPETENCIAS_CATEGORIAS || [];
+    const self = (ctx.comp && ctx.comp.autoevaluacion) || [];
+    const top3 = self.map((v, i) => [cats[i] ? cats[i].label : '', v]).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    if (aura) {
+      const st = auraEstilo(aura[0]);
+      slides.push({
+        bg: st.bg,
+        html: `
+          <div class="wr-center">
+            <p class="wr-anim wr-kicker" style="--d:.1s">Tu aura</p>
+            <div class="wr-anim wr-aura" style="--d:.3s;--aura:${st.aura}"></div>
+            <div class="wr-aura-words">
+              ${aura.map((w, i) => `<span class="wr-anim" style="--d:${(0.5 + i * 0.22).toFixed(2)}s">${esc(w)}</span>`).join('')}
+            </div>
+            ${top3.length ? `<p class="wr-anim wr-lead" style="--d:1.2s">Tu competencia más fuerte según tu autoevaluación: <b>${esc(top3[0][0])} (${top3[0][1]}/10)</b>.</p>` : ''}
+          </div>`,
+      });
+    } else if (top3.length) {
+      slides.push({
+        bg: ['#ff8fd8', '#3b0a45'],
+        html: `
+          <div class="wr-center">
+            <p class="wr-anim wr-kicker" style="--d:.1s">Tu competencia del año</p>
+            <div class="wr-anim wr-aura" style="--d:.3s"></div>
+            <h2 class="wr-anim wr-title" style="--d:.5s">${esc(top3[0][0])}</h2>
+            <p class="wr-anim wr-lead" style="--d:.7s">Tu competencia más fuerte según tu autoevaluación: <b>${top3[0][1]}/10</b>.</p>
+            <div class="wr-chips">${top3.map(([l, v], i) => `<span class="wr-anim" style="--d:${0.9 + i * 0.12}s">${esc(l)} · ${v}</span>`).join('')}</div>
+          </div>`,
+      });
     }
 
     // 11. Tarjeta final
@@ -314,6 +345,9 @@ window.ResumenAnual = (() => {
     ];
     if (s.single && s.posVol > -1) cells.push(['Ranking', `${medal(s.posVol)} en volumen`]);
     else if (s.cumplimiento != null) cells.push(['Cumplimiento', fmtPct(s.cumplimiento)]);
+    // Celdas de ancho completo: el aura (arriba) y la última si quedó sola.
+    if (cells.length % 2) cells[cells.length - 1].push(true);
+    if (aura) cells.unshift(['Aura', aura.join(' · '), true]);
     slides.push({
       bg: [ctx.color, '#0b0b14'],
       final: true,
@@ -325,7 +359,7 @@ window.ResumenAnual = (() => {
               <div><small>Resumen de tu año</small><b>${esc(ctx.label)} · ${s.year}</b></div>
             </div>
             <div class="wr-card-grid">
-              ${cells.map(([k, v], i) => `<div class="wr-anim" style="--d:${0.3 + i * 0.08}s"><small>${k}</small><b>${esc(v)}</b></div>`).join('')}
+              ${cells.map(([k, v, wide], i) => `<div class="wr-anim${wide ? ' wr-wide' : ''}" style="--d:${(0.3 + i * 0.08).toFixed(2)}s"><small>${k}</small><b>${esc(v)}</b></div>`).join('')}
             </div>
             <div class="wr-card-foot">Las Tortuguitas Ninja · Selección · ${s.rangeLabel}</div>
           </div>
@@ -339,13 +373,74 @@ window.ResumenAnual = (() => {
   }
 
   // ---------- Música (Web Audio, sin archivos) ----------
-  // Base lo-fi simple a 92 BPM: acordes, bajo, bombo/caja/hi-hat y un
-  // arpegio suave. Se genera en vivo, arranca con el clic del botón (los
-  // navegadores no dejan reproducir audio sin un gesto del usuario).
+  // Cada integrante tiene su propio tema, armado según su perfil (ver
+  // PERFILES): tempo, tonalidad, timbre y ritmo distintos. Se genera en
+  // vivo en el navegador y arranca con el clic del botón (los navegadores no
+  // dejan reproducir audio sin un gesto del usuario).
+  // Patrones en una grilla de 16 semicorcheas por compás; bass: 1 = raíz,
+  // 2 = raíz una octava arriba.
+  const TEMAS = {
+    // Visual, serio, resolutivo: menor, firme, graves marcados.
+    kevin: {
+      bpm: 90, prog: [[60, 63, 67, 70], [56, 60, 63, 67], [55, 58, 63, 67], [58, 62, 65, 70]],
+      pad: 'sawtooth', padGain: 0.022, padCut: 900,
+      kick: [0, 8, 10], snare: [4, 12], hat: 2, hatGain: 0.025,
+      bass: [1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0], bassWave: 'square', bassGain: 0.08,
+      arp: { wave: 'sine', gain: 0.03, oct: 1, steps: [0, 4, 8, 12], order: 'down', len: 3 },
+    },
+    // Visual, perfeccionista, correcto: arpegio de semicorcheas exacto, sin swing.
+    agustin: {
+      bpm: 100, prog: [[62, 65, 69, 72], [58, 62, 65, 69], [53, 57, 60, 64], [55, 60, 64, 67]],
+      pad: 'triangle', padGain: 0.035, padCut: 1800,
+      kick: [0, 4, 8, 12], snare: [4, 12], hat: 1, hatGain: 0.018,
+      bass: [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0], bassWave: 'sine', bassGain: 0.2,
+      arp: { wave: 'sine', gain: 0.025, oct: 1, steps: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], order: 'up', len: 0.9 },
+    },
+    // Kinestésica, organizadora, amable: mayor, cálido, con groove y swing.
+    agustina: {
+      bpm: 104, swing: 0.16, prog: [[53, 57, 60, 64], [55, 59, 62, 67], [52, 55, 59, 62], [57, 60, 64, 67]],
+      pad: 'triangle', padGain: 0.04, padCut: 2200,
+      kick: [0, 6, 8], snare: [4, 12], hat: 1, hatGain: 0.03,
+      bass: [1, 0, 0, 1, 0, 0, 2, 0, 1, 0, 0, 1, 0, 0, 2, 0], bassWave: 'triangle', bassGain: 0.2,
+      arp: { wave: 'triangle', gain: 0.035, oct: 1, steps: [0, 2, 3, 6, 8, 10, 11, 14], order: 'updown', len: 1.5 },
+    },
+    // Auditivo, reservado, paciente: lento, espacioso, notas largas.
+    rafael: {
+      bpm: 72, prog: [[63, 67, 70, 74], [60, 63, 67, 70], [56, 60, 63, 67], [58, 62, 65, 67]],
+      pad: 'sine', padGain: 0.05, padCut: 1400,
+      kick: [0], snare: [12], snareGain: 0.06, hat: 4, hatGain: 0.015,
+      bass: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], bassWave: 'sine', bassGain: 0.2, bassLen: 14,
+      arp: { wave: 'sine', gain: 0.035, oct: 1, steps: [0, 6, 10], order: 'up', len: 6 },
+    },
+    // Visual, carismático, colaborador: mayor, funky, alegre.
+    gustavo: {
+      bpm: 112, prog: [[55, 59, 62, 67], [57, 62, 66, 69], [55, 59, 64, 67], [55, 60, 64, 67]],
+      pad: 'triangle', padGain: 0.03, padCut: 2400,
+      kick: [0, 3, 8, 11], snare: [4, 12], clap: true, hat: 1, hatGain: 0.025,
+      bass: [1, 0, 2, 0, 0, 1, 0, 2, 1, 0, 2, 0, 0, 1, 2, 0], bassWave: 'square', bassGain: 0.07,
+      arp: { wave: 'square', gain: 0.018, oct: 1, steps: [2, 6, 7, 10, 14, 15], order: 'random', len: 0.6 },
+    },
+    // Auditiva, tranquila, independiente: suave, aireado, sin apuro.
+    albana: {
+      bpm: 76, prog: [[57, 61, 64, 68], [54, 57, 61, 64], [50, 54, 57, 61], [52, 57, 59, 64]],
+      pad: 'sine', padGain: 0.05, padCut: 1600,
+      kick: [0, 10], snare: [], hat: 4, hatGain: 0.02,
+      bass: [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0], bassWave: 'sine', bassGain: 0.18, bassLen: 8,
+      arp: { wave: 'triangle', gain: 0.03, oct: 1, steps: [0, 3, 6, 9, 12], order: 'random', len: 4 },
+    },
+    // "Otros" y cualquier otro caso: base lo-fi neutra.
+    default: {
+      bpm: 92, prog: [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 65]],
+      pad: 'triangle', padGain: 0.045, padCut: 1600,
+      kick: [0, 10], snare: [4, 12], hat: 2, hatGain: 0.035,
+      bass: [1, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0], bassWave: 'sine', bassGain: 0.22,
+      arp: { wave: 'triangle', gain: 0.03, oct: 1, steps: [2, 6, 10, 14], order: 'up', len: 3 },
+    },
+  };
+
   const Music = (() => {
     let ac = null, master = null, pad = null, noiseBuf = null, timer = null, nextT = 0, step = 0, on = false;
-    const BPM = 92, S8 = 60 / BPM / 2;
-    const PROG = [[57, 60, 64, 67], [53, 57, 60, 64], [48, 52, 55, 59], [55, 59, 62, 65]]; // Am7 Fmaj7 Cmaj7 G7
+    let T = TEMAS.default;
     const hz = (m) => 440 * Math.pow(2, (m - 69) / 12);
     function tone(t, f, dur, type, gain, dest) {
       const o = ac.createOscillator(), g = ac.createGain();
@@ -369,34 +464,54 @@ window.ResumenAnual = (() => {
       g.gain.setValueAtTime(0.7, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.32);
       o.connect(g); g.connect(master); o.start(t); o.stop(t + 0.35);
     }
-    function play(s, t) {
-      const b8 = s % 8, chord = PROG[Math.floor(s / 8) % 4];
-      if (b8 === 0) chord.forEach(n => tone(t, hz(n), S8 * 8, 'triangle', 0.045, pad));
-      if (b8 === 0 || b8 === 5) kick(t);
-      if (b8 === 0 || b8 === 3 || b8 === 4) tone(t, hz(chord[0] - 24), S8 * 2.5, 'sine', 0.22);
-      if (b8 === 2 || b8 === 6) noise(t, 0.16, 0.12, 1200);
-      noise(t, 0.035, b8 % 2 ? 0.025 : 0.04, 7000);
-      if (b8 % 2 === 1) tone(t, hz(chord[(s >> 1) % 4] + 12), S8 * 1.6, 'triangle', 0.03, pad);
+    let arpN = 0;
+    function arpNote(chord) {
+      const n = chord.length, k = arpN++;
+      if (T.arp.order === 'down') return chord[n - 1 - (k % n)];
+      if (T.arp.order === 'updown') { const seq = [0, 1, 2, 3, 2, 1]; return chord[seq[k % seq.length] % n]; }
+      if (T.arp.order === 'random') return chord[(k * 7 + (k >> 2) * 3) % n]; // "aleatorio" pero repetible
+      return chord[k % n];
+    }
+    function play(s, t0) {
+      const S = 60 / T.bpm / 4;
+      const s16 = s % 16;
+      const t = t0 + (T.swing && s16 % 4 === 2 ? T.swing * S : 0);
+      const chord = T.prog[Math.floor(s / 16) % T.prog.length];
+      if (s16 === 0) chord.forEach(n => tone(t, hz(n), S * 16, T.pad, T.padGain, pad));
+      if (T.kick.includes(s16)) kick(t);
+      if (T.snare.includes(s16)) {
+        noise(t, 0.16, T.snareGain || 0.12, 1200);
+        if (T.clap) noise(t + 0.012, 0.1, 0.08, 1800);
+      }
+      if (T.hat && s16 % T.hat === 0) noise(t, 0.035, T.hatGain * (s16 % 4 === 0 ? 1 : 0.6), 7000);
+      if (T.bass[s16]) {
+        let r = chord[0];
+        while (r > 45) r -= 12;
+        tone(t, hz(r + (T.bass[s16] === 2 ? 12 : 0)), S * (T.bassLen || 2.5), T.bassWave, T.bassGain);
+      }
+      if (T.arp.steps.includes(s16)) tone(t, hz(arpNote(chord) + 12 * T.arp.oct), S * T.arp.len, T.arp.wave, T.arp.gain, pad);
     }
     function tick() {
-      while (nextT < ac.currentTime + 0.12) { play(step, nextT); nextT += S8; step++; }
+      while (nextT < ac.currentTime + 0.12) { play(step, nextT); nextT += 60 / T.bpm / 4; step++; }
     }
-    function start() {
+    function start(key) {
+      if (key) T = TEMAS[key] || TEMAS.default;
       try {
         if (!ac) {
           ac = new (window.AudioContext || window.webkitAudioContext)();
           const comp = ac.createDynamicsCompressor();
           master = ac.createGain(); master.gain.value = 0;
-          pad = ac.createBiquadFilter(); pad.type = 'lowpass'; pad.frequency.value = 1600; pad.connect(master);
+          pad = ac.createBiquadFilter(); pad.type = 'lowpass'; pad.connect(master);
           master.connect(comp); comp.connect(ac.destination);
           noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
           const ch = noiseBuf.getChannelData(0);
           for (let i = 0; i < ch.length; i++) ch[i] = Math.random() * 2 - 1;
         }
         ac.resume();
+        pad.frequency.value = T.padCut;
         master.gain.cancelScheduledValues(ac.currentTime);
         master.gain.setTargetAtTime(0.55, ac.currentTime, 0.4);
-        nextT = ac.currentTime + 0.05; step = 0;
+        nextT = ac.currentTime + 0.05; step = 0; arpN = 0;
         clearInterval(timer); timer = setInterval(tick, 25);
         on = true;
       } catch (e) { on = false; }
@@ -522,7 +637,7 @@ window.ResumenAnual = (() => {
     tap.addEventListener('pointercancel', () => { paused = false; root.classList.remove('wr--paused'); });
     root.querySelector('.wr-close').addEventListener('click', close);
     root.querySelector('.wr-sound').addEventListener('click', () => {
-      if (Music.isOn()) Music.stop(); else Music.start();
+      if (Music.isOn()) Music.stop(); else Music.start(ctxRef.key);
       setSoundBtn();
     });
     root.addEventListener('click', (e) => {
@@ -533,7 +648,7 @@ window.ResumenAnual = (() => {
     });
     document.addEventListener('keydown', onKey);
 
-    Music.start();
+    Music.start(ctxRef.key);
     setSoundBtn();
     idx = 0; last = 0; paused = false;
     requestAnimationFrame(() => { root.classList.add('wr--in'); go(0); });
@@ -555,7 +670,8 @@ window.ResumenAnual = (() => {
     if (launcher) launcher.focus({ preventScroll: true });
   }
 
-  // ctx: { data, selectors (null = todo el equipo), name, label, color,
+  // ctx: { key (agustina, kevin...: tema musical y aura), data,
+  //        selectors (null = todo el equipo), name, label, color,
   //        avatar, tortuga, comp }
   function init(ctx) {
     ctxRef = ctx;

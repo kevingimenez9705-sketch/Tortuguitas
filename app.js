@@ -857,6 +857,7 @@
   if (window.ResumenAnual) {
     const person = member || KEVIN;
     window.ResumenAnual.init({
+      key: MIEMBRO_KEY || 'kevin',
       data: DATA,
       selectors: member ? member.selectors : null,
       name: person.label.split(' ')[0],
