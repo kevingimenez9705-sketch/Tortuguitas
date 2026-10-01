@@ -296,7 +296,7 @@
   };
 
   // Colores fijos por selector (no por orden de aparición): así el color de
-  // Agustín/Agustina en "Ranking de selectores", "Presentismo", etc. es
+  // Agustín/Agustina en "Presentismo", "Cumplimiento", etc. es
   // siempre el mismo que el de su propia tarjeta/dashboard, en cualquier
   // página donde aparezcan (Kevin, Otros...).
   const SELECTOR_COLORS = {
@@ -486,7 +486,7 @@
     const months = activeMonths();
     const monthSet = new Set(months);
     const altasF = ALTAS.filter(r => monthSet.has(r.mes));
-    // Para "Ranking de selectores" y "Presentismo por selector": si hay un
+    // Para el ranking de volumen (insignias del hero) y "Presentismo por selector": si hay un
     // integrante filtrado, esos dos widgets igual se calculan sobre TODO el
     // equipo (no solo sus selectores), para que se vea dónde queda parado
     // respecto al resto en vez de un ranking de una sola fila.
@@ -718,22 +718,13 @@
       ]);
     }
 
-    // Ranking de selectores (todo el equipo, ver comentario en render())
+    // Ranking por volumen (todo el equipo): ya no se muestra como tarjeta,
+    // pero se usa para la insignia del hero y el orden de presentismo.
     const rankOrder = [...new Set(allAltasF.map(r => r.selector))]
       .map(s => [s, allAltasF.filter(r => r.selector === s).length])
       .sort((a, b) => b[1] - a[1]);
     const rankNames = rankOrder.map(x => x[0]);
-    const rankVals = rankOrder.map(x => x[1]);
     const isMe = (n) => memberSelectorSet && memberSelectorSet.has(n);
-    const maxVal = Math.max(...rankVals, 1);
-    document.getElementById('rankSelectores').innerHTML = rankOrder.map(([n, v], i) => `
-      <li class="${isMe(n) ? 'me' : ''}">
-        ${rankIdxHtml(i)}
-        <span class="name" style="${rankColorCss(i)}">${n}</span>
-        <span class="bar-track"><span class="bar-fill" style="width:${(v / maxVal) * 100}%;background:${colorFor(n)};--d:${i * 70}ms"></span></span>
-        <span class="val" style="${rankColorCss(i)}">${fmtInt(v)}</span>
-      </li>`).join('');
-
     // Presentismo por selector (todo el equipo)
     const presentismo = rankNames.map(s => {
       const rows = allAltasF.filter(r => r.selector === s && r.presente !== null);
