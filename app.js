@@ -6,8 +6,9 @@
   // Cada integrante del equipo mapea a uno o más "selector" de data.js.
   // selectors: [] => todavía no tiene altas cargadas a su nombre -> pantalla S/D.
   // "otros" agrupa a los selectores que no tienen tarjeta propia en el equipo
-  // (Emiliano, Mariano, Facundo) más los registros sin selector asignado
-  // ("Seleccion" en la planilla fuente).
+  // (Emiliano, Mariano, Facundo, Alexis, Agustin Monte, Luana, Araceli,
+  // Giselle y Balbina). Desde informe_anual_drive_12.xlsx ya no quedan altas
+  // "sin selector asignado": cada una tiene su selector real.
   // color: mismo acento que su tarjeta en index.html, para que el header de su
   // dashboard se sienta "de esa persona" (el equipo sin filtrar usa KEVIN_COLOR).
   // avatar/tortuga: mismas fotos que usa index.html (avatar circular chico
@@ -20,7 +21,7 @@
     rafael: { label: 'Rafael Barberi', selectors: ['Rafael'], color: '#e2721f', avatar: 'images/rafael-barberi.jpg', tortuga: 'images/tortuga-rafael.jpg' },
     gustavo: { label: 'Gustavo Sotelo', selectors: ['Gustavo'], color: '#4f8fc9', avatar: 'images/gustavo-sotelo.jpg', tortuga: 'images/tortuga-gustavo.jpg' },
     albana: { label: 'Albana Pais', selectors: [], color: '#d4a017', avatar: 'images/Albana-pais.jpeg', tortuga: 'images/tortuga-albana2.jpg' },
-    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Seleccion'], color: '#a9714a', avatar: null, tortuga: 'images/muertos en el camino.jpg' },
+    otros: { label: 'Otros', selectors: ['Emiliano', 'Mariano', 'Facundo', 'Alexis', 'Agustin Monte', 'Luana', 'Araceli', 'Giselle', 'Balbina'], color: '#a9714a', avatar: null, tortuga: 'images/muertos en el camino.jpg' },
   };
   // Puesto de cada selector agrupado dentro de "Otros" (no tienen tarjeta
   // propia en index.html, pero sí un puesto real dentro del equipo): se usa
@@ -30,7 +31,12 @@
     Emiliano: { label: 'Emiliano Pravato', puesto: 'Capacitador' },
     Mariano: { label: 'Mariano', puesto: 'Selector' },
     Facundo: { label: 'Facundo', puesto: 'Selector' },
-    Seleccion: { label: 'Selección', puesto: 'Sin selector asignado' },
+    Alexis: { label: 'Alexis', puesto: 'Selector' },
+    'Agustin Monte': { label: 'Agustín Monte', puesto: 'Selector' },
+    Luana: { label: 'Luana', puesto: 'Selectora' },
+    Araceli: { label: 'Araceli', puesto: 'Selectora' },
+    Giselle: { label: 'Giselle', puesto: 'Selectora' },
+    Balbina: { label: 'Balbina', puesto: 'Selectora' },
   };
   const KEVIN_COLOR = '#5c2430';
   // Panel sin filtrar (sin ?miembro=): también es "de alguien" — Kevin.
@@ -275,7 +281,7 @@
     if (breadcrumb) breadcrumb.textContent = `Selección · Equipo · ${member.label}`;
     if (title) title.textContent = `Resultados — ${member.label}`;
     if (subtitle) subtitle.textContent = member.label === 'Otros'
-      ? 'Altas, presentismo y cumplimiento agrupados: Emiliano, Mariano, Facundo y altas sin selector asignado.'
+      ? 'Altas, presentismo y cumplimiento agrupados de los selectores sin tarjeta propia en el equipo.'
       : `Altas, presentismo y cumplimiento de ${member.label}.`;
   }
 

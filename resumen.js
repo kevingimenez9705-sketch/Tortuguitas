@@ -82,7 +82,6 @@ window.ResumenAnual = (() => {
 
     // Rankings del equipo en el año (mismo criterio que los de app.js).
     const sels = [...new Set(yearAltas.map(r => r.selector))];
-    const rankVol = sels.map(s => [s, yearAltas.filter(r => r.selector === s).length]).sort((a, b) => b[1] - a[1]);
     const rankPres = sels.map(s => {
       const rows = yearAltas.filter(r => r.selector === s && r.presente !== null);
       return [s, pct(rows.filter(r => r.presente).length, rows.length)];
@@ -112,9 +111,10 @@ window.ResumenAnual = (() => {
       presentismo: pct(conDato.filter(r => r.presente).length, conDato.length),
       cumplimiento: mineCum.length ? pct(sum(mineCum, 'enviados'), sum(mineCum, 'total')) : null,
       single,
-      rankVol, rankPres, rankCum,
-      posVol: pos(rankVol), posPres: pos(rankPres), posCum: pos(rankCum),
-      ranking: (set ? rankVol.filter(([n]) => set.has(n)) : rankVol).slice(0, 8),
+      rankPres, rankCum,
+      posPres: pos(rankPres), posCum: pos(rankCum),
+      // Equipo / grupo: ranking de cumplimiento (no por volumen de altas).
+      ranking: (set ? rankCum.filter(([n]) => set.has(n)) : rankCum).slice(0, 8),
     };
   }
 
@@ -269,10 +269,9 @@ window.ResumenAnual = (() => {
         </div>`,
     });
 
-    // 9. Ranking (selector) o ranking de altas del equipo / grupo
+    // 9. Ranking (selector) o ranking de cumplimiento del equipo / grupo
     if (s.single) {
       const rows = [
-        ['Volumen de altas', s.posVol, s.rankVol.length],
         ['Presentismo', s.posPres, s.rankPres.length],
         ['Cumplimiento', s.posCum, s.rankCum.length],
       ].filter(([, p]) => p > -1);
@@ -290,22 +289,21 @@ window.ResumenAnual = (() => {
             </ul>
           </div>`,
       });
-    } else {
-      const maxB = Math.max(...s.ranking.map(([, v]) => v), 1);
+    } else if (s.ranking.length) {
       slides.push({
         bg: ['#ffb703', '#7a3b00'],
         dark: true,
         html: `
           <div class="wr-top-copy">
             <p class="wr-anim wr-kicker" style="--d:.1s">${team ? 'Tu equipo' : 'El grupo'}</p>
-            <h2 class="wr-anim wr-title" style="--d:.25s">Ranking de altas</h2>
+            <h2 class="wr-anim wr-title" style="--d:.25s">Ranking de cumplimiento</h2>
           </div>
           <ul class="wr-band">
             ${s.ranking.map(([n, v], i) => `
               <li class="wr-anim" style="--d:${0.45 + i * 0.12}s">
                 <span>${medal(i)}</span><b>${esc(n)}</b>
-                <span class="wr-band-bar"><i style="--w:${v / maxB * 100}%;--d:${(0.6 + i * 0.12).toFixed(2)}s"></i></span>
-                <small>${fmtInt(v)}</small>
+                <span class="wr-band-bar"><i style="--w:${v * 100}%;--d:${(0.6 + i * 0.12).toFixed(2)}s"></i></span>
+                <small>${fmtPct(v)}</small>
               </li>`).join('')}
           </ul>`,
       });
@@ -358,8 +356,7 @@ window.ResumenAnual = (() => {
       ['Marca', top[0] === 'Sabores Express' ? 'Sabores' : 'Extremas'],
       ['Presentismo', fmtPct(s.presentismo)],
     ];
-    if (s.single && s.posVol > -1) cells.push(['Ranking', `${medal(s.posVol)} en volumen`]);
-    else if (s.cumplimiento != null) cells.push(['Cumplimiento', fmtPct(s.cumplimiento)]);
+    if (s.cumplimiento != null) cells.push(['Cumplimiento', fmtPct(s.cumplimiento)]);
     // Celdas de ancho completo: el aura (arriba) y la última si quedó sola.
     if (cells.length % 2) cells[cells.length - 1].push(true);
     if (aura) cells.unshift(['Aura', aura.join(' · '), true, auraIcon(aura[0], 'wr-cell-icon')]);
