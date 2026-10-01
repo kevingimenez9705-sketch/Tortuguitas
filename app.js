@@ -59,6 +59,9 @@
     const person = member || KEVIN;
     hero.style.background = `linear-gradient(135deg, ${person.color}, ${darken(person.color, 0.6)})`;
     hero.dataset.color = person.color; // lo usa transition.js para el portal de vuelta
+    // --theme: acento de la persona para el resto de la hoja (títulos de
+    // sección, chip activo, íconos de KPI, su fila en los rankings).
+    document.documentElement.style.setProperty('--theme', person.color);
     if (person.tortuga) hero.style.setProperty('--tortuga-bg', `url('${person.tortuga}')`);
     const avatarEl = document.getElementById('heroAvatar');
     if (avatarEl && person.avatar) {
@@ -299,6 +302,8 @@
   const SELECTOR_COLORS = {
     Agustin: '#5b2d78',
     Agustina: '#cc2f2f',
+    Rafael: '#e2721f',
+    Gustavo: '#4f8fc9',
     Seleccion: '#0f1c3f',
     Facundo: '#3fbf7f',
     Mariano: '#f0a94c',
@@ -528,9 +533,10 @@
             .filter(([, i]) => i > -1)
             .map(([label, i]) => `${medal(i)} ${label}`);
           const rankText = ranks.length ? ` — ${ranks.join(' · ')}` : '';
-          return `<span class="hero-badge">${role.label} · ${role.puesto}${rankText}</span>`;
+          return `${role.label} · ${role.puesto}${rankText}`;
         })
         .filter(Boolean)
+        .map((t, i) => `<span class="hero-badge" style="--i:${i}">${t}</span>`)
         .join('');
       return;
     }
@@ -543,8 +549,51 @@
     ];
     el.innerHTML = items
       .filter(([, i]) => i > -1)
-      .map(([label, i]) => `<span class="hero-badge">${medal(i)} en ${label}</span>`)
+      .map(([label, i], n) => `<span class="hero-badge" style="--i:${n}">${medal(i)} en ${label}</span>`)
       .join('');
+  }
+
+  // Íconos de las tarjetas KPI (trazo simple, toman el color --theme).
+  const KPI_ICONS = {
+    altas: '<circle cx="9" cy="8" r="4"/><path d="M15 20a6 6 0 0 0-12 0"/><path d="M19 8v6M16 11h6"/>',
+    presentismo: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M9 15l2 2 4-4"/>',
+    sabores: '<path d="M4 10v10h16V10"/><path d="M3 10l2-6h14l2 6z"/><path d="M10 20v-5h4v5"/>',
+    extremas: '<path d="M4 11a8 6 0 0 1 16 0z"/><path d="M3 14.5h18"/><path d="M4 17.5h16a2 2 0 0 1-2 2.5H6a2 2 0 0 1-2-2.5z"/>',
+    cumplimiento: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/>',
+  };
+  // Mini tendencia mensual dentro de cada KPI (mismos datos del período).
+  let sparkSeq = 0;
+  function sparkline(vals) {
+    if (vals.length < 2) return '';
+    const w = 200, h = 36;
+    const min = Math.min(...vals), max = Math.max(...vals);
+    const span = max - min || 1;
+    const pts = vals.map((v, i) => [i / (vals.length - 1) * w, h - 3 - (v - min) / span * (h - 8)]);
+    const d = pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join('');
+    const gid = `kpiSpark${++sparkSeq}`;
+    return `<svg class="kpi-spark" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">
+      <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${THEME.base}" stop-opacity=".3"/><stop offset="1" stop-color="${THEME.base}" stop-opacity="0"/></linearGradient></defs>
+      <path class="kpi-spark-area" d="${d}L${w},${h}L0,${h}Z" fill="url(#${gid})"/>
+      <path class="kpi-spark-line" d="${d}" pathLength="1" fill="none" stroke="${THEME.base}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
+  }
+  // Contador animado: arranca desde el valor que mostraba antes (o 0) y
+  // termina exactamente en el valor real, con el mismo formato.
+  const kpiPrev = {};
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function countUp(el, key, to, fmt) {
+    const from = kpiPrev[key] != null ? kpiPrev[key] : 0;
+    kpiPrev[key] = to;
+    if (reduceMotion || from === to) { el.textContent = fmt(to); return; }
+    const t0 = performance.now(), dur = 900;
+    const step = (t) => {
+      const k = Math.min(1, (t - t0) / dur);
+      const e = 1 - Math.pow(1 - k, 3);
+      const v = from + (to - from) * e;
+      el.textContent = fmt(k < 1 ? (Number.isInteger(to) ? Math.round(v) : v) : to);
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
   }
 
   function renderKpis(altasF, months) {
@@ -566,23 +615,43 @@
     const totalVac = cumplRows.reduce((a, r) => a + (r.total || 0), 0);
     const cumplProm = pct(totalEnv, totalVac);
 
+    // Tendencia mes a mes de cada KPI, para la mini línea de la tarjeta.
+    const porMes = (fn) => months.map(m => fn(altasF.filter(r => r.mes === m)));
+    const trendAltas = porMes(rows => rows.length);
+    const trendPresentismo = months
+      .map(m => altasF.filter(r => r.mes === m && r.presente !== null))
+      .filter(rows => rows.length)
+      .map(rows => pct(rows.filter(r => r.presente).length, rows.length));
+    const trendSabores = porMes(rows => rows.filter(r => r.marca === 'Sabores').length);
+    const trendExtremas = porMes(rows => rows.filter(r => r.marca === 'Extremas').length);
+    const trendCumpl = cumMonths.map(m => {
+      const rows = cumplRows.filter(r => r.mes === m);
+      return pct(rows.reduce((a, r) => a + (r.enviados || 0), 0), rows.reduce((a, r) => a + (r.total || 0), 0));
+    });
+
     const kpis = [
-      { label: 'ALTAS TOTALES', value: fmtInt(total), sub: '', cls: 'c-blue' },
-      { label: 'PRESENTISMO DÍA 1', value: fmtPct(pct(presentes, conDato.length)), sub: `${fmtInt(noPresentados)} no presentados`, cls: 'c-green' },
-      { label: 'SABORES EXPRESS', value: fmtInt(sabores), sub: `${fmtPct(pct(sabores, total))} del total`, cls: 'c-blue' },
-      { label: 'HAMBURGUESAS EXTREMAS', value: fmtInt(extremas), sub: `${fmtPct(pct(extremas, total))} del total`, cls: 'c-blue' },
-      { label: 'CUMPLIMIENTO PROMEDIO', value: fmtPct(cumplProm), sub: 'Enviados / vacantes totales', cls: 'c-purple' },
+      { key: 'altas', label: 'ALTAS TOTALES', num: total, fmt: fmtInt, sub: '', cls: 'c-blue', trend: trendAltas },
+      { key: 'presentismo', label: 'PRESENTISMO DÍA 1', num: pct(presentes, conDato.length), fmt: fmtPct, sub: `${fmtInt(noPresentados)} no presentados`, cls: 'c-green', trend: trendPresentismo },
+      { key: 'sabores', label: 'SABORES EXPRESS', num: sabores, fmt: fmtInt, sub: `${fmtPct(pct(sabores, total))} del total`, cls: 'c-blue', trend: trendSabores },
+      { key: 'extremas', label: 'HAMBURGUESAS EXTREMAS', num: extremas, fmt: fmtInt, sub: `${fmtPct(pct(extremas, total))} del total`, cls: 'c-blue', trend: trendExtremas },
+      { key: 'cumplimiento', label: 'CUMPLIMIENTO PROMEDIO', num: cumplProm, fmt: fmtPct, sub: 'Enviados / vacantes totales', cls: 'c-purple', trend: trendCumpl },
     ];
 
     // Las 5 tarjetas comparten el color de THEME (en vez de azul/verde/violeta
     // genéricos) para que el panel se sienta "de esa persona" — Kevin
     // incluido, con el suyo.
-    document.getElementById('kpis').innerHTML = kpis.map(k => `
-      <div class="kpi ${k.cls}" style="border-top-color:${THEME.base}">
-        <div class="label">${k.label}</div>
-        <div class="value">${k.value}</div>
+    const kpisEl = document.getElementById('kpis');
+    kpisEl.innerHTML = kpis.map((k, i) => `
+      <div class="kpi ${k.cls}" style="border-top-color:${THEME.base};--i:${i}">
+        <div class="kpi-head">
+          <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KPI_ICONS[k.key]}</svg></span>
+          <div class="label">${k.label}</div>
+        </div>
+        <div class="value">${k.fmt(k.num)}</div>
         <div class="sub">${k.sub}</div>
+        ${sparkline(k.trend)}
       </div>`).join('');
+    kpisEl.querySelectorAll('.kpi .value').forEach((el, i) => countUp(el, kpis[i].key, kpis[i].num, kpis[i].fmt));
   }
 
   function renderAltasMes(months, altasF) {
@@ -605,7 +674,7 @@
     const extremas = altasF.filter(r => r.marca === 'Extremas').length;
     const total = sabores + extremas;
     Charts.donut('chartDistMarca', ['Sabores', 'Extremas'], [sabores, extremas],
-      [col('blue'), col('blueLight')]);
+      [col('blue'), col('blueLight')], { center: { value: fmtInt(total), label: 'altas' } });
     const legend = document.getElementById('legendDistMarca');
     if (legend) {
       legend.innerHTML = [
@@ -627,7 +696,7 @@
     // esto resuelve al color de esa persona (THEME.base) — igual que el
     // resto de sus gráficos —, y en el panel general cae en el azul de
     // marca en vez del gris casi invisible que tenía antes.
-    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: col('blue') });
+    Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: col('blue'), suffix: '%' });
   }
 
   function topN(rows, keyFn, n = 5) {
@@ -675,9 +744,9 @@
       const miTotal = altasF.length;
       document.getElementById('participacionTitle').textContent = 'Participación vs. resto del equipo';
       document.getElementById('participacionDesc').textContent = `${member.label} comparado con el resto del equipo, en volumen de altas`;
-      Charts.donut('chartParticipacionSelector', [member.label, 'Resto del equipo'], [miTotal, restoTotal],
-        [THEME.base, Charts.COLORS.grey]);
       const totalTodos = miTotal + restoTotal;
+      Charts.donut('chartParticipacionSelector', [member.label, 'Resto del equipo'], [miTotal, restoTotal],
+        [THEME.base, Charts.COLORS.grey], { center: { value: fmtPct(pct(miTotal, totalTodos)), label: 'del equipo', color: THEME.base } });
       document.getElementById('legendParticipacion').innerHTML = [
         [member.label, miTotal, THEME.base],
         ['Resto del equipo', restoTotal, Charts.COLORS.grey],
@@ -689,7 +758,7 @@
       const colors = names.map(colorFor);
       document.getElementById('participacionTitle').textContent = 'Participación por selector';
       document.getElementById('participacionDesc').textContent = '% del volumen total de altas · equipo completo';
-      Charts.donut('chartParticipacionSelector', names, vals, colors);
+      Charts.donut('chartParticipacionSelector', names, vals, colors, { center: { value: fmtInt(total), label: 'altas' } });
       document.getElementById('legendParticipacion').innerHTML = names.map((n, i) => `
         <li><span><span class="dot" style="background:${colors[i]}"></span>${n}</span><span>${fmtPct(pct(vals[i], total))}</span></li>
       `).join('');
@@ -707,7 +776,7 @@
       <li class="${isMe(n) ? 'me' : ''}">
         ${rankIdxHtml(i)}
         <span class="name" style="${rankColorCss(i)}">${n}</span>
-        <span class="bar-track"><span class="bar-fill" style="width:${(v / maxVal) * 100}%;background:${colorFor(n)}"></span></span>
+        <span class="bar-track"><span class="bar-fill" style="width:${(v / maxVal) * 100}%;background:${colorFor(n)};--d:${i * 70}ms"></span></span>
         <span class="val" style="${rankColorCss(i)}">${fmtInt(v)}</span>
       </li>`).join('');
 
@@ -721,7 +790,7 @@
       <li class="${isMe(n) ? 'me' : ''}">
         ${rankIdxHtml(i)}
         <span class="name" style="width:90px;${rankColorCss(i)}">${n}</span>
-        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)}"></span></span>
+        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)};--d:${i * 70}ms"></span></span>
         <span class="val" style="${rankColorCss(i)}">${fmtPct(p)}</span>
       </li>`).join('');
 
@@ -746,7 +815,7 @@
       const tot = rows.reduce((a, r) => a + (r.total || 0), 0);
       return round1(pct(env, tot) * 100);
     });
-    Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple') });
+    Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple'), suffix: '%' });
 
     // Ranking de cumplimiento: todo el equipo en el mismo rango de meses (ver
     // comentario de allAltasF en render() — mismo criterio, para comparar
@@ -765,7 +834,7 @@
       <li class="${memberSelectorSet && memberSelectorSet.has(n) ? 'me' : ''}">
         ${rankIdxHtml(i)}
         <span class="name" style="${rankColorCss(i)}">${n}</span>
-        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)}"></span></span>
+        <span class="bar-track"><span class="bar-fill" style="width:${p * 100}%;background:${colorFor(n)};--d:${i * 70}ms"></span></span>
         <span class="val" style="${rankColorCss(i)}">${fmtPct(p)}</span>
       </li>`).join('');
 
@@ -806,7 +875,24 @@
     document.querySelector('#toolbar .chip[data-period="12"]').classList.add('active');
   }
 
+  // Las tarjetas aparecen (fade + subida) a medida que entran en pantalla.
+  // Las barras de los rankings esperan a que su tarjeta sea visible para
+  // crecer (ver .sr en styles.css).
+  function initScrollReveal() {
+    if (!('IntersectionObserver' in window) || reduceMotion) return;
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      e.target.classList.add('sr-in');
+      io.unobserve(e.target);
+    }), { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+    document.querySelectorAll('#mainContent .card, #kpis').forEach((el) => {
+      el.classList.add('sr');
+      io.observe(el);
+    });
+  }
+
   buildMonthsPicker();
   initToolbar();
   render();
+  initScrollReveal();
 })();

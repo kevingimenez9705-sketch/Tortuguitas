@@ -110,7 +110,10 @@ body{
   cursor:pointer;
   color:var(--text);
 }
-.chip.active{background:var(--blue);border-color:var(--blue);color:#fff;}
+.chip{transition:background .2s ease, border-color .2s ease, color .2s ease, transform .15s ease;}
+.chip:hover{border-color:var(--theme, var(--blue));}
+.chip:active{transform:scale(.96);}
+.chip.active{background:var(--theme, var(--blue));border-color:var(--theme, var(--blue));color:#fff;box-shadow:0 4px 12px color-mix(in srgb, var(--theme, var(--blue)) 35%, transparent);}
 .months-picker{display:none;gap:6px;flex-wrap:wrap;margin-top:10px;}
 .months-picker.open{display:flex;}
 .months-picker .m-chip{
@@ -130,6 +133,11 @@ body{
   margin-bottom:20px;
 }
 .kpi{
+  position:relative;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transition:transform .2s ease, box-shadow .2s ease;
   background:var(--card);
   border-radius:var(--radius);
   padding:16px 18px;
@@ -140,7 +148,7 @@ body{
 .kpi.c-green{border-top-color:var(--green);}
 .kpi.c-purple{border-top-color:var(--purple);}
 .kpi .label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.03em;text-transform:uppercase;}
-.kpi .value{font-size:26px;font-weight:800;margin-top:6px;}
+.kpi .value{font-size:26px;font-weight:800;margin-top:8px;font-variant-numeric:tabular-nums;}
 .kpi .sub{font-size:12px;color:var(--text-muted);margin-top:4px;}
 
 .grid{display:grid;gap:16px;margin-bottom:16px;}
@@ -162,10 +170,14 @@ body{
   font-size:11px;
   font-weight:800;
   letter-spacing:.06em;
-  color:var(--purple);
+  color:var(--theme, var(--purple));
   text-transform:uppercase;
   margin:26px 0 6px;
+  display:flex;
+  align-items:center;
+  gap:8px;
 }
+.section-label::before{content:"";width:18px;height:3px;border-radius:2px;background:currentColor;}
 
 .legend-list{list-style:none;margin:14px 0 0;padding:0;font-size:13px;}
 .legend-list li{display:flex;align-items:center;justify-content:space-between;padding:4px 0;}
@@ -174,7 +186,8 @@ body{
 /* Mismo fondo gris que los chart-wrap, para que el ranking se lea como un
    panel propio y no como texto suelto sobre la tarjeta blanca. */
 .rank-list{list-style:none;margin:0;padding:14px 16px;background:#e4e9f2;border-radius:12px;}
-.rank-list li{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:13px;}
+.rank-list li{display:flex;align-items:center;gap:10px;margin:0 -8px 4px;padding:4px 8px;border-radius:8px;font-size:13px;transition:background .2s ease;}
+.rank-list li:hover{background:rgba(255,255,255,.6);}
 .rank-list li:last-child{margin-bottom:0;}
 .rank-list .idx{
   width:22px;height:22px;border-radius:50%;background:#fff;
@@ -186,9 +199,12 @@ body{
 .rank-list .idx.idx--medal{background:transparent;box-shadow:none;font-size:16px;}
 .rank-list .name{width:80px;flex-shrink:0;}
 .rank-list .bar-track{flex:1;background:#fff;border-radius:6px;height:10px;overflow:hidden;}
-.rank-list .bar-fill{height:100%;border-radius:6px;min-width:3px;}
+/* display:block: como <span> inline el width se ignoraba y las barras
+   quedaban vacías. Crecen desde 0 con una demora escalonada (--d). */
+.rank-list .bar-fill{display:block;height:100%;border-radius:6px;min-width:3px;animation:bar-grow 1s cubic-bezier(.2,.8,.2,1) var(--d, 0ms) both;}
+@keyframes bar-grow{from{width:0;}}
 .rank-list .val{width:48px;text-align:right;font-weight:700;flex-shrink:0;}
-.rank-list li.me{background:rgba(140,90,53,.14);border-radius:8px;padding:4px 8px;margin-left:-8px;margin-right:-8px;}
+.rank-list li.me{background:color-mix(in srgb, var(--theme, #8c5a35) 16%, transparent);box-shadow:inset 3px 0 0 var(--theme, #8c5a35);}
 .rank-list li.me .name{font-weight:800;}
 
 /* Fondo atrás de cada gráfico (línea, barra, dona, radar): antes el canvas
@@ -902,3 +918,36 @@ html.reveal-pending .container > *{opacity:0;}
 @keyframes portal-show{to{opacity:1;}}
 @keyframes reveal-up{from{transform:translateY(18px) scale(.98);opacity:0;}to{transform:none;opacity:1;}}
 @media (prefers-reduced-motion: reduce){.portal,.reveal{animation:none !important;}}
+
+/* ---------- Toques visuales del informe (app.js / charts.js) ---------- */
+.kpi:hover{transform:translateY(-3px);box-shadow:0 10px 24px rgba(16,24,40,.09);}
+.kpi-head{display:flex;align-items:center;gap:8px;}
+.kpi-icon{
+  width:28px;height:28px;flex-shrink:0;border-radius:8px;display:grid;place-items:center;
+  color:var(--theme, var(--blue));background:color-mix(in srgb, var(--theme, var(--blue)) 14%, transparent);
+}
+.kpi-icon svg{width:16px;height:16px;}
+.kpi .sub{flex:1;}
+.kpi-spark{display:block;width:calc(100% + 36px);height:36px;margin:10px -18px -16px;}
+.kpi-spark-line{stroke-dasharray:1;stroke-dashoffset:1;animation:spark-draw 1.2s cubic-bezier(.4,0,.2,1) calc(.2s + var(--i, 0) * 80ms) forwards;}
+.kpi-spark-area{opacity:0;animation:spark-fade .8s ease calc(.6s + var(--i, 0) * 80ms) forwards;}
+.kpi{--i:0;}
+@keyframes spark-draw{to{stroke-dashoffset:0;}}
+@keyframes spark-fade{to{opacity:1;}}
+
+#mainContent .card{transition:opacity .6s ease, translate .7s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease, transform .25s ease;}
+#mainContent .card:hover{box-shadow:0 12px 28px rgba(16,24,40,.08);transform:translateY(-2px);}
+
+.hero-badge{animation:badge-pop .5s cubic-bezier(.3,1.6,.5,1) calc(.35s + var(--i, 0) * 90ms) both;}
+@keyframes badge-pop{from{opacity:0;transform:translateY(8px) scale(.85);}}
+
+/* Scroll reveal: usa "translate" (no "transform") para no pisar el
+   transform del :hover de las tarjetas. */
+.sr{opacity:0;translate:0 22px;transition:opacity .6s ease, translate .7s cubic-bezier(.2,.8,.2,1), box-shadow .25s ease, transform .25s ease;}
+.sr.sr-in{opacity:1;translate:none;}
+#mainContent .grid > .card:nth-child(2){transition-delay:.08s, .08s, 0s, 0s;}
+.sr:not(.sr-in) .bar-fill{animation-play-state:paused;}
+
+@media (prefers-reduced-motion: reduce){
+  .rank-list .bar-fill,.kpi-spark-line,.kpi-spark-area,.hero-badge{animation:none !important;stroke-dashoffset:0;opacity:1;}
+}
