@@ -40,6 +40,18 @@ window.ResumenAnual = (() => {
     gustavo: ['Visual', 'Carismático', 'Colaborador'],
     albana: ['Auditiva', 'Tranquila', 'Independiente'],
   };
+  // Íconos del aura (SVG de trazo): ojo = visual, oreja = auditivo,
+  // corazón = kinestésico.
+  const AURA_ICONS = {
+    visual: '<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3.2"/>',
+    auditivo: '<path d="M7 9a5 5 0 0 1 10 0c0 3-3 4-3 7a3 3 0 0 1-5.5 1.6"/><path d="M10 9.5a2 2 0 0 1 4 0"/><path d="M19.5 6.5a7 7 0 0 1 0 6M21.8 4.5a10 10 0 0 1 0 10"/>',
+    kinestesico: '<path d="M12 20s-7.5-4.6-9.3-9.2C1.4 7.4 3.6 4 7 4c2.1 0 3.6 1.2 5 3 1.4-1.8 2.9-3 5-3 3.4 0 5.6 3.4 4.3 6.8C19.5 15.4 12 20 12 20z"/>',
+  };
+  const auraIcon = (estilo, cls) => {
+    const e = estilo.toLowerCase();
+    const k = e.startsWith('audit') ? 'auditivo' : e.startsWith('kinest') ? 'kinestesico' : 'visual';
+    return `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${AURA_ICONS[k]}</svg>`;
+  };
   function auraEstilo(estilo) {
     const e = estilo.toLowerCase();
     if (e.startsWith('audit')) return { bg: ['#00b894', '#03261f'], aura: '#00d4a4, #3a86ff, #c4f000, #7fffd4, #00d4a4' };
@@ -313,7 +325,7 @@ window.ResumenAnual = (() => {
         html: `
           <div class="wr-center">
             <p class="wr-anim wr-kicker" style="--d:.1s">Tu aura</p>
-            <div class="wr-anim wr-aura" style="--d:.3s;--aura:${st.aura}"></div>
+            <div class="wr-anim wr-aura" style="--d:.3s;--aura:${st.aura}">${auraIcon(aura[0], 'wr-aura-icon')}</div>
             <div class="wr-aura-words">
               ${aura.map((w, i) => `<span class="wr-anim" style="--d:${(0.5 + i * 0.22).toFixed(2)}s">${esc(w)}</span>`).join('')}
             </div>
@@ -347,7 +359,7 @@ window.ResumenAnual = (() => {
     else if (s.cumplimiento != null) cells.push(['Cumplimiento', fmtPct(s.cumplimiento)]);
     // Celdas de ancho completo: el aura (arriba) y la última si quedó sola.
     if (cells.length % 2) cells[cells.length - 1].push(true);
-    if (aura) cells.unshift(['Aura', aura.join(' · '), true]);
+    if (aura) cells.unshift(['Aura', aura.join(' · '), true, auraIcon(aura[0], 'wr-cell-icon')]);
     slides.push({
       bg: [ctx.color, '#0b0b14'],
       final: true,
@@ -359,7 +371,7 @@ window.ResumenAnual = (() => {
               <div><small>Resumen de tu año</small><b>${esc(ctx.label)} · ${s.year}</b></div>
             </div>
             <div class="wr-card-grid">
-              ${cells.map(([k, v, wide], i) => `<div class="wr-anim${wide ? ' wr-wide' : ''}" style="--d:${(0.3 + i * 0.08).toFixed(2)}s"><small>${k}</small><b>${esc(v)}</b></div>`).join('')}
+              ${cells.map(([k, v, wide, icon], i) => `<div class="wr-anim${wide ? ' wr-wide' : ''}" style="--d:${(0.3 + i * 0.08).toFixed(2)}s"><small>${k}</small><b>${icon || ''}${esc(v)}</b></div>`).join('')}
             </div>
             <div class="wr-card-foot">Las Tortuguitas Ninja · Selección · ${s.rangeLabel}</div>
           </div>
