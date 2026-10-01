@@ -454,6 +454,7 @@ window.ResumenAnual = (() => {
   // una, usa su tema generado de TEMAS.
   const CANCIONES = {
     kevin: 'audio/kevin.mp3',
+    agustina: 'audio/agustina.mp3',
   };
 
   const Music = (() => {
