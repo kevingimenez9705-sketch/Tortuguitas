@@ -1,6 +1,6 @@
 // transition.js — transiciones "portal" entre index.html y dashboard.html.
-// Al tocar una tarjeta (o "← Equipo") un círculo con el color y la tortuga de
-// la persona se expande desde el elemento tocado hasta cubrir la pantalla y
+// Al tocar una tarjeta (o "← Equipo") un círculo con la foto de fondo de la
+// persona (su tortuga; sin retrato ni nombre) se expande desde el elemento tocado hasta cubrir la pantalla y
 // recién ahí navega. En la página de llegada esa cortina se cierra hacia el
 // centro y el contenido entra en cascada (también en cargas directas, sin
 // cortina). Respeta prefers-reduced-motion y Ctrl/Cmd+clic (nueva pestaña).
@@ -19,7 +19,6 @@
     set(v) { try { sessionStorage.setItem(KEY, JSON.stringify(v)); } catch (e) {} },
     clear() { try { sessionStorage.removeItem(KEY); } catch (e) {} },
   };
-  const esc = s => String(s || '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   function buildOverlay(p) {
     const o = document.createElement('div');
@@ -30,9 +29,7 @@
     if (p.bg) o.style.setProperty('--portal-bg', p.bg);
     o.innerHTML =
       '<div class="portal-ring"></div><div class="portal-ring r2"></div>' +
-      '<div class="portal-center">' +
-      (p.avatar ? `<img class="portal-avatar" src="${esc(p.avatar)}" alt="" />` : '') +
-      `<div class="portal-name">${esc(p.name)}</div><div class="portal-spinner"></div></div>`;
+      '<div class="portal-center"><div class="portal-spinner"></div></div>';
     document.body.appendChild(o);
     return o;
   }
@@ -49,7 +46,7 @@
   // se pintaría visible y "saltaría" a opacidad 0 al agregar .reveal).
   if (!reduce) root.classList.add('reveal-pending');
 
-  // Engancha un link: describe(el) arma { color, bg, avatar, name } del portal.
+  // Engancha un link: describe(el) arma { color, bg } del portal.
   function portalLink(el, describe) {
     el.addEventListener('click', e => {
       if (reduce || e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
@@ -59,7 +56,7 @@
       el.style.setProperty('--portal-glow', p.color);
       el.classList.add('portal-launch');
       buildOverlay(p).classList.add('portal--leaving');
-      store.set({ color: p.color, bg: p.bg, avatar: p.avatar, name: p.name });
+      store.set({ color: p.color, bg: p.bg });
       setTimeout(() => { location.href = el.href; }, 800);
     });
   }
@@ -72,20 +69,13 @@
         document.querySelectorAll('a[href="index.html"]').forEach(a => portalLink(a, () => ({
           color: hero.dataset.color || '#5c2430',
           bg: hero.style.getPropertyValue('--tortuga-bg').trim(),
-          avatar: null,
-          name: 'Equipo',
         })));
       } else {
         // index.html -> hoja de cada integrante
-        document.querySelectorAll('.unit-card').forEach(card => portalLink(card, c => {
-          const img = c.querySelector('img.unit-avatar');
-          return {
-            color: c.style.borderTopColor || '#5c2430',
-            bg: c.style.getPropertyValue('--tortuga-bg').trim(),
-            avatar: img ? img.getAttribute('src') : null,
-            name: (c.querySelector('.unit-name') || {}).textContent,
-          };
-        }));
+        document.querySelectorAll('.unit-card').forEach(card => portalLink(card, c => ({
+          color: c.style.borderTopColor || '#5c2430',
+          bg: c.style.getPropertyValue('--tortuga-bg').trim(),
+        })));
         // Precarga lo pesado del dashboard (data.js + Chart.js) mientras se
         // mira el equipo: así la espera detrás del portal es casi nula.
         const prefetch = () => ['data.js', 'vendor/chart.umd.min.js'].forEach(href => {

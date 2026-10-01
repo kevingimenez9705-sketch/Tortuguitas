@@ -867,13 +867,12 @@ body{
 .portal{
   position:fixed;inset:0;z-index:9999;pointer-events:all;overflow:hidden;
   background:
-    linear-gradient(135deg, color-mix(in srgb, var(--portal-color) 82%, transparent), color-mix(in srgb, var(--portal-color) 55%, #000 45%)),
+    linear-gradient(180deg, color-mix(in srgb, var(--portal-color) 10%, transparent) 0%, color-mix(in srgb, var(--portal-color) 35%, transparent) 100%),
     var(--portal-bg, none) center/cover, var(--portal-color);
   clip-path:circle(0 at var(--portal-x) var(--portal-y));
   animation:portal-in .65s cubic-bezier(.7,0,.2,1) .1s forwards;
 }
 .portal--open{clip-path:circle(150% at 50% 50%);animation:none;}
-.portal--open .portal-center{animation:none;}
 .portal--open .portal-ring{display:none;}
 .portal--exit{animation:portal-out .75s cubic-bezier(.7,0,.2,1) .1s forwards;}
 .portal-ring{
@@ -883,16 +882,14 @@ body{
 }
 .portal-ring.r2{animation-delay:.32s;border-width:2px;}
 .portal-center{
-  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
-  color:#fff;animation:portal-pop .5s cubic-bezier(.3,1.6,.5,1) .35s both;
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:48px;
 }
-.portal-avatar{width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 0 0 8px rgba(255,255,255,.25), 0 12px 40px rgba(0,0,0,.35);}
-.portal-name{font-size:26px;font-weight:900;letter-spacing:.02em;text-shadow:0 2px 12px rgba(0,0,0,.4);}
 .portal--exit .portal-center{animation:portal-fade .3s ease forwards;}
 .portal--exit .portal-ring{display:none;}
-/* Spinner por si la carga tarda: al salir aparece recién a los .9 s (si la
-   página nueva llega antes, ni se ve); en la cortina de llegada ya está. */
-.portal-spinner{width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;animation:portal-spin .8s linear infinite;}
+/* Solo la foto de fondo de la persona: sin retrato ni nombre.
+   Spinner por si la carga tarda: aparece recién si la espera se
+   alarga (a los .6 s en la cortina de llegada, a los .9 s al salir). */
+.portal-spinner{width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.3);border-top-color:#fff;opacity:0;animation:portal-spin .8s linear infinite, portal-show .3s ease .6s forwards;}
 .portal--leaving .portal-spinner{opacity:0;animation:portal-spin .8s linear infinite, portal-show .3s ease .9s forwards;}
 html.reveal-pending .container > *{opacity:0;}
 .reveal{animation:reveal-up .6s cubic-bezier(.2,.8,.2,1) var(--reveal-delay, 0ms) both;}
@@ -900,7 +897,6 @@ html.reveal-pending .container > *{opacity:0;}
 @keyframes portal-in{to{clip-path:circle(150% at var(--portal-x) var(--portal-y));}}
 @keyframes portal-out{to{clip-path:circle(0 at 50% 50%);}}
 @keyframes portal-ring{from{transform:scale(1);opacity:1;}to{transform:scale(40);opacity:0;}}
-@keyframes portal-pop{from{transform:scale(.4) rotate(-8deg);opacity:0;}to{transform:none;opacity:1;}}
 @keyframes portal-fade{to{transform:scale(1.3);opacity:0;}}
 @keyframes portal-spin{to{transform:rotate(360deg);}}
 @keyframes portal-show{to{opacity:1;}}
