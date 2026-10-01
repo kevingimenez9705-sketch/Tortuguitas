@@ -450,6 +450,12 @@ window.ResumenAnual = (() => {
     },
   };
 
+  // Canciones propias por integrante (archivos en /audio). Quien no tenga
+  // una, usa su tema generado de TEMAS.
+  const CANCIONES = {
+    kevin: 'audio/kevin.mp3',
+  };
+
   const Music = (() => {
     let ac = null, master = null, pad = null, noiseBuf = null, timer = null, nextT = 0, step = 0, on = false;
     let T = TEMAS.default;
@@ -506,7 +512,7 @@ window.ResumenAnual = (() => {
     function tick() {
       while (nextT < ac.currentTime + 0.12) { play(step, nextT); nextT += 60 / T.bpm / 4; step++; }
     }
-    function start(key) {
+    function startSynth(key) {
       if (key) T = TEMAS[key] || TEMAS.default;
       try {
         if (!ac) {
@@ -529,11 +535,44 @@ window.ResumenAnual = (() => {
       } catch (e) { on = false; }
       return on;
     }
-    function stop() {
-      on = false;
+    function stopSynth() {
       if (!ac) return;
       master.gain.setTargetAtTime(0, ac.currentTime, 0.15);
       setTimeout(() => { if (!on) clearInterval(timer); }, 400);
+    }
+
+    // Canción propia (CANCIONES): suena en loop con fundido de entrada y
+    // salida. Si el archivo no carga, se usa el tema generado.
+    let song = null, fade = 0;
+    function fadeTo(target, ms, done) {
+      clearInterval(fade);
+      const from = song.volume, t0 = performance.now();
+      fade = setInterval(() => {
+        const k = Math.min(1, (performance.now() - t0) / ms);
+        song.volume = from + (target - from) * k;
+        if (k >= 1) { clearInterval(fade); if (done) done(); }
+      }, 30);
+    }
+    function start(key) {
+      const src = CANCIONES[key];
+      on = true;
+      if (!src) return startSynth(key);
+      if (!song || song.dataset.key !== key) {
+        if (song) song.pause();
+        song = new Audio(src);
+        song.loop = true;
+        song.dataset.key = key;
+        // Si el archivo no se puede reproducir, se pasa al tema generado.
+        song.addEventListener('error', () => { song = null; if (on) startSynth(key); }, { once: true });
+      }
+      song.volume = 0;
+      song.play().then(() => fadeTo(0.8, 1200)).catch(() => { song = null; startSynth(key); });
+      return on;
+    }
+    function stop() {
+      on = false;
+      if (song) fadeTo(0, 400, () => { if (!on && song) song.pause(); });
+      stopSynth();
     }
     return { start, stop, isOn: () => on };
   })();
