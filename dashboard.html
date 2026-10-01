@@ -4,7 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Altas de personal · Dashboard</title>
-<link rel="stylesheet" href="styles.css?v=20261002" />
+<link rel="stylesheet" href="styles.css?v=20261002b" />
+<link rel="stylesheet" href="resumen.css?v=20261002" />
 <script src="vendor/chart.umd.min.js"></script>
 </head>
 <body>
@@ -98,19 +99,6 @@
     <div class="chart-wrap"><canvas id="chartAltasMes"></canvas></div>
   </div>
 
-  <div class="grid cols-2">
-    <div class="card">
-      <h3>Altas por mes</h3>
-      <p class="desc">Sabores vs Extremas, según filtro</p>
-      <div class="chart-wrap"><canvas id="chartAltasMarcaMes"></canvas></div>
-    </div>
-    <div class="card">
-      <h3>Distribución por marca</h3>
-      <div class="donut-wrap"><canvas id="chartDistMarca"></canvas></div>
-      <ul class="legend-list" id="legendDistMarca"></ul>
-    </div>
-  </div>
-
   <div class="card" style="margin-bottom:16px;">
     <h3>Tasa de no presentados día 1 (%)</h3>
     <div class="chart-wrap small"><canvas id="chartNoPresentados"></canvas></div>
@@ -131,18 +119,10 @@
   </div>
 
   <div class="section-label">Por selector</div>
-  <div class="grid cols-2">
-    <div class="card">
-      <h3>Mezcla de marca por selector</h3>
-      <p class="desc">Sabores vs Extremas, en volumen de altas</p>
-      <div class="chart-wrap"><canvas id="chartMezclaSelector"></canvas></div>
-    </div>
-    <div class="card">
-      <h3 id="participacionTitle">Participación por selector</h3>
-      <p class="desc" id="participacionDesc">% del volumen total de altas · equipo completo</p>
-      <div class="donut-wrap"><canvas id="chartParticipacionSelector"></canvas></div>
-      <ul class="legend-list" id="legendParticipacion"></ul>
-    </div>
+  <div class="card" id="mezclaCard" style="margin-bottom:16px;">
+    <h3>Mezcla de marca por selector</h3>
+    <p class="desc">Sabores vs Extremas, en volumen de altas</p>
+    <div class="chart-wrap"><canvas id="chartMezclaSelector"></canvas></div>
   </div>
   <div class="grid cols-2">
     <div class="card">
@@ -178,7 +158,8 @@
 
 <script src="data.js"></script>
 <script src="competencias.js?v=20260819b"></script>
-<script src="charts.js?v=20261002"></script>
-<script src="app.js?v=20261002"></script>
+<script src="charts.js?v=20261002b"></script>
+<script src="resumen.js?v=20261002"></script>
+<script src="app.js?v=20261002c"></script>
 </body>
 </html>
