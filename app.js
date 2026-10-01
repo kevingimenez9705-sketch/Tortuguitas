@@ -524,7 +524,6 @@
           const role = OTROS_ROLES[s];
           if (!role) return null;
           const ranks = [
-            ['altas', findRank(rankVolumen, s)],
             ['presentismo', findRank(rankPresentismo, s)],
             ['cumplimiento', findRank(rankCumplimiento, s)],
           ]
@@ -541,7 +540,6 @@
     if (!member || member.selectors.length !== 1) { el.innerHTML = ''; return; }
     const findMine = (arr) => arr.findIndex(([n]) => memberSelectorSet.has(n));
     const items = [
-      ['volumen de altas', findMine(rankVolumen)],
       ['presentismo', findMine(rankPresentismo)],
       ['cumplimiento', findMine(rankCumplimiento)],
     ];
