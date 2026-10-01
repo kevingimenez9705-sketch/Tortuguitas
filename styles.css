@@ -860,3 +860,40 @@ body{
   .org-avatar{width:48px;height:48px;}
   .summary-copy small{display:none;}
 }
+
+/* ---------- Transición "portal" (transition.js) ---------- */
+.portal-launch{transform:scale(1.06) !important;box-shadow:0 0 0 4px #fff, 0 0 40px 8px var(--portal-glow, rgba(0,0,0,.25)) !important;z-index:2;transition:transform .3s cubic-bezier(.3,1.6,.5,1), box-shadow .3s ease;}
+.dash-nav.portal-launch,.btn-primary.portal-launch{box-shadow:none !important;}
+.portal{
+  position:fixed;inset:0;z-index:9999;pointer-events:all;overflow:hidden;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--portal-color) 82%, transparent), color-mix(in srgb, var(--portal-color) 55%, #000 45%)),
+    var(--portal-bg, none) center/cover, var(--portal-color);
+  clip-path:circle(0 at var(--portal-x) var(--portal-y));
+  animation:portal-in .65s cubic-bezier(.7,0,.2,1) .1s forwards;
+}
+.portal--open{clip-path:circle(150% at 50% 50%);animation:none;}
+.portal--exit{animation:portal-out .75s cubic-bezier(.7,0,.2,1) .1s forwards;}
+.portal-ring{
+  position:absolute;left:var(--portal-x);top:var(--portal-y);width:40px;height:40px;margin:-20px 0 0 -20px;
+  border:4px solid rgba(255,255,255,.8);border-radius:50%;
+  animation:portal-ring .85s ease-out .15s both;
+}
+.portal-ring.r2{animation-delay:.32s;border-width:2px;}
+.portal-center{
+  position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+  color:#fff;animation:portal-pop .5s cubic-bezier(.3,1.6,.5,1) .35s both;
+}
+.portal-avatar{width:120px;height:120px;border-radius:50%;object-fit:cover;border:4px solid #fff;box-shadow:0 0 0 8px rgba(255,255,255,.25), 0 12px 40px rgba(0,0,0,.35);}
+.portal-name{font-size:26px;font-weight:900;letter-spacing:.02em;text-shadow:0 2px 12px rgba(0,0,0,.4);}
+.portal--exit .portal-center{animation:portal-fade .3s ease forwards;}
+.portal--exit .portal-ring{display:none;}
+.reveal{animation:reveal-up .6s cubic-bezier(.2,.8,.2,1) var(--reveal-delay, 0ms) both;}
+
+@keyframes portal-in{to{clip-path:circle(150% at var(--portal-x) var(--portal-y));}}
+@keyframes portal-out{to{clip-path:circle(0 at 50% 50%);}}
+@keyframes portal-ring{from{transform:scale(1);opacity:1;}to{transform:scale(40);opacity:0;}}
+@keyframes portal-pop{from{transform:scale(.4) rotate(-8deg);opacity:0;}to{transform:none;opacity:1;}}
+@keyframes portal-fade{to{transform:scale(1.3);opacity:0;}}
+@keyframes reveal-up{from{transform:translateY(18px) scale(.98);opacity:0;}to{transform:none;opacity:1;}}
+@media (prefers-reduced-motion: reduce){.portal,.reveal{animation:none !important;}}
