@@ -92,6 +92,16 @@ const ZONAS = [
 ];
 const ZONA_POR_ID = Object.fromEntries(ZONAS.map((z) => [z.id, z]));
 
+// Color del cuerpo de cada robot (el Coordinador queda con el blanco original).
+const COLORES = {
+  coordinador: PALETA.blanco,
+  screening: '#9b87f5', // violeta
+  analista: '#5b8def', // azul
+  vacantes: '#e85a5a', // rojo
+  agenda: '#f5c842', // amarillo
+  onboarding: '#8a3b45', // marrón bordó
+};
+
 // Puesto de cada agente (posición dentro de su zona), silueta, horario
 // (dias: 1 = lunes … 7 = domingo; horas: [inicio, fin) en Buenos Aires),
 // frases de relleno y la pregunta que se le hace desde la ficha.
@@ -296,7 +306,7 @@ function puffs() {
 
 const FORMAS = { esfera: { visor: 0.36, tope: 0.42 }, cubo: { visor: 0.36, tope: 0.36 }, capsula: { visor: 0.29, tope: 0.47 } };
 
-function crearBot(forma) {
+function crearBot(forma, color = PALETA.blanco) {
   const raiz = new T.Group();
   const giro = new T.Group();
   giro.rotation.y = Math.PI / 4; // de frente a la cámara isométrica
@@ -307,25 +317,25 @@ function crearBot(forma) {
   const dims = FORMAS[forma] || FORMAS.esfera;
 
   let cuerpo;
-  if (forma === 'cubo') cuerpo = caja(0.72, 0.72, 0.72, PALETA.blanco, { r: 0.18, recibe: false });
-  else if (forma === 'capsula') cuerpo = malla(new T.CapsuleGeometry(0.3, 0.34, 6, 14), mate(PALETA.blanco), { recibe: false });
-  else cuerpo = malla(new T.IcosahedronGeometry(0.42, 1), mate(PALETA.blanco, true), { recibe: false });
+  if (forma === 'cubo') cuerpo = caja(0.72, 0.72, 0.72, color, { r: 0.18, recibe: false });
+  else if (forma === 'capsula') cuerpo = malla(new T.CapsuleGeometry(0.3, 0.34, 6, 14), mate(color), { recibe: false });
+  else cuerpo = malla(new T.IcosahedronGeometry(0.42, 1), mate(color, true), { recibe: false });
   flota.add(cuerpo);
 
   const visor = caja(0.5, 0.22, 0.1, new T.MeshStandardMaterial({ color: PALETA.oscuro, roughness: 0.5 }), { r: 0.05, sombra: false });
   flota.add(en(visor, 0, 0.04, dims.visor));
 
-  const color = ESTADOS.activo.color;
-  const ojoMat = new T.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 1.2 });
+  const luz = ESTADOS.activo.color; // ojos, antena y anillo: color del estado
+  const ojoMat = new T.MeshStandardMaterial({ color: luz, emissive: luz, emissiveIntensity: 1.2 });
   const ojos = en(new T.Group(), 0, 0.04, dims.visor + 0.055);
   [-0.11, 0.11].forEach((x) => ojos.add(en(new T.Mesh(new T.SphereGeometry(0.045, 12, 12), ojoMat), x, 0, 0)));
   flota.add(ojos);
 
   flota.add(en(cilindro(0.015, 0.015, 0.2, 6, PALETA.patas, { sombra: false }), 0, dims.tope + 0.1, 0));
-  const puntaMat = new T.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.9 });
+  const puntaMat = new T.MeshStandardMaterial({ color: luz, emissive: luz, emissiveIntensity: 0.9 });
   flota.add(en(new T.Mesh(new T.SphereGeometry(0.055, 12, 12), puntaMat), 0, dims.tope + 0.22, 0));
 
-  const anilloMat = new T.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.7, roughness: 0.6 });
+  const anilloMat = new T.MeshStandardMaterial({ color: luz, emissive: luz, emissiveIntensity: 0.7, roughness: 0.6 });
   const anillo = en(new T.Mesh(new T.TorusGeometry(0.38, 0.035, 8, 36), anilloMat), 0, -0.62, 0);
   anillo.rotation.x = Math.PI / 2;
   flota.add(anillo);
@@ -438,7 +448,7 @@ async function iniciar() {
     const esc3 = escritorio({ ancho: p.ancho });
     esc3.grupo.position.set(wx, PISO_Y, wz);
     mundo.add(esc3.grupo);
-    const bot = crearBot(p.forma);
+    const bot = crearBot(p.forma, COLORES[id]);
     const casa = new T.Vector3(wx - 0.5, BOT_Y, wz - 0.05);
     bot.raiz.position.copy(casa);
     mundo.add(bot.raiz);
