@@ -428,7 +428,6 @@ async function iniciar() {
   ubicar(escritorio({ pantalla: PALETA.cian, brillo: 0.5 }).grupo, 'servidores', 1.9, 1.8);
   ubicar(planta(0.85), 'servidores', 3.9, -1.4);
 
-  const pizarraEl = etiqueta('o3d-pizarra', '…', new T.Vector3(PIZARRA[0], PISO_Y + 2.25, PIZARRA[1]), 'translate(-50%, -100%)');
 
   /* ── Agentes ── */
   const agentes = new Map();
@@ -483,12 +482,25 @@ async function iniciar() {
     refrescarFicha();
   }
 
-  /* ── Globitos ── */
-  function decir(a, texto, ms = 4500) {
+  /* ── Globitos: uno solo a la vez para que no se choquen ──
+     Los comentarios de rutina esperan a que no haya otro en pantalla; los
+     importantes (chat o una acción nueva de la bitácora) lo reemplazan. */
+  let hablando = null;
+  function callar(a) {
+    clearTimeout(a.globoTimer);
+    a.globo.classList.remove('on');
+    if (hablando === a) hablando = null;
+  }
+  function decir(a, texto, ms = 3500, importante = false) {
+    if (hablando && hablando !== a) {
+      if (!importante) return;
+      callar(hablando);
+    }
     clearTimeout(a.globoTimer);
     a.globo.textContent = texto;
     a.globo.classList.add('on');
-    a.globoTimer = setTimeout(() => a.globo.classList.remove('on'), ms);
+    hablando = a;
+    a.globoTimer = setTimeout(() => callar(a), ms);
   }
 
   /* ── Vuelo ── */
@@ -526,25 +538,24 @@ async function iniciar() {
     if (!libres.length) return;
     const a = azar(libres);
     if (a.estado === 'fuera') {
-      if (Math.random() < 0.4) decir(a, '💤 Fuera de horario', 3000);
+      if (Math.random() < 0.15) decir(a, '💤 Fuera de horario', 2500);
       return;
     }
     a.ocupado = true;
     try {
       const r = Math.random();
-      if (r < 0.55 || reduce) {
+      if (r < 0.4 || reduce) {
         decir(a, a.ultima && Math.random() < 0.65 ? `${textoAccion(a.ultima)} (${SB.hace(a.ultima.created_at)})` : azar(a.p.frases));
       } else if (r < 0.85) {
         const otro = azar([...agentes.values()].filter((o) => o !== a && !o.reservas && o.estado !== 'fuera'));
         if (!otro) return;
         await volar(a, otro.casa.clone().add(new T.Vector3(1.4, 0.1, 1.0)));
-        decir(a, azar(['¿Cómo venís?', '¿Me pasás los números?', 'Tengo algo para vos', '¿Lo vemos juntos?']), 3000);
-        setTimeout(() => decir(otro, azar(['¡Dale!', 'Ya te lo paso', 'Viene bien 👌', 'Lo miro y te aviso']), 2600), 1200);
+        decir(a, azar(['¿Cómo venís?', '¿Me pasás los números?', 'Tengo algo para vos', '¿Lo vemos juntos?']), 2800);
         await espera(3400);
         if (!a.reservas) await volverACasa(a);
       } else {
         await volar(a, new T.Vector3(RACKS[0], PISO_Y + 2.9, RACKS[1]));
-        decir(a, azar(['🔧 Chequeo los servidores', '🟢 n8n y Supabase en orden']), 3000);
+        decir(a, azar(['🔧 Chequeo los servidores', '🟢 n8n y Supabase en orden']), 2800);
         await espera(3200);
         if (!a.reservas) await volverACasa(a);
       }
@@ -552,7 +563,7 @@ async function iniciar() {
       a.ocupado = false;
     }
   }
-  setInterval(rutina, 4200);
+  setInterval(rutina, 7000);
 
   /* ── Datos reales ── */
   let ultimoId = 0;
@@ -582,34 +593,16 @@ async function iniciar() {
       });
       agentes.forEach((a) => { a.act = act.find((x) => x.agente_id === a.id) || null; });
       if (!primeraVez) {
-        acciones.filter((x) => x.id > ultimoId).reverse().forEach((x) => {
-          const a = agentes.get(x.agente_id);
-          if (!a) return;
-          a.salto = performance.now() / 1000;
-          decir(a, `✨ ${x.accion}${x.cantidad > 1 ? ' · ' + fmt(x.cantidad) : ''}`, 6000);
-        });
+        const nuevas = acciones.filter((x) => x.id > ultimoId && agentes.has(x.agente_id));
+        nuevas.forEach((x) => { agentes.get(x.agente_id).salto = performance.now() / 1000; });
+        const x = nuevas[0]; // la más reciente es la única que habla
+        if (x) decir(agentes.get(x.agente_id), `✨ ${x.accion}${x.cantidad > 1 ? ' · ' + fmt(x.cantidad) : ''}`, 5000, true);
       }
       if (acciones.length) ultimoId = Math.max(ultimoId, ...acciones.map((x) => x.id));
-      const total = act.reduce((t, x) => ({ acciones: t.acciones + Number(x.acciones || 0), items: t.items + Number(x.items || 0) }), { acciones: 0, items: 0 });
-      pizarraEl.dataset.hoy = `${fmt(total.acciones)} acciones · ${fmt(total.items)} ítems`;
       aplicarEstados();
     } catch (e) {
       console.warn('No se pudo leer la bitácora', e);
     }
-    leerNotas();
-  }
-  async function leerNotas() {
-    try {
-      const [n] = await SB.pedir('rpc/oficina_comentarios_cantidad', {});
-      pizarraEl.dataset.notas = n && n.semana ? `📝 ${n.semana} nota${n.semana === 1 ? '' : 's'} esta semana` : '📝 Sin notas esta semana';
-    } catch (e) {
-      console.warn('No se pudieron leer las notas', e);
-    }
-    pintarPizarra();
-  }
-  function pintarPizarra() {
-    const hora = new Intl.DateTimeFormat('es-AR', { timeZone: ZONA_HORARIA, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
-    pizarraEl.innerHTML = `<b>🕒 ${hora} · Últimas 24 h</b><span>${esc(pizarraEl.dataset.hoy || '…')}</span><span>${esc(pizarraEl.dataset.notas || '')}</span>`;
   }
 
   /* ── Ficha (tooltip) ── */
@@ -697,14 +690,14 @@ async function iniciar() {
     c.enChat = true;
     reservar(c);
     aplicarEstados();
-    volar(c, asientoMesa(0)).then(() => { if (chatOcupado) decir(c, '💭 Pensando…', 20000); });
+    volar(c, asientoMesa(0)).then(() => { if (chatOcupado) decir(c, '💭 Pensando…', 20000, true); });
   });
   document.addEventListener('oficina:respuesta', async (e) => {
     const { agentes: ids = [], anoto = false, ok = true, motivo } = e.detail || {};
     const c = agentes.get('coordinador');
     chatOcupado = false;
     if (!ok) {
-      decir(c, motivo === 'codigo' ? '🔒 Necesito el código del equipo' : '😵 No pude responder, probá de nuevo', 3500);
+      decir(c, motivo === 'codigo' ? '🔒 Necesito el código del equipo' : '😵 No pude responder, probá de nuevo', 3500, true);
       c.enChat = false;
       aplicarEstados();
       liberar(c);
@@ -712,8 +705,7 @@ async function iniciar() {
     }
     if (anoto) {
       await volar(c, new T.Vector3(PIZARRA[0] + 1.3, PISO_Y + 2.2, PIZARRA[1]));
-      decir(c, '📝 ¡Anotado por 7 días!', 3500);
-      leerNotas();
+      decir(c, '📝 ¡Anotado por 7 días!', 3500, true);
       await espera(3800);
       c.enChat = false;
       aplicarEstados();
@@ -723,11 +715,8 @@ async function iniciar() {
     const ayudantes = ids.filter((id) => id !== 'coordinador').map((id) => agentes.get(id)).filter(Boolean);
     ayudantes.forEach((a) => { a.enChat = true; reservar(a); });
     aplicarEstados();
-    // Los globitos salen de a uno para que no se pisen alrededor de la mesa.
-    await Promise.all(ayudantes.map((a, i) => volar(a, asientoMesa(i + 1))
-      .then(() => espera(i * 650))
-      .then(() => decir(a, azar(['¡Acá tenés!', 'Te paso lo mío', 'Listo 👌', 'Datos frescos']), 1800))));
-    decir(c, '💡 ¡Ya está!', 3000);
+    await Promise.all(ayudantes.map((a, i) => volar(a, asientoMesa(i + 1))));
+    decir(c, ayudantes.length ? '💡 ¡Ya está! Gracias, equipo' : '💡 ¡Ya está!', 3000, true);
     await espera(4000);
     [c, ...ayudantes].forEach((a) => { a.enChat = false; liberar(a); });
     aplicarEstados();
@@ -836,7 +825,7 @@ async function iniciar() {
   aplicarEstados();
   await Promise.all([leerAgentes(), leerBitacora(true)]);
   setInterval(() => leerBitacora(false), 30000);
-  setInterval(() => { aplicarEstados(); pintarPizarra(); }, 30000);
+  setInterval(aplicarEstados, 30000);
   requestAnimationFrame(loop);
   window.__oficina3d = 'ok';
 }
