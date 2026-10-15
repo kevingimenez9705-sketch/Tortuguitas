@@ -53,7 +53,7 @@
     escena.innerHTML = `
       <div class="ov-pared">
         <div class="ov-ventana" aria-hidden="true"><span></span><span></span></div>
-        <div class="ov-pizarra" aria-hidden="true"><b>Hoy</b><span id="ovPizarra">…</span></div>
+        <div class="ov-pizarra" aria-hidden="true"><b>Hoy</b><span id="ovPizarra">…</span><span id="ovNotas"></span></div>
         <div class="ov-reloj" aria-hidden="true" id="ovReloj">--:--</div>
       </div>
       <div class="ov-cafe" aria-hidden="true" style="left:${LUGARES.cafe.x}%;top:${LUGARES.cafe.y}%">☕</div>
@@ -175,6 +175,17 @@
     } catch (e) {
       console.warn('No se pudo leer la bitácora', e);
     }
+    leerNotas();
+  }
+  // Comentarios del equipo (memoria de 7 días): solo la cantidad, nunca el texto.
+  async function leerNotas() {
+    try {
+      const [n] = await SB.pedir('rpc/oficina_comentarios_cantidad', {});
+      const el = document.getElementById('ovNotas');
+      if (el && n) el.textContent = n.semana ? `📝 ${n.semana} nota${n.semana === 1 ? '' : 's'} esta semana` : '📝 Sin notas esta semana';
+    } catch (e) {
+      console.warn('No se pudieron leer las notas', e);
+    }
   }
   function reloj() {
     const el = document.getElementById('ovReloj');
@@ -235,6 +246,15 @@
     await Promise.all([coord, ...ayudantes].map(liberar));
   }
 
+  // Anotó un comentario: va a la pizarra a escribirlo.
+  async function anotar(coord) {
+    await irA(coord, LUGARES.pizarra.x, LUGARES.pizarra.y + 4);
+    decir(coord, '📝 ¡Anotado por 7 días!', 3500);
+    leerNotas();
+    await espera(3800);
+    liberar(coord);
+  }
+
   // Lo saca de su rutina mientras dura la consulta; liberar lo devuelve a su
   // escritorio (sin trabar el chat) cuando ya no lo necesita ninguna consulta.
   const reservar = (b) => { b.reservas++; clearTimeout(b.timer); };
@@ -286,7 +306,7 @@
       const quienes = ids.filter(id => id !== 'coordinador').map(id => bots.get(id)).filter(Boolean)
         .map(b => `${b.a.emoji} ${esc(b.a.nombre)}`).join(' · ');
       mensaje('bot', r.respuesta || 'No tengo respuesta para eso.', quienes ? `Me ayudaron: ${quienes}` : '');
-      reunion(ids);
+      if (r.anoto) anotar(coord); else reunion(ids);
     } catch (e) {
       console.warn('Chat de la oficina', e);
       pensando.remove();
@@ -313,7 +333,7 @@
   setInterval(() => leerBitacora(false), 30000);
 
   if (lista && form) {
-    mensaje('bot', '¡Hola! Soy el Coordinador de la oficina. Preguntame por postulaciones, búsquedas, entrevistas, ingresos o qué hizo cada agente.');
+    mensaje('bot', '¡Hola! Soy el Coordinador de la oficina. Preguntame por postulaciones, búsquedas, entrevistas, ingresos o qué hizo cada agente. También anoto comentarios del equipo para los agentes: los recordamos 7 días.');
     form.addEventListener('submit', e => { e.preventDefault(); enviar(input.value); });
     formCodigo.addEventListener('submit', e => {
       e.preventDefault();
@@ -324,7 +344,16 @@
       inputCodigo.value = '';
       mostrarCodigo(false);
     });
-    document.querySelectorAll('.ov-sugerencia').forEach(b => b.addEventListener('click', () => enviar(b.dataset.q || b.textContent)));
+    document.querySelectorAll('.ov-sugerencia').forEach(b => b.addEventListener('click', () => {
+      // "Anotar un comentario" solo completa el principio de la frase.
+      if (b.dataset.rellenar) {
+        input.value = b.dataset.rellenar;
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+        return;
+      }
+      enviar(b.dataset.q || b.textContent);
+    }));
     mostrarCodigo(!leerCodigo());
   }
 })();
