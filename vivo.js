@@ -1,62 +1,13 @@
-// vivo.js — conecta el dashboard con las hojas de Drive (vía Supabase, que n8n
-// actualiza cada 30 minutos).
-//
-// 1) Altas y cumplimiento: si la hoja altas_anual llega al menos hasta el
-//    mismo mes que data.js, el dashboard usa la hoja; si está más atrasada,
-//    sigue usando data.js (así nunca se muestran menos datos que antes).
-//    Recién después de decidir eso se carga app.js.
-// 2) "Hoy": tareas abiertas (Tareas grupales) y búsquedas (Solicitudes
-//    Sabores/Extremas) de la persona del dashboard, o de todo el equipo.
+// vivo.js — sección "Hoy" del dashboard: tareas abiertas (Tareas grupales) y
+// búsquedas (Solicitudes Sabores/Extremas) de la persona del dashboard, o de
+// todo el equipo. Lee Supabase, que n8n actualiza cada 30 minutos desde las
+// hojas de Drive. Altas y cumplimiento siguen saliendo de data.js.
 (() => {
-  const DATA = window.ALTAS_DATA;
   const MIEMBRO = new URLSearchParams(location.search).get('miembro');
   // Primer nombre con el que aparece cada integrante en las planillas.
   const NOMBRES = { agustin: 'agustin', agustina: 'agustina', rafael: 'rafael', gustavo: 'gustavo', albana: 'albana' };
   const CERRADAS = ['completado', 'completada', 'finalizado', 'finalizada', 'hecho', 'hecha', 'cancelado', 'cancelada'];
-  const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const maxMes = (rows) => rows.reduce((m, r) => (r.mes > m ? r.mes : m), '');
-  const mesLabel = (mes) => (mes ? `${MESES[Number(mes.slice(5, 7)) - 1]} ${mes.slice(0, 4)}` : 'S/D');
-
-  function cargarApp() {
-    const s = document.createElement('script');
-    s.src = 'app.js?v=20261015';
-    document.body.appendChild(s);
-  }
-
-  async function datosDeHojas() {
-    const sync = await SB.pedir('equipo_sync?select=*');
-    const cuando = Object.fromEntries(sync.map(s => [s.fuente, s.actualizado]));
-    const [ultAlta, ultCumpl] = await Promise.all([
-      SB.pedir('equipo_altas?select=mes&order=mes.desc&limit=1'),
-      SB.pedir('equipo_cumplimiento?select=mes&order=mes.desc&limit=1'),
-    ]);
-    const mesHojaAltas = ultAlta[0] ? ultAlta[0].mes : '';
-    const mesHojaCumpl = ultCumpl[0] ? ultCumpl[0].mes : '';
-    const archivo = DATA.fuente.split(' · ')[0]; // ej. informe_anual_drive_12.xlsx
-    const hoja = (fuente) => `hoja altas_anual (actualizada ${SB.hace(cuando[fuente])})`;
-    const atrasada = (mes) => (mes ? ` · la hoja altas_anual llega hasta ${mesLabel(mes)}` : '');
-    let fuenteAltas = archivo + atrasada(mesHojaAltas);
-    let fuenteCumpl = archivo + atrasada(mesHojaCumpl);
-
-    if (mesHojaAltas && mesHojaAltas >= maxMes(DATA.altas)) {
-      const filas = await SB.todo('equipo_altas', 'selector,regional,zonal,local,fecha,mes,presente,marca,cantidad');
-      const altas = [];
-      filas.forEach(r => {
-        const { cantidad, ...alta } = r;
-        for (let i = 0; i < (cantidad || 1); i++) altas.push(alta);
-      });
-      DATA.altas = altas;
-      fuenteAltas = hoja('altas');
-    }
-
-    if (mesHojaCumpl && mesHojaCumpl >= maxMes(DATA.cumplimiento)) {
-      DATA.cumplimiento = await SB.todo('equipo_cumplimiento', 'mes,semana,selector,cumplimiento,enviados,restantes,total');
-      fuenteCumpl = hoja('cumplimiento');
-    }
-
-    DATA.fuente = `altas: ${fuenteAltas} — cumplimiento: ${fuenteCumpl}`;
-  }
 
   // ---------- Hoy: tareas y búsquedas ----------
   const esDe = (campo, nombre) => String(campo || '')
@@ -152,8 +103,5 @@
     }
   }
 
-  datosDeHojas()
-    .catch(e => console.warn('Se usan los datos de data.js', e))
-    .finally(cargarApp);
   renderHoy();
 })();
