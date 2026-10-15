@@ -19,15 +19,15 @@
   const AGENTES = [
     { id: 'coordinador', nombre: 'Coordinador', emoji: '🧭', color: '#0f1c3f', x: 50, y: 40, dias: [1, 2, 3, 4, 5], horas: [8, 20],
       frases: ['Reviso cómo viene cada uno', 'Armo el parte del día', '¿Alguien necesita algo?'] },
-    { id: 'screening', nombre: 'Screening', emoji: '🔎', color: '#7c5cf0', x: 15, y: 50, dias: [1, 2, 3, 4, 5, 6], horas: [8, 21],
+    { id: 'screening', nombre: 'Screening', emoji: '🔎', color: '#9b87f5', x: 15, y: 50, dias: [1, 2, 3, 4, 5, 6], horas: [8, 21],
       frases: ['Leyendo postulaciones nuevas', 'Marcando duplicados', 'Este perfil está muy bien'] },
-    { id: 'analista', nombre: 'Analista', emoji: '📊', color: '#4c7cf0', x: 85, y: 50, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'analista', nombre: 'Analista', emoji: '📊', color: '#5b8def', x: 85, y: 50, dias: [1, 2, 3, 4, 5], horas: [8, 20],
       frases: ['Cruzando números por zona', 'Comparando contra la semana pasada', 'Este gráfico sube 📈'] },
-    { id: 'vacantes', nombre: 'Vacantes', emoji: '📌', color: '#e05263', x: 15, y: 86, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'vacantes', nombre: 'Vacantes', emoji: '📌', color: '#e85a5a', x: 15, y: 86, dias: [1, 2, 3, 4, 5], horas: [8, 20],
       frases: ['Repasando búsquedas abiertas', '¿Qué local está trabado?', 'Busco candidatos de la zona'] },
-    { id: 'agenda', nombre: 'Agenda', emoji: '📅', color: '#3fbf7f', x: 85, y: 86, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'agenda', nombre: 'Agenda', emoji: '📅', color: '#f5c842', x: 85, y: 86, dias: [1, 2, 3, 4, 5], horas: [8, 20],
       frases: ['Ordenando las entrevistas', 'Busco un hueco libre', 'Recordatorio listo'] },
-    { id: 'onboarding', nombre: 'Onboarding', emoji: '🤝', color: '#f0a94c', x: 50, y: 92, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'onboarding', nombre: 'Onboarding', emoji: '🤝', color: '#8a3b45', x: 50, y: 92, dias: [1, 2, 3, 4, 5], horas: [8, 20],
       frases: ['Preparando bienvenidas', 'Chequeo legajos', '¡Mañana entra alguien nuevo!'] },
   ];
   const LUGARES = {
