@@ -17,17 +17,17 @@
   // Escritorio (x, y en % de la escena) y horario de cada agente.
   // horas: [inicio, fin) en hora de Buenos Aires; dias: 1 = lunes … 7 = domingo.
   const AGENTES = [
-    { id: 'coordinador', nombre: 'Coordinador', emoji: '🧭', color: '#0f1c3f', x: 50, y: 40, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'coordinador', nombre: 'Coordinador', emoji: '🧭', color: '#0f1c3f', x: 50, y: 40, dias: [1, 2, 3, 4, 5], horas: [8, 18],
       frases: ['Reviso cómo viene cada uno', 'Armo el parte del día', '¿Alguien necesita algo?'] },
-    { id: 'screening', nombre: 'Screening', emoji: '🔎', color: '#9b87f5', x: 15, y: 50, dias: [1, 2, 3, 4, 5, 6], horas: [8, 21],
+    { id: 'screening', nombre: 'Screening', emoji: '🔎', color: '#9b87f5', x: 15, y: 50, dias: [1, 2, 3, 4, 5, 6], horas: [8, 18],
       frases: ['Leyendo postulaciones nuevas', 'Marcando duplicados', 'Este perfil está muy bien'] },
-    { id: 'analista', nombre: 'Analista', emoji: '📊', color: '#5b8def', x: 85, y: 50, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'analista', nombre: 'Analista', emoji: '📊', color: '#5b8def', x: 85, y: 50, dias: [1, 2, 3, 4, 5], horas: [8, 18],
       frases: ['Cruzando números por zona', 'Comparando contra la semana pasada', 'Este gráfico sube 📈'] },
-    { id: 'vacantes', nombre: 'Vacantes', emoji: '📌', color: '#e85a5a', x: 15, y: 86, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'vacantes', nombre: 'Vacantes', emoji: '📌', color: '#e85a5a', x: 15, y: 86, dias: [1, 2, 3, 4, 5], horas: [8, 18],
       frases: ['Repasando búsquedas abiertas', '¿Qué local está trabado?', 'Busco candidatos de la zona'] },
-    { id: 'agenda', nombre: 'Agenda', emoji: '📅', color: '#f5c842', x: 85, y: 86, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'agenda', nombre: 'Agenda', emoji: '📅', color: '#f5c842', x: 85, y: 86, dias: [1, 2, 3, 4, 5], horas: [8, 18],
       frases: ['Ordenando las entrevistas', 'Busco un hueco libre', 'Recordatorio listo'] },
-    { id: 'onboarding', nombre: 'Onboarding', emoji: '🤝', color: '#8a3b45', x: 50, y: 92, dias: [1, 2, 3, 4, 5], horas: [8, 20],
+    { id: 'onboarding', nombre: 'Onboarding', emoji: '🤝', color: '#8a3b45', x: 50, y: 92, dias: [1, 2, 3, 4, 5], horas: [8, 18],
       frases: ['Preparando bienvenidas', 'Chequeo legajos', '¡Mañana entra alguien nuevo!'] },
   ];
   const LUGARES = {
@@ -118,7 +118,7 @@
       if (!enHorario(b.a)) {
         b.desk.classList.remove('activo');
         b.el.classList.add('durmiendo');
-        decir(b, '💤 Fuera de horario', 3500);
+        if (Math.random() < 0.3) decir(b, '💤 Durmiendo', 3000);
         return;
       }
       b.el.classList.remove('durmiendo');

@@ -8,6 +8,11 @@
 // ayudaron vuelan a la mesa de reunión y, si se anota algo, va a la pizarra.
 // Clic en un agente: ficha con lo último que hizo y botón para preguntarle.
 //
+// Horario de la oficina: de 8 a 18 h (días de cada agente) están despiertos y,
+// cuando están libres, van a tomar un café, charlan o visitan a un compañero.
+// Fuera de ese horario duermen sobre el escritorio (💤) y solo se despiertan
+// si les hablamos por el chat.
+//
 // Si el navegador no tiene WebGL o three.js no carga, avisa con el evento
 // "oficina:3d-fallo" y queda la oficina 2D de oficina-viva.js.
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
@@ -69,7 +74,7 @@ const ESTADOS = {
   trabajando: { label: 'Trabajando', color: PALETA.cian },
   activo: { label: 'En horario', color: PALETA.menta },
   alerta: { label: 'Con aviso', color: PALETA.ambar },
-  fuera: { label: 'Fuera de horario', color: PALETA.gris },
+  durmiendo: { label: 'Durmiendo', color: PALETA.gris },
 };
 
 // Maqueta: 4 zonas de 10 × 10 con pasillos.
@@ -135,6 +140,8 @@ const zonaMundo = (zonaId, x, z) => {
 const MESA = zonaMundo('coordinacion', 1.4, 2.0);
 const PIZARRA = zonaMundo('coordinacion', -3.75, 1.9);
 const RACKS = zonaMundo('servidores', -1.4, -2.3);
+const CAFE = zonaMundo('seleccion', -2.4, 2.2); // frente a la mesada del café
+const DESPIERTOS = [8, 18]; // horario de la oficina (Buenos Aires)
 
 const ACCION_EMOJI = { ok: '✅', error: '⚠️', pendiente: '⏳', resuelto: '✅' };
 
@@ -153,13 +160,13 @@ function horaBA() {
     .formatToParts(new Date()).map((x) => [x.type, x.value]));
   return { dia: { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[p.weekday], hora: Number(p.hour) };
 }
-const enHorario = (p) => {
+const despierto = (p) => {
   const t = horaBA();
-  return p.dias.includes(t.dia) && t.hora >= p.horas[0] && t.hora < p.horas[1];
+  return p.dias.includes(t.dia) && t.hora >= DESPIERTOS[0] && t.hora < DESPIERTOS[1];
 };
 const textoHorario = (p) => {
   const dias = p.dias.length === 6 ? 'L-S' : 'L-V';
-  return `${dias} ${p.horas[0]} a ${p.horas[1]} h`;
+  return `${dias} ${DESPIERTOS[0]} a ${DESPIERTOS[1]} h`;
 };
 
 /* ───────────────────────── Geometría low-poly ───────────────────────── */
@@ -286,6 +293,28 @@ function pizarra() {
   return g;
 }
 
+function taza() {
+  const g = new T.Group();
+  g.add(en(cilindro(0.08, 0.065, 0.14, 12, PALETA.blanco), 0, 0.07, 0));
+  g.add(en(cilindro(0.07, 0.07, 0.01, 12, '#7a4a2e', { sombra: false }), 0, 0.142, 0));
+  return g;
+}
+
+/** Rincón del café: mesada con cafetera y tazas. */
+function cafetera() {
+  const g = new T.Group();
+  g.add(en(caja(1.9, 0.9, 0.7, PALETA.blanco), 0, 0.45, 0));
+  g.add(en(caja(1.94, 0.06, 0.74, PALETA.patas, { r: 0.025, sombra: false }), 0, 0.92, 0));
+  g.add(en(caja(0.55, 0.7, 0.5, PALETA.oscuro, { r: 0.06 }), -0.45, 1.3, -0.05));
+  const luz = new T.MeshStandardMaterial({ color: PALETA.cian, emissive: PALETA.cian, emissiveIntensity: 0.9 });
+  g.add(en(new T.Mesh(new T.BoxGeometry(0.16, 0.05, 0.02), luz), -0.45, 1.5, 0.21));
+  g.add(en(taza(), -0.45, 0.95, 0.12));
+  g.add(en(taza(), 0.35, 0.95, 0.12));
+  g.add(en(taza(), 0.62, 0.95, -0.12));
+  g.add(en(cilindro(0.15, 0.15, 0.24, 10, '#c9a27e'), 0.05, 1.07, -0.16));
+  return g;
+}
+
 function mueble() {
   const g = new T.Group();
   g.add(en(caja(1.8, 0.75, 0.55, PALETA.blanco), 0, 0.375, 0));
@@ -340,7 +369,12 @@ function crearBot(forma, color = PALETA.blanco) {
   anillo.rotation.x = Math.PI / 2;
   flota.add(anillo);
 
-  return { raiz, flota, ojos, ojoMat, puntaMat, anillo, anilloMat };
+  // Taza que lleva un rato después de tomar café.
+  const tazaBot = en(taza(), 0.52, -0.22, 0.2);
+  tazaBot.visible = false;
+  flota.add(tazaBot);
+
+  return { raiz, flota, ojos, ojoMat, puntaMat, anillo, anilloMat, taza: tazaBot };
 }
 
 /* ───────────────────────── Escena ───────────────────────── */
@@ -412,9 +446,7 @@ async function iniciar() {
     const izq = en(pared(SALA, z.acento, z.puertas.izq), -MITAD + PARED_T / 2, PISO_Y, 0);
     izq.rotation.y = Math.PI / 2;
     g.add(izq);
-    mundo.add(g);
-    etiqueta('o3d-zona', `<i style="background:${z.acento}"></i>${esc(z.nombre)}`,
-      new T.Vector3(z.centro[0], PISO_Y + PARED_H + 0.55, z.centro[1] - MITAD + 0.3));
+    mundo.add(g); // sin cartel: en la oficina solo se ven los robots y sus globitos
   });
 
   const ubicar = (obj, zonaId, x, z, rotY = 0) => {
@@ -424,7 +456,7 @@ async function iniciar() {
     mundo.add(obj);
     return obj;
   };
-  ubicar(mueble(), 'seleccion', -3.5, 2.2, Math.PI / 2);
+  ubicar(cafetera(), 'seleccion', -3.6, 2.2, Math.PI / 2);
   ubicar(puffs(), 'seleccion', 1.6, 2.3);
   ubicar(planta(), 'seleccion', 3.8, -3.9);
   ubicar(mesaRedonda(0.75, 2, PALETA.silla), 'entrevistas', 0.2, 2.2);
@@ -459,21 +491,22 @@ async function iniciar() {
     const a = {
       id, p, bot, casa, matPantalla: esc3.matPantalla,
       pos: casa.clone(), vuelo: null, salto: -10, fase: (ORDEN.indexOf(id) * 1.7) % 6,
-      reservas: 0, ocupado: false, enChat: false,
+      reservas: 0, ocupado: false, enChat: false, enCafe: false, sueno: 0,
       datos: { nombre: p.nombre, emoji: p.emoji, rol: '', n8n: '' },
       ultima: null, act: null, estado: 'activo',
     };
     a.tag = etiqueta('o3d-tag', `<i></i>${p.emoji}<span>${esc(p.nombre)}</span>`, () => a.pos.clone().add(new T.Vector3(0, -1.25, 0)), 'translate(-50%, 0)');
     a.globo = etiqueta('o3d-globo', '', () => a.pos.clone().add(new T.Vector3(0, 1.45, 0)), 'translate(-50%, -100%)');
+    a.zzz = etiqueta('o3d-zzz', '<i>z</i><i>z</i><i>Z</i>', () => a.pos.clone().add(new T.Vector3(0.5, 0.75, 0)), 'translate(-50%, -100%)');
     agentes.set(id, a);
   });
 
   /* ── Estados y colores ── */
   function calcularEstado(a) {
-    if (a.enChat) return 'trabajando';
+    if (a.enChat) return 'trabajando'; // le hablamos: se despierta
+    if (!despierto(a.p)) return 'durmiendo';
     const u = a.ultima;
     if (u && u.estado === 'error' && Date.now() - new Date(u.created_at) < 24 * 3600e3) return 'alerta';
-    if (!enHorario(a.p)) return 'fuera';
     if (u && Date.now() - new Date(u.created_at) < 15 * 60e3) return 'trabajando';
     return 'activo';
   }
@@ -483,11 +516,12 @@ async function iniciar() {
       a.estado = estado;
       const color = new T.Color(ESTADOS[estado].color);
       [a.bot.ojoMat, a.bot.puntaMat, a.bot.anilloMat].forEach((m) => { m.color.copy(color); m.emissive.copy(color); });
-      const prendida = estado !== 'fuera';
+      const prendida = estado !== 'durmiendo';
       a.matPantalla.color.set(prendida ? ESTADOS[estado].color : PALETA.grisSuave);
       a.matPantalla.emissive.set(prendida ? ESTADOS[estado].color : '#000000');
       a.matPantalla.emissiveIntensity = prendida ? 0.55 : 0;
       a.tag.dataset.estado = estado;
+      a.zzz.classList.toggle('on', estado === 'durmiendo');
     });
     refrescarFicha();
   }
@@ -544,20 +578,19 @@ async function iniciar() {
   const textoAccion = (u) => `${ACCION_EMOJI[u.estado] || '✅'} ${u.accion}${u.cantidad > 1 ? ' · ' + fmt(u.cantidad) : ''}`;
   async function rutina() {
     if (chatOcupado) return;
-    const libres = [...agentes.values()].filter((a) => !a.reservas && !a.ocupado && !a.vuelo);
+    // Los que duermen no hacen nada hasta que les hablen por el chat.
+    const libres = [...agentes.values()].filter((a) => a.estado !== 'durmiendo' && !a.reservas && !a.ocupado && !a.vuelo);
     if (!libres.length) return;
     const a = azar(libres);
-    if (a.estado === 'fuera') {
-      if (Math.random() < 0.15) decir(a, '💤 Fuera de horario', 2500);
-      return;
-    }
     a.ocupado = true;
     try {
       const r = Math.random();
-      if (r < 0.4 || reduce) {
+      if (r < 0.3 || reduce) {
         decir(a, a.ultima && Math.random() < 0.65 ? `${textoAccion(a.ultima)} (${SB.hace(a.ultima.created_at)})` : azar(a.p.frases));
+      } else if (r < 0.65) {
+        await tomarCafe(a);
       } else if (r < 0.85) {
-        const otro = azar([...agentes.values()].filter((o) => o !== a && !o.reservas && o.estado !== 'fuera'));
+        const otro = azar([...agentes.values()].filter((o) => o !== a && !o.reservas && o.estado !== 'durmiendo'));
         if (!otro) return;
         await volar(a, otro.casa.clone().add(new T.Vector3(1.4, 0.1, 1.0)));
         decir(a, azar(['¿Cómo venís?', '¿Me pasás los números?', 'Tengo algo para vos', '¿Lo vemos juntos?']), 2800);
@@ -572,6 +605,17 @@ async function iniciar() {
     } finally {
       a.ocupado = false;
     }
+  }
+  async function tomarCafe(a) {
+    const enLaBarra = [...agentes.values()].filter((o) => o.enCafe).length;
+    a.enCafe = true;
+    await volar(a, new T.Vector3(CAFE[0], PISO_Y + 2.05, CAFE[1] + (enLaBarra % 2 ? 0.7 : -0.7)));
+    decir(a, azar(['☕ Un cafecito', '☕ Recargando energía', '☕ ¿Alguien quiere uno?']), 2800);
+    await espera(4500);
+    a.bot.taza.visible = true;
+    a.enCafe = false;
+    if (!a.reservas) await volverACasa(a);
+    setTimeout(() => { a.bot.taza.visible = false; }, 20000);
   }
   setInterval(rutina, 7000);
 
@@ -603,7 +647,8 @@ async function iniciar() {
       });
       agentes.forEach((a) => { a.act = act.find((x) => x.agente_id === a.id) || null; });
       if (!primeraVez) {
-        const nuevas = acciones.filter((x) => x.id > ultimoId && agentes.has(x.agente_id));
+        // Si el agente duerme no se mueve ni habla: la acción queda en su ficha.
+        const nuevas = acciones.filter((x) => x.id > ultimoId && agentes.has(x.agente_id) && agentes.get(x.agente_id).estado !== 'durmiendo');
         nuevas.forEach((x) => { agentes.get(x.agente_id).salto = performance.now() / 1000; });
         const x = nuevas[0]; // la más reciente es la única que habla
         if (x) decir(agentes.get(x.agente_id), `✨ ${x.accion}${x.cantidad > 1 ? ' · ' + fmt(x.cantidad) : ''}`, 5000, true);
@@ -696,30 +741,34 @@ async function iniciar() {
   /* ── Chat (eventos de oficina-viva.js) ── */
   document.addEventListener('oficina:consulta', () => {
     const c = agentes.get('coordinador');
+    const dormia = c.estado === 'durmiendo';
     chatOcupado = true;
     c.enChat = true;
     reservar(c);
     aplicarEstados();
-    volar(c, asientoMesa(0)).then(() => { if (chatOcupado) decir(c, '💭 Pensando…', 20000, true); });
+    volar(c, asientoMesa(0)).then(() => { if (chatOcupado) decir(c, dormia ? '🥱 ¡Me despertaron! Pensando…' : '💭 Pensando…', 20000, true); });
   });
+  // Vuelve a su escritorio y recién ahí deja el chat (si es de noche, se duerme).
+  const terminar = (a) => liberar(a).then(() => {
+    if (a.reservas) return;
+    a.enChat = false;
+    aplicarEstados();
+  });
+
   document.addEventListener('oficina:respuesta', async (e) => {
     const { agentes: ids = [], anoto = false, ok = true, motivo } = e.detail || {};
     const c = agentes.get('coordinador');
     chatOcupado = false;
     if (!ok) {
       decir(c, motivo === 'codigo' ? '🔒 Necesito el código del equipo' : '😵 No pude responder, probá de nuevo', 3500, true);
-      c.enChat = false;
-      aplicarEstados();
-      liberar(c);
+      terminar(c);
       return;
     }
     if (anoto) {
       await volar(c, new T.Vector3(PIZARRA[0] + 1.3, PISO_Y + 2.2, PIZARRA[1]));
       decir(c, '📝 ¡Anotado por 7 días!', 3500, true);
       await espera(3800);
-      c.enChat = false;
-      aplicarEstados();
-      liberar(c);
+      terminar(c);
       return;
     }
     const ayudantes = ids.filter((id) => id !== 'coordinador').map((id) => agentes.get(id)).filter(Boolean);
@@ -728,8 +777,7 @@ async function iniciar() {
     await Promise.all(ayudantes.map((a, i) => volar(a, asientoMesa(i + 1))));
     decir(c, ayudantes.length ? '💡 ¡Ya está! Gracias, equipo' : '💡 ¡Ya está!', 3000, true);
     await espera(4000);
-    [c, ...ayudantes].forEach((a) => { a.enChat = false; liberar(a); });
-    aplicarEstados();
+    [c, ...ayudantes].forEach(terminar);
   });
 
   /* ── Tamaño, cámara y visibilidad ── */
@@ -810,19 +858,22 @@ async function iniciar() {
           res();
         }
       }
-      const quieto = a.estado === 'fuera';
-      const amp = reduce ? 0.02 : quieto ? 0.05 : 0.13;
-      const bob = Math.sin(t * (quieto ? 0.9 : 1.7) + a.fase) * amp;
-      a.bot.raiz.position.set(a.pos.x, a.pos.y + bob, a.pos.z);
-      a.bot.flota.rotation.y = reduce ? 0 : Math.sin(t * 0.6 + a.fase) * 0.28;
+      // Dormido: baja hasta el escritorio, cabecea, cierra los ojos y respira lento.
+      a.sueno = T.MathUtils.damp(a.sueno, a.estado === 'durmiendo' ? 1 : 0, 2.5, dt);
+      const quieto = a.sueno > 0.5;
+      const amp = reduce ? 0.02 : 0.13 * (1 - 0.85 * a.sueno);
+      const bob = Math.sin(t * (1.7 - 1.1 * a.sueno) + a.fase) * amp;
+      a.bot.raiz.position.set(a.pos.x, a.pos.y + bob - 0.32 * a.sueno, a.pos.z);
+      a.bot.flota.rotation.y = reduce ? 0 : Math.sin(t * 0.6 + a.fase) * 0.28 * (1 - a.sueno);
+      a.bot.flota.rotation.z = 0.24 * a.sueno;
       const desde = ahora - a.salto;
       const salto = !reduce && desde < 0.9 ? Math.abs(Math.sin((desde / 0.9) * Math.PI * 2)) * 0.5 : 0;
       a.bot.flota.position.y = salto;
       const objetivo = (fijado === a.id || sobre === a.id ? 1.12 : 1);
       a.bot.flota.scale.setScalar(T.MathUtils.damp(a.bot.flota.scale.x, objetivo, 12, dt));
-      a.bot.ojos.scale.y = (t + a.fase) % 4 < 0.12 ? 0.15 : 1;
-      if (!reduce) a.bot.anillo.rotation.z += dt * (a.estado === 'trabajando' ? 2.4 : 0.6);
-      a.bot.puntaMat.emissiveIntensity = a.estado === 'trabajando' ? 0.7 + 0.6 * Math.abs(Math.sin(t * 4 + a.fase)) : quieto ? 0.1 : 0.9;
+      a.bot.ojos.scale.y = quieto ? 0.12 : (t + a.fase) % 4 < 0.12 ? 0.15 : 1;
+      if (!reduce && !quieto) a.bot.anillo.rotation.z += dt * (a.estado === 'trabajando' ? 2.4 : 0.6);
+      a.bot.puntaMat.emissiveIntensity = a.estado === 'trabajando' ? 0.7 + 0.6 * Math.abs(Math.sin(t * 4 + a.fase)) : quieto ? 0.05 : 0.9;
     });
 
     leds.forEach((l) => { l.mat.emissiveIntensity = reduce || Math.sin(t * l.vel + l.fase) > 0.15 ? 1.1 : 0.12; });
