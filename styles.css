@@ -952,3 +952,54 @@ html.reveal-pending .container > *{opacity:0;}
 @media (prefers-reduced-motion: reduce){
   .rank-list .bar-fill,.kpi-spark-line,.kpi-spark-area,.hero-badge{animation:none !important;stroke-dashoffset:0;opacity:1;}
 }
+
+/* ================= Hoy: tareas y búsquedas (dashboard, vivo.js) ================= */
+.vivo-list{list-style:none;margin:0;padding:12px 14px;background:#e4e9f2;border-radius:12px;}
+.vivo-list li{display:flex;flex-direction:column;gap:2px;padding:7px 8px;margin:0 -8px;border-radius:8px;}
+.vivo-list li + li{border-top:1px solid rgba(15,23,42,.06);}
+.vivo-list li:hover{background:rgba(255,255,255,.6);}
+.vivo-main{font-size:13px;font-weight:700;color:var(--text);}
+.vivo-main b{color:var(--theme, var(--purple));margin-left:4px;}
+.vivo-meta{font-size:12px;color:var(--text-muted);}
+.vivo-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.vivo-list .vivo-chips{margin:4px 0 0;}
+.vivo-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;background:#fff;border:1px solid var(--border);color:var(--text-muted);}
+.vivo-chip b{color:var(--text);}
+.vivo-vacio{margin:0;padding:14px;border-radius:12px;background:#e4e9f2;font-size:13px;color:var(--text-muted);}
+
+/* ================= Oficina digital (oficina.html) ================= */
+.ofi-hero{background:linear-gradient(135deg,var(--navy),#2b3f7a);}
+.ofi-hero-ico{width:64px;height:64px;flex-shrink:0;display:grid;place-items:center;border-radius:50%;background:rgba(255,255,255,.14);font-size:32px;}
+.ofi-hero h1{margin:8px 0 4px;font-size:26px;}
+.ofi-hero p{margin:0;color:#c7d0ea;font-size:14px;max-width:640px;}
+.ofi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;}
+.ofi-card{display:flex;flex-direction:column;gap:8px;background:var(--card);border-radius:var(--radius);padding:18px 20px;border-top:4px solid var(--navy);box-shadow:0 1px 2px rgba(16,24,40,.04);}
+.ofi-card-head{display:flex;align-items:center;gap:10px;}
+.ofi-card-head h3{margin:0;font-size:16px;flex:1;min-width:0;}
+.ofi-emoji{width:40px;height:40px;flex-shrink:0;display:grid;place-items:center;border-radius:12px;background:#fff;box-shadow:0 0 0 1px var(--border);font-size:20px;}
+.ofi-estado{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:3px 9px;border-radius:999px;background:#e4e9f2;color:var(--text-muted);}
+.ofi-estado.is-activo{background:#dff5ea;color:#1f8a57;}
+.ofi-estado.is-pausado{background:#fde3e6;color:#b23a48;}
+.ofi-rol{margin:0 0 4px;font-size:13px;color:var(--text-muted);}
+.ofi-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 8px;border-radius:12px;background:#e4e9f2;text-align:center;}
+.ofi-stats strong{display:block;font-size:15px;font-variant-numeric:tabular-nums;}
+.ofi-stats span{display:block;margin-top:2px;font-size:10.5px;color:var(--text-muted);}
+.ofi-alerta{font-size:12px;color:#b23a48;background:#fde3e6;border-radius:10px;padding:6px 10px;}
+.ofi-label{margin-top:6px;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);}
+.ofi-tareas{margin:0;padding-left:18px;font-size:13px;}
+.ofi-tareas li{margin:2px 0;}
+.ofi-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.ofi-chips span{font-size:11.5px;padding:3px 9px;border-radius:999px;background:#e5e9fd;color:#3554b8;}
+.ofi-chips.is-soft span{background:#fff;color:var(--text-muted);box-shadow:0 0 0 1px var(--border);}
+.ofi-meta{margin:8px 0 0;display:grid;gap:6px;}
+.ofi-meta div{display:grid;grid-template-columns:112px 1fr;gap:8px;font-size:12.5px;}
+.ofi-meta dt{color:var(--text-muted);}
+.ofi-meta dd{margin:0;}
+.ofi-link{margin-top:auto;padding-top:10px;font-size:13px;font-weight:700;color:var(--blue);text-decoration:none;}
+.ofi-link:hover{text-decoration:underline;}
+@media(max-width:600px){
+  .ofi-grid{grid-template-columns:1fr;}
+  .ofi-meta div{grid-template-columns:1fr;gap:0;}
+  .ofi-hero h1{font-size:21px;}
+}
+.unit-avatar--ofi{background:#e5e9fd;font-size:32px;}
