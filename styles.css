@@ -1093,3 +1093,5 @@ html.reveal-pending .container > *{opacity:0;}
 .ov-chat-form input:focus{outline:2px solid var(--blue);outline-offset:1px;}
 .ov-chat-form .btn-primary{border:0;cursor:pointer;padding:11px 18px;font-size:14px;}
 .ov-chat-form .btn-primary:disabled{opacity:.6;cursor:default;}
+.ov-sugerencia--anotar{border-style:dashed;border-color:var(--navy);}
+.ov-pizarra #ovNotas{font-size:10.5px;}
