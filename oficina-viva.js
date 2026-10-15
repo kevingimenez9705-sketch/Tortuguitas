@@ -1,8 +1,11 @@
-// oficina-viva.js — la Oficina digital "en vivo": cada agente tiene su
-// escritorio, camina por la oficina, toma café, visita a sus compañeros y
-// muestra en un globito lo último que hizo según la bitácora real (Supabase).
-// Abajo, el chat con el Coordinador: cuando le escribís, el Coordinador se
-// va a la mesa de reunión a pensar y los agentes que lo ayudaron se acercan.
+// oficina-viva.js — chat con el Coordinador + oficina 2D de respaldo.
+// La oficina principal es la 3D (oficina-3d.js). Esta versión 2D (cada agente
+// camina, toma café y muestra lo último que hizo) solo se arma si el navegador
+// no tiene WebGL o si la 3D falla.
+// El chat avisa a la oficina 3D con eventos del documento:
+//   oficina:consulta  → empezó una consulta (el Coordinador se pone a pensar)
+//   oficina:respuesta → { agentes, anoto, ok, motivo } (quiénes ayudaron)
+// y escucha oficina:preguntar → { texto } (botones "Preguntale" de la 3D y del tablero).
 (() => {
   const CHAT_URL = 'https://kevin9705.app.n8n.cloud/webhook/oficina-chat';
   const ZONA = 'America/Argentina/Buenos_Aires';
@@ -39,6 +42,8 @@
   if (!escena) return;
   const bots = new Map();
   let ocupadoChat = false;
+  let escena2D = false; // true solo si se armó la oficina 2D de respaldo
+  const avisar = (nombre, detalle) => document.dispatchEvent(new CustomEvent(nombre, { detail: detalle }));
 
   function horaBA() {
     const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: ZONA, hour: 'numeric', hourCycle: 'h23', weekday: 'short', minute: '2-digit' })
@@ -268,16 +273,22 @@
     texto = texto.trim();
     if (!texto || ocupadoChat) return;
     const codigo = leerCodigo();
-    if (!codigo) return mostrarCodigo(true);
+    if (!codigo) {
+      input.value = texto; // queda escrita para mandarla después de poner el código
+      return mostrarCodigo(true);
+    }
     ocupadoChat = true;
     boton.disabled = true;
     mensaje('yo', texto);
     input.value = '';
     const pensando = mensaje('bot', 'Pensando…');
     pensando.classList.add('pensando');
-    const coord = bots.get('coordinador');
-    reservar(coord);
-    irA(coord, LUGARES.reunion.x, LUGARES.reunion.y).then(() => { if (ocupadoChat) decir(coord, '💭 Pensando…', 20000); });
+    avisar('oficina:consulta');
+    const coord = escena2D ? bots.get('coordinador') : null;
+    if (coord) {
+      reservar(coord);
+      irA(coord, LUGARES.reunion.x, LUGARES.reunion.y).then(() => { if (ocupadoChat) decir(coord, '💭 Pensando…', 20000); });
+    }
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 60000);
@@ -296,17 +307,23 @@
         confirmarCodigo(false);
         mensaje('bot', 'Ese código no es el del equipo. Pedíselo a Kevin y probá de nuevo.');
         mostrarCodigo(true);
-        decir(coord, '🔒 Necesito el código', 3000);
-        liberar(coord);
+        avisar('oficina:respuesta', { ok: false, motivo: 'codigo' });
+        if (coord) {
+          decir(coord, '🔒 Necesito el código', 3000);
+          liberar(coord);
+        }
         return;
       }
       const r = JSON.parse(cuerpo);
       confirmarCodigo(true);
       const ids = Array.isArray(r.agentes) ? r.agentes : ['coordinador'];
-      const quienes = ids.filter(id => id !== 'coordinador').map(id => bots.get(id)).filter(Boolean)
-        .map(b => `${b.a.emoji} ${esc(b.a.nombre)}`).join(' · ');
+      const quienes = ids.filter(id => id !== 'coordinador').map(id => AGENTES.find(a => a.id === id)).filter(Boolean)
+        .map(a => `${a.emoji} ${esc(a.nombre)}`).join(' · ');
       mensaje('bot', r.respuesta || 'No tengo respuesta para eso.', quienes ? `Me ayudaron: ${quienes}` : '');
-      if (r.anoto) anotar(coord); else reunion(ids);
+      avisar('oficina:respuesta', { agentes: ids, anoto: !!r.anoto, ok: r.ok !== false });
+      if (coord) {
+        if (r.anoto) anotar(coord); else reunion(ids);
+      }
     } catch (e) {
       console.warn('Chat de la oficina', e);
       pensando.remove();
@@ -317,7 +334,8 @@
         mensaje('bot', 'No pude conectarme con la oficina. Revisá el código del equipo o tu conexión y probá de nuevo.');
         mostrarCodigo(true);
       }
-      liberar(coord);
+      avisar('oficina:respuesta', { ok: false });
+      if (coord) liberar(coord);
     } finally {
       ocupadoChat = false;
       boton.disabled = false;
@@ -325,12 +343,32 @@
   }
 
   // ---------- Arranque ----------
-  armarEscena();
-  reloj();
-  setInterval(reloj, 30000);
-  bots.forEach(b => { b.desk.classList.toggle('activo', enHorario(b.a)); setTimeout(() => turno(b), entre(400, 4000)); });
-  leerBitacora(true);
-  setInterval(() => leerBitacora(false), 30000);
+  // Oficina 2D de respaldo: oficina-3d.js marca window.__oficina3d antes de que
+  // termine de cargar la página; si no está (sin WebGL o sin módulos) o si la 3D
+  // falla después (evento oficina:3d-fallo), se arma esta.
+  function iniciar2D() {
+    if (escena2D) return;
+    escena2D = true;
+    armarEscena();
+    reloj();
+    setInterval(reloj, 30000);
+    bots.forEach(b => { b.desk.classList.toggle('activo', enHorario(b.a)); setTimeout(() => turno(b), entre(400, 4000)); });
+    leerBitacora(true);
+    setInterval(() => leerBitacora(false), 30000);
+  }
+  document.addEventListener('oficina:3d-fallo', () => { escena.setAttribute('role', 'img'); iniciar2D(); });
+  const decidir = () => { if (!window.__oficina3d) iniciar2D(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decidir);
+  else decidir();
+
+  // "Preguntale" desde la oficina 3D o el tablero: lo manda al chat.
+  document.addEventListener('oficina:preguntar', e => {
+    const texto = e.detail && e.detail.texto;
+    if (!texto || !lista) return;
+    const chat = document.querySelector('.ov-chat');
+    if (chat) chat.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'nearest' });
+    enviar(texto);
+  });
 
   if (lista && form) {
     mensaje('bot', '¡Hola! Soy el Coordinador de la oficina. Preguntame por postulaciones, búsquedas, entrevistas, ingresos o qué hizo cada agente. También anoto comentarios del equipo para los agentes: los recordamos 7 días.');

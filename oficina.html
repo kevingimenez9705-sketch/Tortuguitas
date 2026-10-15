@@ -4,8 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Oficina digital · Equipo Tortuguitas</title>
-<link rel="stylesheet" href="styles.css?v=20261015c" />
-<script src="vendor/chart.umd.min.js"></script>
+<link rel="stylesheet" href="styles.css?v=20261015e" />
 </head>
 <body>
 <script src="transition.js?v=20261001d"></script>
@@ -18,14 +17,14 @@
       <div>
         <span class="breadcrumb">Selección · Oficina digital</span>
         <h1>Agentes de IA del equipo</h1>
-        <p>Qué hace cada agente, cuándo trabaja y cuánto tiempo le ahorra al equipo. Corren en n8n y avisan por el grupo de Telegram.</p>
+        <p>Los 6 agentes trabajan en n8n y avisan por Telegram. Acá los ves en vivo, les preguntás por el chat y ves qué necesita al equipo hoy.</p>
       </div>
     </div>
   </div>
 
   <div class="section-label" style="margin-top:0;">Oficina en vivo</div>
   <div class="ov-layout">
-    <div class="ov-escena" id="ofiEscena" role="img" aria-label="Oficina animada: cada agente trabaja en su escritorio, camina por la oficina y muestra lo último que hizo"></div>
+    <div class="ov-escena" id="ofiEscena" role="img" aria-label="Oficina animada: cada agente trabaja en su escritorio y muestra lo último que hizo"></div>
     <div class="card ov-chat">
       <h3>Chat con el Coordinador 🧭</h3>
       <p class="desc">Responde con datos reales de la oficina · solo consulta, sin datos personales</p>
@@ -57,32 +56,16 @@
     <p class="desc" id="ofiErrorMsg"></p>
   </div>
 
-  <div id="ofiContent" style="display:none;">
-    <div class="section-label">Resumen · últimos 30 días</div>
-    <div class="kpis" id="ofiKpis"></div>
-
-    <div class="grid cols-2">
-      <div class="card">
-        <h3>Actividad diaria</h3>
-        <p class="desc">Ítems procesados por todos los agentes · últimos 14 días</p>
-        <div class="chart-wrap"><canvas id="ofiChartDiaria"></canvas></div>
-      </div>
-      <div class="card">
-        <h3>Screening</h3>
-        <p class="desc">Recomendaciones sobre postulaciones · últimos 30 días</p>
-        <div class="chart-wrap"><canvas id="ofiChartScreening"></canvas></div>
-      </div>
-    </div>
-
-    <div class="section-label">Equipo de agentes · qué hace cada uno</div>
-    <div class="ofi-grid" id="ofiAgentes"></div>
-    <p class="footer-note">Fuente: Supabase (ficha de agentes y bitácora). Solo totales, sin datos personales.</p>
+  <div id="tableroSeccion" style="display:none;">
+    <div class="section-label">Hoy en la oficina · lo que necesita al equipo</div>
+    <div class="tab-grid" id="tablero"></div>
+    <p class="footer-note" id="tableroNota"></p>
   </div>
 
 </div>
-<script src="charts.js?v=20261003"></script>
 <script src="supabase.js?v=20261015"></script>
-<script src="oficina.js?v=20261015"></script>
-<script src="oficina-viva.js?v=20261015b"></script>
+<script src="oficina-viva.js?v=20261015c"></script>
+<script src="tablero.js?v=20261015"></script>
+<script type="module" src="oficina-3d.js?v=20261015"></script>
 </body>
 </html>
