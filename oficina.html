@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Oficina digital · Equipo Tortuguitas</title>
+<link rel="stylesheet" href="styles.css?v=20261015" />
+<script src="vendor/chart.umd.min.js"></script>
+</head>
+<body>
+<script src="transition.js?v=20261001d"></script>
+<div class="container">
+
+  <div class="hero ofi-hero" data-color="#0f1c3f">
+    <a class="dash-nav" href="index.html">← Equipo</a>
+    <div class="hero-top">
+      <div class="ofi-hero-ico" aria-hidden="true">🤖</div>
+      <div>
+        <span class="breadcrumb">Selección · Oficina digital</span>
+        <h1>Agentes de IA del equipo</h1>
+        <p>Qué hace cada agente, cuándo trabaja y cuánto tiempo le ahorra al equipo. Corren en n8n y avisan por el grupo de Telegram.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card sd-card" id="ofiError" style="display:none;">
+    <div class="sd-icon">S/D</div>
+    <h3>No se pudo leer la oficina</h3>
+    <p class="desc" id="ofiErrorMsg"></p>
+  </div>
+
+  <div id="ofiContent" style="display:none;">
+    <div class="section-label" style="margin-top:0;">Resumen · últimos 30 días</div>
+    <div class="kpis" id="ofiKpis"></div>
+
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Actividad diaria</h3>
+        <p class="desc">Ítems procesados por todos los agentes · últimos 14 días</p>
+        <div class="chart-wrap"><canvas id="ofiChartDiaria"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Screening</h3>
+        <p class="desc">Recomendaciones sobre postulaciones · últimos 30 días</p>
+        <div class="chart-wrap"><canvas id="ofiChartScreening"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-label">Equipo de agentes · qué hace cada uno</div>
+    <div class="ofi-grid" id="ofiAgentes"></div>
+    <p class="footer-note">Fuente: Supabase (ficha de agentes y bitácora). Solo totales, sin datos personales.</p>
+  </div>
+
+</div>
+<script src="charts.js?v=20261003"></script>
+<script src="supabase.js?v=20261015"></script>
+<script src="oficina.js?v=20261015"></script>
+</body>
+</html>

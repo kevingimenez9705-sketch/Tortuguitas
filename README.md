@@ -24,6 +24,15 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 - **Gustavo Sotelo** → `selector: "Gustavo"` (con altas desde agosto 2026).
 - **Otros** → agrupa `Emiliano`, `Mariano`, `Facundo` y `Seleccion` (altas sin selector puntual asignado en la planilla) en un solo resultado combinado.
 
+## Oficina digital y datos en vivo
+
+- `oficina.html` + `oficina.js` — página "Oficina digital": los 6 agentes de IA del equipo (n8n), sus tareas, cuándo trabajan, herramientas, control humano, KPI y actividad (ítems, horas ahorradas, última vez). Se entra desde la tarjeta "Oficina digital" de `index.html`.
+- `supabase.js` — lectura de Supabase con la clave publicable (solo lectura, sin datos personales de candidatos).
+- `vivo.js` — conecta `dashboard.html` con las hojas de Drive:
+  - **Hoy · tareas y búsquedas**: tareas abiertas de la planilla *Tareas grupales* y solicitudes de *TAREAS GRUPALES* (Solicitudes Sabores/Extremas) de la persona del dashboard, o de todo el equipo en el panel de Kevin.
+  - **Altas y cumplimiento**: si la hoja *altas_anual* llega al menos hasta el mismo mes que `data.js`, el dashboard usa la hoja; si está más atrasada, sigue usando `data.js`. El pie de página dice qué fuente se está usando.
+- El workflow de n8n **"Equipo - Sync hojas de Drive → Supabase (Tortuguitas)"** copia cada 30 minutos esas hojas a las tablas `equipo_altas`, `equipo_cumplimiento`, `equipo_tareas` y `equipo_solicitudes` (de las solicitudes solo lee las columnas A a L, sin datos personales).
+
 ## Cómo actualizar los datos
 
 Los datos NO están pre-agregados: `data.js` guarda cada registro individual (`altas`: selector, regional, zonal, local, fecha, mes, presente, marca; `cumplimiento`: mes, semana, selector, cumplimiento, enviados, restantes, total). Todas las agregaciones (por mes, por selector, top zonales/locales, etc.) se calculan en `app.js` en tiempo real según el período elegido. Esto lo hace escalable: para actualizar, solo hay que regenerar `data.js` desde el Excel fuente (misma estructura de columnas) y no tocar el resto del código.

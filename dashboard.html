@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Altas de personal · Dashboard</title>
-<link rel="stylesheet" href="styles.css?v=20261003" />
+<link rel="stylesheet" href="styles.css?v=20261015" />
 <link rel="stylesheet" href="resumen.css?v=20261003" />
 <script src="vendor/chart.umd.min.js"></script>
 </head>
@@ -48,6 +48,23 @@
         <p class="comp-summary" id="compSummary"></p>
       </div>
     </div>
+  </div>
+
+  <div id="vivoSection" style="display:none;">
+    <div class="section-label" style="margin-top:0;">Hoy · tareas y búsquedas</div>
+    <div class="grid cols-2">
+      <div class="card">
+        <h3>Tareas abiertas</h3>
+        <p class="desc" id="vivoTareasDesc">Planilla Tareas grupales</p>
+        <div id="vivoTareas"></div>
+      </div>
+      <div class="card">
+        <h3>Búsquedas</h3>
+        <p class="desc" id="vivoBusquedasDesc">Solicitudes Sabores y Extremas</p>
+        <div id="vivoBusquedas"></div>
+      </div>
+    </div>
+    <p class="footer-note" id="vivoNota" style="margin-bottom:20px;"></p>
   </div>
 
   <div class="card sd-card" id="sdState" style="display:none;">
@@ -148,6 +165,7 @@
 <script src="competencias.js?v=20260819b"></script>
 <script src="charts.js?v=20261003"></script>
 <script src="resumen.js?v=20261003f"></script>
-<script src="app.js?v=20261003c"></script>
+<script src="supabase.js?v=20261015"></script>
+<script src="vivo.js?v=20261015"></script>
 </body>
 </html>
