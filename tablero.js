@@ -250,4 +250,8 @@
 
   cargar();
   setInterval(cargar, 2 * 60 * 1000);
+  // Después de un cambio con PIN, n8n re-sincroniza la copia: se vuelve a leer en un ratito.
+  document.addEventListener('oficina:cambio', (e) => {
+    if (e.detail && e.detail.fase === 'hecho') setTimeout(cargar, 20000);
+  });
 })();

@@ -939,7 +939,7 @@ async function iniciar() {
   });
 
   document.addEventListener('oficina:respuesta', async (e) => {
-    const { agentes: ids = [], anoto = false, ok = true, motivo } = e.detail || {};
+    const { agentes: ids = [], anoto = false, cambios = 0, ok = true, motivo } = e.detail || {};
     const c = agentes.get('coordinador');
     chatOcupado = false;
     if (!ok) {
@@ -958,9 +958,28 @@ async function iniciar() {
     ayudantes.forEach((a) => { a.enChat = true; reservar(a); });
     aplicarEstados();
     await Promise.all(ayudantes.map((a, i) => volar(a, asientoMesa(i + 1))));
-    decir(c, ayudantes.length ? '💡 ¡Ya está! Gracias, equipo' : '💡 ¡Ya está!', 3000, true);
+    decir(c, cambios ? '🔐 Confirmalo con tu PIN' : ayudantes.length ? '💡 ¡Ya está! Gracias, equipo' : '💡 ¡Ya está!', 3000, true);
     await espera(4000);
     [c, ...ayudantes].forEach(terminar);
+  });
+
+  // Cambio en planilla confirmado con PIN: Vacantes (o el Coordinador si es una
+  // tarea) va a los servidores a guardarlo. Si duerme, se despierta para eso.
+  document.addEventListener('oficina:cambio', async (e) => {
+    const { fase, hoja } = e.detail || {};
+    const a = agentes.get(hoja === 'tareas' ? 'coordinador' : 'vacantes');
+    if (!a) return;
+    if (fase !== 'hecho') {
+      decir(a, fase === 'cancelado' ? '👌 Cancelado, no toqué nada' : '⚠️ No se pudo hacer el cambio', 3500, true);
+      return;
+    }
+    a.enChat = true;
+    reservar(a);
+    aplicarEstados();
+    await volar(a, new T.Vector3(RACKS[0], PISO_Y + 2.9, RACKS[1]));
+    decir(a, '✅ ¡Planilla actualizada!', 3500, true);
+    await espera(3800);
+    terminar(a);
   });
 
   /* ── Tamaño, cámara y visibilidad ── */
