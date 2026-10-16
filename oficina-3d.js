@@ -67,6 +67,17 @@ const PALETA = {
   acero: '#e2e7ee',
   lila: '#cbc6f4',
   ambar: '#f5b748',
+  coral: '#ffb4a2',
+  amarilloSuave: '#ffe7a3',
+  lavanda: '#d9d0ff',
+  lavandaSuave: '#efeafc',
+  cielo: '#cfe8ff',
+  arena: '#f8efe2',
+  terracota: '#e9a07a',
+  madera: '#c99a6b',
+  hoja: '#7fd3a8',
+  hojaOscura: '#45b386',
+  corcho: '#d8b48a',
 };
 
 // Estado visual de cada agente (color de ojos, antena, anillo y pantalla).
@@ -92,12 +103,13 @@ const BOT_Y = PISO_Y + 2.15; // altura de vuelo sobre el escritorio
 const ZONAS = [
   { id: 'seleccion', nombre: 'Selección', centro: [-DESVIO, -DESVIO], tinte: PALETA.mentaSuave, acento: PALETA.menta, puertas: {} },
   { id: 'entrevistas', nombre: 'Entrevistas e ingresos', centro: [DESVIO, -DESVIO], tinte: PALETA.cianSuave, acento: PALETA.cian, puertas: { izq: true } },
-  { id: 'coordinacion', nombre: 'Coordinación', centro: [-DESVIO, DESVIO], tinte: PALETA.grisSuave, acento: PALETA.lila, puertas: { fondo: true } },
-  { id: 'servidores', nombre: 'Servidores · n8n + Supabase', centro: [DESVIO, DESVIO], tinte: PALETA.acero, acento: PALETA.cian, puertas: { izq: true, fondo: true } },
+  { id: 'coordinacion', nombre: 'Coordinación', centro: [-DESVIO, DESVIO], tinte: PALETA.arena, acento: PALETA.lila, puertas: { fondo: true } },
+  { id: 'servidores', nombre: 'Servidores y descanso', centro: [DESVIO, DESVIO], tinte: PALETA.lavandaSuave, acento: PALETA.cian, puertas: { izq: true, fondo: true } },
 ];
 const ZONA_POR_ID = Object.fromEntries(ZONAS.map((z) => [z.id, z]));
 
 // Color del cuerpo de cada robot (el Coordinador queda con el blanco original).
+// La silla de su escritorio y la manta de su cama usan el mismo color.
 const COLORES = {
   coordinador: PALETA.blanco,
   screening: '#9b87f5', // violeta
@@ -106,6 +118,7 @@ const COLORES = {
   agenda: '#f5c842', // amarillo
   onboarding: '#8a3b45', // marrón bordó
 };
+const color2 = (id) => (id === 'coordinador' ? '#8ea3d1' : COLORES[id]); // silla y manta
 
 // Puesto de cada agente (posición dentro de su zona), silueta, horario
 // (dias: 1 = lunes … 7 = domingo; horas: [inicio, fin) en Buenos Aires),
@@ -140,6 +153,8 @@ const zonaMundo = (zonaId, x, z) => {
 const MESA = zonaMundo('coordinacion', 1.4, 2.0);
 const PIZARRA = zonaMundo('coordinacion', -3.75, 1.9);
 const RACKS = zonaMundo('servidores', -1.4, -2.3);
+// Sala de descanso (frente de la zona de servidores): una cama por agente, en el orden de ORDEN.
+const CAMAS = [[-2.6, 0.75], [0, 0.75], [2.6, 0.75], [-2.6, 3.15], [0, 3.15], [2.6, 3.15]];
 const CAFE = zonaMundo('seleccion', -2.4, 2.2); // frente a la mesada del café
 const DESPIERTOS = [8, 18]; // horario de la oficina (Buenos Aires)
 
@@ -164,6 +179,8 @@ const despierto = (p) => {
   const t = horaBA();
   return p.dias.includes(t.dia) && t.hora >= DESPIERTOS[0] && t.hora < DESPIERTOS[1];
 };
+// De día cada agente vive en su escritorio; de noche, en su cama de la sala de descanso.
+const hogar = (a) => (despierto(a.p) ? a.casa : a.cama);
 const textoHorario = (p) => {
   const dias = p.dias.length === 6 ? 'L-S' : 'L-V';
   return `${dias} ${DESPIERTOS[0]} a ${DESPIERTOS[1]} h`;
@@ -225,7 +242,7 @@ function silla(color = PALETA.silla) {
 }
 
 /** Escritorio con monitor (pantalla con material propio), teclado y silla. */
-function escritorio({ ancho = false, pantalla = PALETA.grisSuave, brillo = 0 } = {}) {
+function escritorio({ ancho = false, pantalla = PALETA.grisSuave, brillo = 0, colorSilla = PALETA.silla, decorado = false } = {}) {
   const w = ancho ? 2.8 : 2.2;
   const g = new T.Group();
   g.add(en(caja(w, 0.12, 1.1, PALETA.blanco), 0, 0.9, 0));
@@ -235,8 +252,21 @@ function escritorio({ ancho = false, pantalla = PALETA.grisSuave, brillo = 0 } =
   const matPantalla = new T.MeshStandardMaterial({ color: pantalla, emissive: pantalla, emissiveIntensity: brillo, roughness: 0.45 });
   g.add(en(new T.Mesh(new T.PlaneGeometry(0.84, 0.48), matPantalla), 0.45, 1.44, -0.28));
   g.add(en(caja(0.6, 0.04, 0.22, PALETA.patas, { r: 0.015, sombra: false }), 0.42, 0.98, 0.15));
-  g.add(en(silla(), 0.3, 0, 0.95));
+  g.add(en(silla(colorSilla), 0.3, 0, 0.95));
+  if (decorado) {
+    g.add(en(taza(), -w / 2 + 0.25, 0.96, 0.3)); // taza (izquierda, adelante)
+    g.add(en(lamparaEscritorio(), w / 2 - 0.2, 0.96, 0.32)); // lámpara (derecha, adelante)
+  }
   return { grupo: g, matPantalla };
+}
+
+function lamparaEscritorio() {
+  const g = new T.Group();
+  g.add(en(cilindro(0.11, 0.13, 0.04, 12, PALETA.oscuro), 0, 0.02, 0));
+  g.add(en(cilindro(0.018, 0.018, 0.36, 6, PALETA.oscuro, { sombra: false }), 0, 0.2, 0));
+  const luz = new T.MeshStandardMaterial({ color: PALETA.amarilloSuave, emissive: '#ffd166', emissiveIntensity: 0.6, roughness: 0.6 });
+  g.add(en(malla(new T.CylinderGeometry(0.05, 0.14, 0.14, 12), luz), 0, 0.42, 0));
+  return g;
 }
 
 const leds = []; // materiales de LEDs de los racks (parpadean en el loop)
@@ -263,6 +293,121 @@ function planta(escala = 1) {
   g.add(en(malla(new T.IcosahedronGeometry(0.45, 0), mate('#9be6c9', true)), 0, 0.95, 0));
   g.add(en(malla(new T.IcosahedronGeometry(0.27, 0), mate(PALETA.menta, true)), 0.2, 1.32, 0.05));
   g.scale.setScalar(escala);
+  return g;
+}
+
+/** Planta alta: maceta de color, tronco y copas low-poly. */
+function plantaAlta(maceta = PALETA.terracota, escala = 1) {
+  const g = new T.Group();
+  g.add(en(cilindro(0.3, 0.24, 0.55, 10, maceta), 0, 0.275, 0));
+  g.add(en(cilindro(0.05, 0.07, 1.2, 6, '#8d6e4f', { recibe: false }), 0, 1.1, 0));
+  [[0, 1.75, 0, 0.5, PALETA.hojaOscura], [0.28, 1.45, 0.1, 0.36, PALETA.hoja], [-0.25, 1.35, -0.1, 0.34, '#9be6c9'], [0.05, 2.1, 0.05, 0.3, PALETA.hoja]]
+    .forEach(([x, y, z, r, c]) => g.add(en(malla(new T.IcosahedronGeometry(r, 0), mate(c, true)), x, y, z)));
+  g.scale.setScalar(escala);
+  return g;
+}
+
+/** Cactus en maceta. */
+function cactus(maceta = PALETA.amarilloSuave) {
+  const g = new T.Group();
+  g.add(en(cilindro(0.24, 0.2, 0.4, 10, maceta), 0, 0.2, 0));
+  g.add(en(cilindro(0.15, 0.17, 0.75, 8, PALETA.hojaOscura), 0, 0.75, 0));
+  g.add(en(malla(new T.SphereGeometry(0.15, 8, 6), mate(PALETA.hojaOscura, true)), 0, 1.12, 0));
+  g.add(en(cilindro(0.07, 0.07, 0.3, 6, PALETA.hojaOscura), 0.22, 0.85, 0));
+  g.add(en(cilindro(0.07, 0.07, 0.24, 6, PALETA.hojaOscura), -0.2, 0.7, 0));
+  g.add(en(malla(new T.SphereGeometry(0.06, 8, 6), mate('#ff8fab', true)), 0, 1.28, 0)); // florcita
+  return g;
+}
+
+/** Alfombra rectangular o redonda, apenas sobre el piso. */
+function alfombra(ancho, largo, color) {
+  return en(caja(ancho, 0.03, largo, color, { r: 0.012, sombra: false }), 0, 0.016, 0);
+}
+function alfombraRedonda(radio, color) {
+  return en(cilindro(radio, radio, 0.03, 32, color, { sombra: false }), 0, 0.016, 0);
+}
+
+/** Cuadro para colgar en la pared (mira hacia +z). */
+function cuadro(ancho, alto, color, color2b = PALETA.blanco) {
+  const g = new T.Group();
+  g.add(caja(ancho, alto, 0.05, PALETA.blanco, { r: 0.02, sombra: false }));
+  g.add(en(caja(ancho - 0.12, alto - 0.12, 0.02, color, { r: 0.01, sombra: false }), 0, 0, 0.03));
+  g.add(en(malla(new T.CircleGeometry(Math.min(ancho, alto) * 0.18, 16), mate(color2b), { sombra: false }), ancho * 0.15, alto * 0.05, 0.045));
+  return g;
+}
+
+/** Cartelera de corcho con notas de colores (mira hacia +z). */
+function cartelera() {
+  const g = new T.Group();
+  g.add(caja(1.6, 0.75, 0.05, PALETA.corcho, { r: 0.02, sombra: false }));
+  [[-0.55, 0.15, PALETA.amarilloSuave], [-0.2, -0.12, PALETA.coral], [0.15, 0.16, PALETA.cielo], [0.5, -0.1, PALETA.mentaSuave], [-0.5, -0.18, PALETA.lavanda]]
+    .forEach(([x, y, c]) => g.add(en(caja(0.24, 0.24, 0.02, c, { r: 0.008, sombra: false }), x, y, 0.035)));
+  return g;
+}
+
+/** Reloj de pared (mira hacia +z). */
+function relojPared() {
+  const g = new T.Group();
+  const disco = (r, h, c, z) => {
+    const m = en(cilindro(r, r, h, 24, c, { sombra: false }), 0, 0, z);
+    m.rotation.x = Math.PI / 2;
+    return m;
+  };
+  g.add(disco(0.34, 0.06, PALETA.oscuro, 0));
+  g.add(disco(0.3, 0.02, PALETA.blanco, 0.035));
+  g.add(en(caja(0.03, 0.2, 0.01, PALETA.oscuro, { r: 0.004, sombra: false }), 0, 0.09, 0.05));
+  const minutero = en(caja(0.02, 0.26, 0.01, PALETA.coral, { r: 0.004, sombra: false }), 0.08, 0.06, 0.055);
+  minutero.rotation.z = -1.1;
+  g.add(minutero);
+  return g;
+}
+
+/** Biblioteca baja con libros de colores (mira hacia +z). */
+function biblioteca() {
+  const g = new T.Group();
+  g.add(en(caja(1.5, 1.2, 0.4, PALETA.blanco, { r: 0.04 }), 0, 0.6, 0));
+  const colores = [PALETA.coral, PALETA.cian, PALETA.amarilloSuave, PALETA.lavanda, PALETA.menta, '#ff8fab'];
+  [0.38, 0.85].forEach((y, fila) => {
+    for (let i = 0; i < 7; i++) {
+      const h = 0.26 + ((i * 7 + fila * 3) % 4) * 0.03;
+      g.add(en(caja(0.14, h, 0.28, colores[(i + fila * 2) % colores.length], { r: 0.015, sombra: false }), -0.55 + i * 0.18, y + h / 2 - 0.13, 0.08));
+    }
+  });
+  return g;
+}
+
+/** Sillón de espera. */
+function sillon(color) {
+  const g = new T.Group();
+  g.add(en(caja(2.1, 0.42, 0.9, color, { r: 0.1 }), 0, 0.3, 0));
+  g.add(en(caja(2.1, 0.6, 0.25, color, { r: 0.1 }), 0, 0.68, -0.34));
+  [-1, 1].forEach((sx) => g.add(en(caja(0.22, 0.55, 0.9, color, { r: 0.08 }), sx * 1.0, 0.5, 0)));
+  [[-0.5, PALETA.amarilloSuave], [0.5, PALETA.coral]].forEach(([x, c]) => {
+    const almohadon = en(caja(0.45, 0.4, 0.12, c, { r: 0.06 }), x, 0.72, -0.18);
+    almohadon.rotation.x = -0.25;
+    g.add(almohadon);
+  });
+  return g;
+}
+
+/** Cama de la sala de descanso, con la manta del color del robot (cabecera hacia -z). */
+function cama(manta) {
+  const g = new T.Group();
+  g.add(en(caja(1.15, 0.28, 1.7, PALETA.madera, { r: 0.06 }), 0, 0.14, 0));
+  g.add(en(caja(1.15, 0.6, 0.12, PALETA.madera, { r: 0.05 }), 0, 0.44, -0.82));
+  g.add(en(caja(1.05, 0.16, 1.55, PALETA.blanco, { r: 0.06 }), 0, 0.36, 0.02));
+  g.add(en(caja(0.7, 0.12, 0.32, PALETA.blanco, { r: 0.05 }), 0, 0.5, -0.55));
+  g.add(en(caja(1.09, 0.1, 0.98, manta, { r: 0.04 }), 0, 0.47, 0.3));
+  return g;
+}
+
+/** Lámpara de pie con luz cálida. */
+function lamparaPie() {
+  const g = new T.Group();
+  g.add(en(cilindro(0.16, 0.18, 0.05, 12, PALETA.oscuro), 0, 0.025, 0));
+  g.add(en(cilindro(0.025, 0.025, 1.1, 6, PALETA.oscuro, { sombra: false }), 0, 0.6, 0));
+  const luz = new T.MeshStandardMaterial({ color: '#fff3c4', emissive: '#ffd166', emissiveIntensity: 0.7, roughness: 0.6 });
+  g.add(en(malla(new T.CylinderGeometry(0.16, 0.24, 0.28, 14), luz), 0, 1.2, 0));
   return g;
 }
 
@@ -456,19 +601,52 @@ async function iniciar() {
     mundo.add(obj);
     return obj;
   };
+  // Cuadros y carteleras sobre la cara interna de las paredes (fondo: z, izquierda: x).
+  const enParedFondo = (obj, zonaId, x, y = 0.8) => ubicar(obj, zonaId, x, -MITAD + PARED_T + 0.03).position.setY(PISO_Y + y);
+  const enParedIzq = (obj, zonaId, z, y = 0.8) => ubicar(obj, zonaId, -MITAD + PARED_T + 0.03, z, Math.PI / 2).position.setY(PISO_Y + y);
+
+  // Selección: rincón del café y descanso con puffs.
   ubicar(cafetera(), 'seleccion', -3.6, 2.2, Math.PI / 2);
+  ubicar(alfombra(3.4, 2.6, PALETA.amarilloSuave), 'seleccion', 1.6, 2.3);
   ubicar(puffs(), 'seleccion', 1.6, 2.3);
+  ubicar(plantaAlta(PALETA.terracota), 'seleccion', -4.05, -4.05);
   ubicar(planta(), 'seleccion', 3.8, -3.9);
-  ubicar(mesaRedonda(0.75, 2, PALETA.silla), 'entrevistas', 0.2, 2.2);
+  ubicar(cactus(PALETA.coral), 'seleccion', 4.0, 4.0);
+  ubicar(planta(0.8), 'seleccion', -4.0, 4.0);
+  enParedFondo(cartelera(), 'seleccion', 0);
+  enParedIzq(cuadro(0.9, 0.6, PALETA.coral, PALETA.amarilloSuave), 'seleccion', -2.0);
+
+  // Entrevistas e ingresos: mesa de entrevista, sillón de espera y reloj.
+  ubicar(alfombra(3.2, 2.8, PALETA.cielo), 'entrevistas', 0.2, 2.2);
+  ubicar(mesaRedonda(0.75, 2, PALETA.coral), 'entrevistas', 0.2, 2.2);
+  ubicar(sillon('#7fd8e6'), 'entrevistas', 3.7, 1.9, -Math.PI / 2);
+  ubicar(plantaAlta('#ffffff'), 'entrevistas', -4.05, -4.05);
   ubicar(planta(), 'entrevistas', -3.8, 3.8);
   ubicar(planta(0.9), 'entrevistas', 3.9, -3.9);
-  ubicar(mesaRedonda(), 'coordinacion', MESA[0] - ZONA_POR_ID.coordinacion.centro[0], MESA[1] - ZONA_POR_ID.coordinacion.centro[1]);
+  ubicar(cactus(PALETA.lavanda), 'entrevistas', 3.9, 4.0);
+  enParedFondo(relojPared(), 'entrevistas', 0, 0.85);
+  enParedFondo(cuadro(0.8, 0.55, PALETA.cielo, PALETA.coral), 'entrevistas', -3.5);
+  enParedFondo(cuadro(0.8, 0.55, PALETA.lavanda, PALETA.menta), 'entrevistas', 3.5);
+
+  // Coordinación: mesa de reunión sobre alfombra, pizarra y biblioteca.
+  const mesaLocal = [MESA[0] - ZONA_POR_ID.coordinacion.centro[0], MESA[1] - ZONA_POR_ID.coordinacion.centro[1]];
+  ubicar(alfombraRedonda(2.3, PALETA.lavanda), 'coordinacion', mesaLocal[0], mesaLocal[1]);
+  ubicar(mesaRedonda(), 'coordinacion', mesaLocal[0], mesaLocal[1]);
   ubicar(pizarra(), 'coordinacion', -3.75, 1.9, Math.PI / 2);
-  ubicar(planta(1.15), 'coordinacion', -3.8, -3.9);
+  ubicar(biblioteca(), 'coordinacion', 3.4, -4.5);
+  ubicar(plantaAlta(PALETA.amarilloSuave, 1.1), 'coordinacion', -4.0, -4.0);
+  ubicar(plantaAlta(PALETA.coral), 'coordinacion', 4.0, 4.0);
+  ubicar(cactus(PALETA.blanco), 'coordinacion', -4.0, 4.1);
+  enParedFondo(cuadro(0.9, 0.6, PALETA.amarilloSuave, PALETA.coral), 'coordinacion', -3.2);
+
+  // Servidores (fondo) y sala de descanso con una cama por agente (frente).
   [-2.9, -1.6, -0.3, 1].forEach((x) => ubicar(rack(), 'servidores', x, -3.85));
-  [-1.4, -0.1].forEach((z) => ubicar(rack(), 'servidores', -3.85, z, Math.PI / 2));
-  ubicar(escritorio({ pantalla: PALETA.cian, brillo: 0.5 }).grupo, 'servidores', 1.9, 1.8);
-  ubicar(planta(0.85), 'servidores', 3.9, -1.4);
+  ubicar(alfombra(8.4, 5.4, PALETA.lavanda), 'servidores', 0, 1.95);
+  ORDEN.forEach((id, i) => ubicar(cama(color2(id)), 'servidores', CAMAS[i][0], CAMAS[i][1]));
+  [-1.3, 1.3].forEach((x) => ubicar(lamparaPie(), 'servidores', x, 1.95));
+  ubicar(planta(0.9), 'servidores', 4.0, -2.6);
+  ubicar(plantaAlta(PALETA.lavanda, 0.9), 'servidores', 3.95, 4.05);
+  ubicar(cactus(PALETA.coral), 'servidores', -4.0, 4.1);
 
 
   /* ── Agentes ── */
@@ -477,11 +655,13 @@ async function iniciar() {
   ORDEN.forEach((id) => {
     const p = PUESTOS[id];
     const [wx, wz] = zonaMundo(p.zona, p.asiento[0], p.asiento[1]);
-    const esc3 = escritorio({ ancho: p.ancho });
+    const esc3 = escritorio({ ancho: p.ancho, colorSilla: color2(id), decorado: true });
     esc3.grupo.position.set(wx, PISO_Y, wz);
     mundo.add(esc3.grupo);
     const bot = crearBot(p.forma, COLORES[id]);
     const casa = new T.Vector3(wx - 0.5, BOT_Y, wz - 0.05);
+    const [cx, cz] = zonaMundo('servidores', ...CAMAS[ORDEN.indexOf(id)]);
+    const camaPos = new T.Vector3(cx, PISO_Y + 1.35, cz + 0.1);
     bot.raiz.position.copy(casa);
     mundo.add(bot.raiz);
     [esc3.grupo, bot.raiz].forEach((o) => {
@@ -489,7 +669,7 @@ async function iniciar() {
       clicables.push(o);
     });
     const a = {
-      id, p, bot, casa, matPantalla: esc3.matPantalla,
+      id, p, bot, casa, cama: camaPos, matPantalla: esc3.matPantalla,
       pos: casa.clone(), vuelo: null, salto: -10, fase: (ORDEN.indexOf(id) * 1.7) % 6,
       reservas: 0, ocupado: false, enChat: false, enCafe: false, sueno: 0,
       datos: { nombre: p.nombre, emoji: p.emoji, rol: '', n8n: '' },
@@ -500,6 +680,7 @@ async function iniciar() {
     a.zzz = etiqueta('o3d-zzz', '<i>z</i><i>z</i><i>Z</i>', () => a.pos.clone().add(new T.Vector3(0.5, 0.75, 0)), 'translate(-50%, -100%)');
     agentes.set(id, a);
   });
+  agentes.forEach((a) => a.pos.copy(hogar(a))); // si se abre de noche, ya están acostados
 
   /* ── Estados y colores ── */
   function calcularEstado(a) {
@@ -522,6 +703,8 @@ async function iniciar() {
       a.matPantalla.emissiveIntensity = prendida ? 0.55 : 0;
       a.tag.dataset.estado = estado;
       a.zzz.classList.toggle('on', estado === 'durmiendo');
+      // Al cambiar de turno (8 y 18 h) vuela solo a su escritorio o a su cama.
+      if (!a.reservas && !a.ocupado && !a.vuelo && !a.enChat && a.pos.distanceTo(hogar(a)) > 0.3) volar(a, hogar(a), 2.6);
     });
     refrescarFicha();
   }
@@ -559,7 +742,7 @@ async function iniciar() {
       a.vuelo = { desde: a.pos.clone(), hasta: destino.clone(), t0: performance.now() / 1000, dur: dur + Math.random() * 0.5, res };
     });
   }
-  const volverACasa = (a) => volar(a, a.casa);
+  const volverACasa = (a) => volar(a, hogar(a));
   const reservar = (a) => { a.reservas++; };
   const liberar = (a) => {
     a.reservas = Math.max(0, a.reservas - 1);
@@ -865,7 +1048,7 @@ async function iniciar() {
       const bob = Math.sin(t * (1.7 - 1.1 * a.sueno) + a.fase) * amp;
       a.bot.raiz.position.set(a.pos.x, a.pos.y + bob - 0.32 * a.sueno, a.pos.z);
       a.bot.flota.rotation.y = reduce ? 0 : Math.sin(t * 0.6 + a.fase) * 0.28 * (1 - a.sueno);
-      a.bot.flota.rotation.z = 0.24 * a.sueno;
+      a.bot.flota.rotation.z = (a.pos.distanceToSquared(a.cama) < 0.1 ? 0.42 : 0.24) * a.sueno; // en la cama se recuesta más
       const desde = ahora - a.salto;
       const salto = !reduce && desde < 0.9 ? Math.abs(Math.sin((desde / 0.9) * Math.PI * 2)) * 0.5 : 0;
       a.bot.flota.position.y = salto;
