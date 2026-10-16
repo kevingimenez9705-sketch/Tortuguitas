@@ -4,10 +4,13 @@
 // no tiene WebGL o si la 3D falla.
 // El chat avisa a la oficina 3D con eventos del documento:
 //   oficina:consulta  → empezó una consulta (el Coordinador se pone a pensar)
-//   oficina:respuesta → { agentes, anoto, ok, motivo } (quiénes ayudaron)
+//   oficina:respuesta → { agentes, anoto, cambios, ok, motivo } (quiénes ayudaron)
+//   oficina:cambio    → { fase: 'hecho' | 'error' | 'cancelado', hoja, tipo } (cambio en planilla con PIN)
 // y escucha oficina:preguntar → { texto } (botones "Preguntale" de la 3D y del tablero).
 (() => {
   const CHAT_URL = 'https://kevin9705.app.n8n.cloud/webhook/oficina-chat';
+  // Ejecuta un cambio propuesto por el Coordinador, solo con el PIN personal de alguien del equipo.
+  const ACCION_URL = 'https://kevin9705.app.n8n.cloud/webhook/oficina-accion';
   const ZONA = 'America/Argentina/Buenos_Aires';
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -320,7 +323,9 @@
       const quienes = ids.filter(id => id !== 'coordinador').map(id => AGENTES.find(a => a.id === id)).filter(Boolean)
         .map(a => `${a.emoji} ${esc(a.nombre)}`).join(' · ');
       mensaje('bot', r.respuesta || 'No tengo respuesta para eso.', quienes ? `Me ayudaron: ${quienes}` : '');
-      avisar('oficina:respuesta', { agentes: ids, anoto: !!r.anoto, ok: r.ok !== false });
+      const cambios = Array.isArray(r.acciones) ? r.acciones.filter(a => a && a.token && a.resumen).slice(0, 5) : [];
+      if (cambios.length) tarjetaCambio(cambios);
+      avisar('oficina:respuesta', { agentes: ids, anoto: !!r.anoto, cambios: cambios.length, ok: r.ok !== false });
       if (coord) {
         if (r.anoto) anotar(coord); else reunion(ids);
       }
@@ -341,6 +346,144 @@
       boton.disabled = false;
     }
   }
+
+  // ---------- Cambios en planillas: confirmar con PIN ----------
+  // El Coordinador solo propone; acá alguien del equipo lo confirma con su PIN
+  // personal (6 números). n8n vuelve a leer la fila antes de tocar la planilla.
+  // El PIN no se guarda en ningún lado.
+  let tarjetas = 0;
+  async function pedirAccion(cuerpo) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 45000);
+    try {
+      const res = await fetch(ACCION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ codigo: leerCodigo(), ...cuerpo }),
+        signal: ctrl.signal,
+      });
+      const texto = res.ok ? (await res.text()).trim() : '';
+      return texto ? JSON.parse(texto) : { ok: false, motivo: 'conexion', mensaje: 'No pude conectarme con la oficina. Probá de nuevo.' };
+    } catch (e) {
+      console.warn('Cambio en planilla', e);
+      return { ok: false, motivo: 'conexion', mensaje: 'No pude conectarme con la oficina. Probá de nuevo.' };
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  function tarjetaCambio(cambios) {
+    const id = 'ovPin' + (++tarjetas);
+    const varios = cambios.length > 1;
+    const li = document.createElement('li');
+    li.className = 'ov-msg ov-msg--bot ov-cambio';
+    li.innerHTML = `<span class="ov-msg-avatar" aria-hidden="true">🔐</span>
+      <div class="ov-msg-texto">
+        <strong>${varios ? `Confirmá estos ${cambios.length} cambios` : 'Confirmá el cambio'}</strong>
+        <ul class="ov-cambio-lista">${cambios.map(c => `<li>${esc(c.resumen)}</li>`).join('')}</ul>
+        <form class="ov-cambio-form" novalidate>
+          <label class="ov-cambio-label" for="${id}">Tu PIN personal</label>
+          <div class="ov-cambio-fila">
+            <input id="${id}" type="password" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="6 números" />
+            <button type="submit" class="btn-primary">Confirmar</button>
+            <button type="button" class="ov-cambio-cancelar">Cancelar</button>
+          </div>
+        </form>
+        <p class="ov-cambio-aviso" role="status"></p>
+        <p class="ov-cambio-estado"></p>
+      </div>`;
+    lista.appendChild(li);
+    lista.scrollTop = lista.scrollHeight;
+
+    const formPin = li.querySelector('form');
+    const pin = li.querySelector('input');
+    const estado = li.querySelector('.ov-cambio-estado'); // cuenta regresiva
+    const aviso = li.querySelector('.ov-cambio-aviso'); // errores y resultado
+    const items = [...li.querySelectorAll('.ov-cambio-lista li')];
+    const pendientes = new Set(cambios.map((c, i) => i));
+    const vence = Math.min(...cambios.map(c => Date.parse(c.expira) || Date.now() + 10 * 60000));
+    let trabajando = false;
+
+    const marcar = (i, clase, texto) => {
+      pendientes.delete(i);
+      items[i].classList.add(clase);
+      if (texto) items[i].insertAdjacentHTML('beforeend', `<span class="ov-cambio-nota">${esc(texto)}</span>`);
+    };
+    const cerrar = (texto) => {
+      clearInterval(cuenta);
+      formPin.remove();
+      estado.remove();
+      aviso.textContent = texto;
+      li.classList.add('cerrada');
+      if (li === lista.lastElementChild) lista.scrollTop = lista.scrollHeight;
+    };
+    const contar = () => {
+      if (trabajando) return;
+      const s = Math.round((vence - Date.now()) / 1000);
+      if (s <= 0) {
+        cambios.forEach((c, i) => { if (pendientes.has(i)) marcar(i, 'vencido'); });
+        cerrar('⏱️ Pasaron 10 minutos y no se hizo nada. Si todavía hace falta, pedíselo de nuevo al Coordinador.');
+        return;
+      }
+      estado.textContent = `Vence en ${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}.${varios ? ' Un mismo PIN confirma todos.' : ''}`;
+    };
+    const cuenta = setInterval(contar, 1000);
+    contar();
+    setTimeout(() => pin.focus({ preventScroll: true }), 50);
+
+    const bloquear = (si) => { trabajando = si; formPin.querySelectorAll('input, button').forEach(x => { x.disabled = si; }); };
+
+    formPin.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const valor = pin.value.replace(/\D/g, '');
+      if (!/^\d{6}$/.test(valor)) { aviso.textContent = 'El PIN tiene 6 números.'; pin.focus(); return; }
+      bloquear(true);
+      aviso.textContent = varios ? 'Haciendo los cambios…' : 'Haciendo el cambio…';
+      let problema = '';
+      for (const i of [...pendientes]) {
+        const c = cambios[i];
+        const r = await pedirAccion({ token: c.token, pin: valor });
+        if (r.ok && r.hecho) {
+          marcar(i, 'hecho');
+          avisar('oficina:cambio', { fase: 'hecho', hoja: r.hoja || c.hoja, tipo: r.tipo || c.tipo });
+        } else if (r.motivo === 'pin' || r.motivo === 'bloqueado' || r.motivo === 'conexion') {
+          if (r.motivo === 'pin' && r.restantes === 0) marcar(i, 'cancelado', 'Cancelado por PIN incorrecto');
+          problema = r.mensaje || 'PIN incorrecto.';
+          break;
+        } else {
+          marcar(i, 'fallo', r.mensaje || 'No se pudo hacer.');
+          avisar('oficina:cambio', { fase: 'error', hoja: c.hoja, tipo: c.tipo });
+        }
+      }
+      pin.value = '';
+      bloquear(false);
+      if (!pendientes.size) {
+        const hechos = items.filter(x => x.classList.contains('hecho')).length;
+        cerrar(hechos === cambios.length
+          ? (varios ? '✅ Listo, hice los cambios.' : '✅ Listo, cambio hecho.') + (cambios.some(c => c.tipo === 'borrar') ? ' Lo borrado quedó en la pestaña Papelera.' : '') + ' El tablero se actualiza en un ratito.'
+          : hechos ? `Hice ${hechos} de ${cambios.length}. Mirá el detalle arriba.` : 'No se hizo ningún cambio. Mirá el detalle arriba.');
+      } else {
+        aviso.textContent = problema || 'Quedan cambios sin confirmar.';
+        pin.focus();
+      }
+    });
+
+    li.querySelector('.ov-cambio-cancelar').addEventListener('click', async () => {
+      bloquear(true);
+      aviso.textContent = 'Cancelando…';
+      await Promise.all([...pendientes].map(i => pedirAccion({ token: cambios[i].token, cancelar: true })));
+      [...pendientes].forEach(i => marcar(i, 'cancelado'));
+      avisar('oficina:cambio', { fase: 'cancelado', hoja: cambios[0].hoja });
+      cerrar('Cancelado: no toqué nada.');
+    });
+  }
+
+  // En la oficina 2D de respaldo, el agente avisa cómo salió el cambio.
+  document.addEventListener('oficina:cambio', e => {
+    const { fase, hoja } = e.detail || {};
+    const b = escena2D && bots.get(hoja === 'tareas' ? 'coordinador' : 'vacantes');
+    if (b) decir(b, fase === 'hecho' ? '✅ ¡Planilla actualizada!' : fase === 'cancelado' ? '👌 Cancelado' : '⚠️ No se pudo hacer el cambio', 4000);
+  });
 
   // ---------- Arranque ----------
   // Oficina 2D de respaldo: oficina-3d.js marca window.__oficina3d antes de que
@@ -371,7 +514,7 @@
   });
 
   if (lista && form) {
-    mensaje('bot', '¡Hola! Soy el Coordinador de la oficina. Preguntame por postulaciones, búsquedas, entrevistas, ingresos o qué hizo cada agente. También anoto comentarios del equipo para los agentes: los recordamos 7 días.');
+    mensaje('bot', '¡Hola! Soy el Coordinador de la oficina. Preguntame por postulaciones, búsquedas, entrevistas, ingresos o qué hizo cada agente. También anoto comentarios del equipo (los recordamos 7 días) y puedo preparar cambios en las planillas de solicitudes y tareas: los confirmás con tu PIN.');
     form.addEventListener('submit', e => { e.preventDefault(); enviar(input.value); });
     formCodigo.addEventListener('submit', e => {
       e.preventDefault();
