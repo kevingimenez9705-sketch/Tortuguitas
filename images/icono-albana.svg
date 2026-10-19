@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="24 26 152 152">
+  <!-- April (Albana) con el estilo emblema de las tortugas del escudo:
+       trazo oscuro grueso, colores planos con sombra y brillo, ceño
+       fruncido y dientes apretados. Mono amarillo, el color de Albana. -->
+  <defs>
+    <radialGradient id="f" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#4a5a4f"/>
+      <stop offset="1" stop-color="#151d18"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="200" height="200" fill="url(#f)"/>
+  <path d="M10 40 L60 10 M140 10 L190 40" stroke="#6d7a80" stroke-width="10" stroke-linecap="round"/>
+  <g stroke="#140f0b" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- pelo de atrás -->
+    <path d="M30 152 C16 96 34 32 100 28 C166 32 184 96 170 152 C164 174 146 180 136 172 L64 172 C54 180 36 174 30 152 Z" fill="#c8431d"/>
+    <!-- mono amarillo -->
+    <path d="M16 206 C24 172 52 160 74 158 L100 176 L126 158 C148 160 176 172 184 206 Z" fill="#e6b422"/>
+    <path d="M74 158 L100 176 L126 158 L118 150 L100 162 L82 150 Z" fill="#b98d12"/>
+    <!-- cuello y cara -->
+    <path d="M84 144 L84 164 L100 174 L116 164 L116 144 Z" fill="#d99c78"/>
+    <path d="M52 92 C52 56 148 56 148 92 C148 126 126 156 100 158 C74 156 52 126 52 92 Z" fill="#f2c09a"/>
+  </g>
+  <!-- mechones, sombras y brillos -->
+  <path d="M40 120 C36 140 40 156 50 166 M160 120 C164 140 160 156 150 166" fill="none" stroke="#8f2c12" stroke-width="5" stroke-linecap="round"/>
+  <path d="M140 104 C136 130 122 148 100 154 C122 140 134 124 140 104 Z" fill="#d99c78"/>
+  <path d="M60 88 C60 80 64 74 70 70" fill="none" stroke="#fbdcc0" stroke-width="5" stroke-linecap="round"/>
+  <g stroke="#140f0b" stroke-linejoin="round" stroke-linecap="round">
+    <!-- flequillo -->
+    <path d="M46 98 C42 54 74 38 100 38 C130 38 160 54 154 98 L142 74 L130 90 L120 66 L106 86 L94 64 L82 88 L70 70 Z" fill="#e0582a" stroke-width="6"/>
+    <path d="M60 64 C72 50 90 46 106 48" fill="none" stroke="#f59a62" stroke-width="5"/>
+    <!-- ojos enojados -->
+    <path d="M62 100 L92 108 C86 116 70 116 62 100 Z" fill="#fff" stroke-width="5"/>
+    <path d="M138 100 L108 108 C114 116 130 116 138 100 Z" fill="#fff" stroke-width="5"/>
+    <circle cx="81" cy="109" r="5" fill="#2e6b4f" stroke-width="2.5"/>
+    <circle cx="119" cy="109" r="5" fill="#2e6b4f" stroke-width="2.5"/>
+    <!-- cejas -->
+    <path d="M56 88 L94 102" stroke="#7a2412" stroke-width="8"/>
+    <path d="M144 88 L106 102" stroke="#7a2412" stroke-width="8"/>
+    <!-- nariz -->
+    <path d="M100 114 L95 128 L104 128" fill="none" stroke-width="4"/>
+    <!-- dientes apretados -->
+    <path d="M84 136 C92 132 108 132 116 136 L113 146 C106 150 94 150 87 146 Z" fill="#f4efe4" stroke-width="4.5"/>
+    <path d="M93 134 L93 148 M100 133 L100 149 M107 134 L107 148 M86 141 L114 141" stroke-width="2.5"/>
+    <path d="M84 136 C92 130 108 130 116 136" fill="none" stroke="#c45a52" stroke-width="3"/>
+  </g>
+  <!-- cierre del mono -->
+  <path d="M100 178 L100 206" stroke="#7a5a10" stroke-width="4"/>
+</svg>

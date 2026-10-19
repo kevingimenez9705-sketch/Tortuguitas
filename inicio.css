@@ -110,8 +110,9 @@ body.inicio{
   transform:translate(-50%, -50%) translateX(calc(var(--i) * 64px)) translateY(calc(var(--i) * var(--i) * 5px - 6px)) rotate(calc(var(--i) * 8deg));
 }
 
-/* Clippy en el centro y el equipo girando alrededor: Splinter, las 4
-   tortugas del escudo y April (images/icono-*.png), con un aro de su color. */
+/* Clippy en el centro y el equipo girando alrededor: las 4 tortugas del
+   escudo (images/icono-*.png) y Splinter y April dibujados en su mismo estilo
+   (icono-kevin.svg, icono-albana.svg), con un aro de su color. */
 .inicio-clippy{
   position:absolute;
   left:50%;top:52%;
