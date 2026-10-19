@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="es-AR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Elegí tu personaje · Equipo Tortuguitas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bungee&display=swap" />
+<link rel="stylesheet" href="styles.css?v=20261016b" />
+<link rel="stylesheet" href="personajes.css?v=20261019" />
+</head>
+<body class="pj">
+<script src="transition.js?v=20261001d"></script>
+
+<!-- 1. Selección de personaje -->
+<main class="pj-select" id="pjSelect">
+  <header class="pj-top">
+    <a class="pj-volver" href="index.html">← Equipo</a>
+    <h1 class="pj-titulo">Elegí tu personaje</h1>
+    <button class="pj-sonido" id="pjSonido" type="button" aria-pressed="true" title="Sonido">🔊</button>
+  </header>
+
+  <section class="pj-preview" id="pjPreview" aria-live="polite">
+    <div class="pj-arte" id="pjArte" role="img" aria-label=""></div>
+    <div class="pj-ficha">
+      <span class="pj-jugador">P1</span>
+      <h2 class="pj-nombre" id="pjNombre"></h2>
+      <p class="pj-puesto" id="pjPuesto"></p>
+      <p class="pj-frase" id="pjFrase"></p>
+      <dl class="pj-stats" id="pjStats"></dl>
+      <p class="pj-periodo" id="pjPeriodoSel"></p>
+    </div>
+  </section>
+
+  <div class="pj-slots" id="pjSlots" role="radiogroup" aria-label="Integrantes del equipo"></div>
+
+  <div class="pj-acciones">
+    <button class="pj-jugar" id="pjJugar" type="button">¡Elegir!</button>
+    <p class="pj-tip" id="pjTip">← → para elegir · Enter para jugar</p>
+  </div>
+</main>
+
+<!-- 2. Azotea 3D del personaje elegido -->
+<section class="pj-mundo" id="pjMundo" hidden aria-label="Azotea del personaje">
+  <div class="pj-canvas" id="pjCanvas"></div>
+  <div class="pj-capa" id="pjCapa"></div>
+
+  <header class="pj-hud">
+    <div class="pj-hud-quien pj-glass">
+      <img class="pj-hud-foto" id="pjHudFoto" alt="" />
+      <div>
+        <strong id="pjHudNombre"></strong>
+        <button class="pj-cambiar" id="pjCambiar" type="button">Cambiar personaje</button>
+      </div>
+    </div>
+    <label class="pj-hud-periodo pj-glass">
+      <span>Período</span>
+      <select id="pjPeriodo">
+        <option value="1">Mes actual</option>
+        <option value="3">3 meses</option>
+        <option value="6">6 meses</option>
+        <option value="12" selected>12 meses</option>
+        <option value="historico">Histórico</option>
+      </select>
+    </label>
+  </header>
+
+  <nav class="pj-paradas pj-glass" id="pjParadas" aria-label="Paradas de la azotea"></nav>
+
+  <aside class="pj-panel pj-glass pj-tarjeta" id="pjPanel" hidden aria-live="polite">
+    <button class="pj-panel-cerrar" id="pjPanelCerrar" type="button" aria-label="Cerrar panel">×</button>
+    <div id="pjPanelCuerpo"></div>
+  </aside>
+
+  <div class="pj-joy" id="pjJoy" hidden><div class="pj-joy-perilla"></div></div>
+  <p class="pj-ayuda" id="pjAyuda"></p>
+  <div class="pj-plano" id="pjPlano" hidden></div>
+</section>
+
+<!-- 3. Aparición: la foto vuela al centro y sale el personaje -->
+<div class="pj-aparicion" id="pjAparicion" hidden><img alt="" /></div>
+<div class="pj-tooltip" id="pjTooltip" hidden></div>
+
+<script src="data.js?v=20261019"></script>
+<script type="module" src="personajes.js?v=20261019"></script>
+</body>
+</html>
