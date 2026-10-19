@@ -4,7 +4,8 @@
 // 30 minutos con el contenido de Tareas grupales y TAREAS GRUPALES
 // (Solicitudes Sabores/Extremas).
 window.SB = (() => {
-  const URL = 'https://gkotckcvookkbbtbctyp.supabase.co/rest/v1/';
+  const BASE = 'https://gkotckcvookkbbtbctyp.supabase.co';
+  const URL = BASE + '/rest/v1/';
   const KEY = 'sb_publishable_iu66s54UVbg5AsF-AoekPA_6qKUevVH';
 
   async function pedir(path, body, ms = 8000) {
@@ -41,5 +42,6 @@ window.SB = (() => {
   const norm = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   const primerNombre = (s) => norm(s).split(/\s+/)[0] || '';
 
-  return { pedir, hace, norm, primerNombre };
+  // BASE y KEY: también los usa sala.js para la sala multijugador (Realtime).
+  return { pedir, hace, norm, primerNombre, BASE, KEY };
 })();

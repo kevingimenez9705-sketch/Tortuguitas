@@ -273,21 +273,46 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-slot[aria-checked="true"]{
   z-index:1;
   transform:translateY(-6px);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 2px #ffcf3f, 0 0 26px -2px var(--sc), 0 8px 0 #0c0a07;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 2px var(--pc, #ffcf3f), 0 0 26px -2px var(--sc), 0 8px 0 #0c0a07;
 }
 .pj-slot[aria-checked="true"] img,.pj-slot[aria-checked="true"] .pj-slot-mas{filter:none;}
-.pj-slot[aria-checked="true"] .pj-slot-pantalla::after{
-  content:"1P";
+/* Pantallita: "1P" donde está mi cursor y "2P"… donde está el de los otros
+   (data-p y --pp los pone personajes.js). */
+.pj-slot.pj--marcado .pj-slot-pantalla::after{
+  content:attr(data-p);
   position:absolute;
   inset:0;
   display:grid;
   place-items:center;
   font-family:var(--pj-pixel);
   font-size:9px;
-  color:#ffcf3f;
-  text-shadow:0 0 6px #ff8a00;
-  animation:pj-parpadeo 1s steps(2) infinite;
+  white-space:nowrap;
+  color:var(--pp, #ffcf3f);
+  text-shadow:0 0 6px var(--pp, #ff8a00);
 }
+.pj-slot.pj--titila .pj-slot-pantalla::after{animation:pj-parpadeo 1s steps(2) infinite;}
+/* Personaje que ya está jugando otro: gris y con cartel. */
+.pj-slot-jugando{display:none;}
+.pj-slot.pj--ocupado .pj-slot-jugando{
+  display:block;
+  position:absolute;
+  left:50%;top:52%;
+  z-index:2;
+  translate:-50% -50%;
+  rotate:-10deg;
+  padding:3px 8px 2px;
+  border-radius:6px;
+  border:2px solid var(--po, var(--pp));
+  background:rgba(7,11,24,.85);
+  font-family:var(--pj-pixel);
+  font-size:8px;
+  text-transform:uppercase;
+  color:var(--po, var(--pp));
+  pointer-events:none;
+}
+.pj-slot.pj--ocupado img,.pj-slot.pj--ocupado .pj-slot-mas{filter:grayscale(1) brightness(.45) !important;}
+.pj-slot.pj--no{animation:pj-no .35s ease;}
+@keyframes pj-no{25%{translate:-6px 0;}50%{translate:6px 0;}75%{translate:-3px 0;}}
 .pj-slot:focus-visible{outline:3px solid #fff;outline-offset:3px;}
 .pj-slot.pj--elegido{animation:pj-flash .5s steps(2) 2;}
 @keyframes pj-parpadeo{50%{opacity:.25;}}
@@ -328,7 +353,7 @@ body.pj.pj--jugando{overflow:hidden;}
   .pj-slot{padding:6px 5px 7px;gap:5px;border-radius:22px 22px 14px 14px;}
   .pj-slot-marco{border-radius:36px 36px 10px 10px / 28px 28px 10px 10px;}
   .pj-slot-pantalla{height:14px;}
-  .pj-slot[aria-checked="true"] .pj-slot-pantalla::after{font-size:7px;}
+  .pj-slot.pj--marcado .pj-slot-pantalla::after{font-size:7px;}
   .pj-slot-nombre{font-size:10px;padding:2px 4px 1px;}
   .pj-jugar{width:100%;}
 }
@@ -632,5 +657,98 @@ body.pj.pj--jugando{overflow:hidden;}
 
 @media (prefers-reduced-motion: reduce){
   .pj-slot,.pj-arte,.pj-arte::after,.pj-ficha > *,.pj-stat-barra i,.pj-periodo,.pj-panel,.pj-etiqueta{transition:none !important;animation:none !important;}
-  .pj-slot[aria-checked="true"] .pj-slot-pantalla::after{animation:none;}
+  .pj-slot.pj--titila .pj-slot-pantalla::after,.pj-aviso{animation:none !important;}
+}
+
+/* ───────────── 4. Multijugador ───────────── */
+/* Chip "1P"/"2P" con el color de cada jugador (--pc). */
+.pj-p{
+  display:inline-block;
+  margin-right:6px;
+  padding:3px 6px 2px;
+  border-radius:6px;
+  background:var(--pc, #ffcf3f);
+  color:#0b1020;
+  font-family:var(--pj-pixel);
+  font-size:9px;
+  line-height:1;
+  vertical-align:2px;
+}
+/* Quién está conectado, arriba de la selección. */
+.pj-sala{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:-6px;}
+.pj-sala-j{
+  display:inline-flex;align-items:center;
+  padding:5px 12px 5px 6px;
+  border-radius:999px;
+  border:1px solid var(--pj-linea);
+  background:rgba(12,16,34,.7);
+  font-size:13px;
+  color:var(--pj-texto-2);
+}
+/* Aviso flotante: "2P llegó a la azotea…". */
+.pj-aviso{
+  position:fixed;
+  left:50%;top:14px;
+  z-index:40;
+  translate:-50% 0;
+  max-width:calc(100% - 32px);
+  padding:10px 16px;
+  border-radius:999px;
+  border:2px solid var(--pc, #fff);
+  background:rgba(7,11,24,.92);
+  color:#fff;
+  font-weight:700;
+  font-size:14px;
+  text-align:center;
+  box-shadow:0 10px 30px -10px var(--pc, #000);
+  animation:pj-aviso-entra .3s cubic-bezier(.3,1.4,.5,1);
+}
+.pj-aviso.pj--sale{animation:pj-aviso-sale .3s ease forwards;}
+@keyframes pj-aviso-entra{from{opacity:0;translate:-50% -16px;}}
+@keyframes pj-aviso-sale{to{opacity:0;translate:-50% -16px;}}
+/* Cartel del otro jugador en la azotea. */
+.pj-remoto{
+  position:absolute;left:0;top:0;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:4px 10px 4px 5px;
+  border-radius:12px;
+  border:2px solid var(--pc);
+  background:rgba(12,16,34,.88);
+  font-size:12px;font-weight:700;
+  color:#fff;
+  white-space:nowrap;
+  pointer-events:none;
+  box-shadow:0 0 16px -4px var(--pc);
+  will-change:transform;
+}
+.pj-remoto small{font-size:10.5px;font-weight:600;color:var(--pj-texto-2);}
+.pj-remoto.pj--oculta{visibility:hidden;}
+.pj-globo--jugador{border:2px solid var(--pc, #fff);}
+/* Gestos para los otros jugadores. */
+.pj-gestos{
+  position:absolute;
+  right:12px;bottom:84px;
+  display:flex;gap:6px;
+  padding:6px;
+}
+.pj-gesto{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  min-width:58px;
+  padding:6px 8px;
+  border:1px solid transparent;
+  border-radius:10px;
+  background:transparent;
+  cursor:pointer;
+}
+.pj-gesto span{font-size:22px;line-height:1;}
+.pj-gesto small{font-size:10px;color:var(--pj-texto-2);white-space:nowrap;max-width:76px;overflow:hidden;text-overflow:ellipsis;}
+.pj-gesto:hover{background:rgba(255,255,255,.06);border-color:var(--pj-linea);}
+.pj-gesto:active{scale:.94;}
+.pj-gesto:focus-visible{outline:2px solid #fff;outline-offset:1px;}
+@media (max-width:760px){
+  .pj-gestos{right:8px;bottom:calc(150px + env(safe-area-inset-bottom));flex-direction:column;}
+  .pj-gesto{min-width:0;padding:6px;}
+  .pj-gesto small{display:none;}
+  .pj-mundo.pj--con-panel .pj-gestos{display:none;}
+  .pj-sala-j{font-size:12px;}
 }

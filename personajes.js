@@ -14,12 +14,20 @@
 //    al dashboard completo. Los demás integrantes esperan en la azotea: se
 //    dan vuelta y saludan cuando te acercás, y tocándolos se juega con ellos.
 //
+// 4. Multijugador (sala.js): los que abren la página a la vez entran a la
+//    misma sala. El primero es 1P, el segundo 2P… En la selección se ve el
+//    cursor del otro y los personajes que ya se están jugando no se pueden
+//    elegir. En la azotea el otro aparece con su personaje (en lugar del que
+//    esperaba), camina en vivo y se pueden mandar gestos (teclas 1 a 4).
+//
 // Los números salen de data.js con los mismos criterios que app.js:
 // presentismo sin las altas sin dato de ingreso, cumplimiento = enviados /
 // vacantes (tope 100%), y si el período no tiene cumplimiento cargado se usan
 // todos los meses disponibles. El ranking compara presentismo y cumplimiento
 // (nunca volumen de altas), igual que el resumen del año.
 // Sin WebGL, o si three.js no carga, las paradas se muestran como tarjetas.
+import { crearSala } from './sala.js?v=20261019';
+
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
 const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
 
@@ -57,6 +65,17 @@ const PARADAS = [
   { id: 'ranking', icono: '🏆', titulo: 'Ranking', pos: [-3.6, 5.8], objeto: 'podio' },
   { id: 'guarida', icono: '🕳️', titulo: 'Dashboard completo', pos: [3.6, 5.8], objeto: 'alcantarilla', lejos: 0 },
 ];
+
+// Multijugador: color de cada jugador (como en los arcades) y los gestos.
+const COLOR_P = ['#ffcf3f', '#4fd6ff', '#7dff8a', '#ff7ad9'];
+const colorP = (n) => COLOR_P[((n || 1) - 1) % COLOR_P.length];
+const tagP = (n) => `${n || 1}P`;
+const GESTOS = {
+  hola: { e: '👋', t: '¡Hola!', corto: 'Hola', tecla: '1' },
+  cinco: { e: '✋', t: '¡Chocá los cinco!', corto: 'Choque', tecla: '2' },
+  cafe: { e: '☕', t: '¿Vamos por un café?', corto: 'Café', tecla: '3' },
+  bien: { e: '🎉', t: '¡Bien ahí!', corto: '¡Bien!', tecla: '4' },
+};
 
 /* ───────────────────────── Utilidades ───────────────────────── */
 
@@ -228,6 +247,7 @@ function pintarSlots() {
   slotsEl.innerHTML = EQUIPO.map((m, i) => `
     <button class="pj-slot" type="button" role="radio" data-i="${i}" aria-checked="false" aria-label="${esc(m.label)}" style="--sc:${paraOscuro(m.color, '#070b18', 3)};--abanico:${i - (EQUIPO.length - 1) / 2};--abanico-y:${Math.pow(i - (EQUIPO.length - 1) / 2, 2) * 3}">
       <span class="pj-slot-pantalla" aria-hidden="true"></span>
+      <span class="pj-slot-jugando" aria-hidden="true">Jugando</span>
       <span class="pj-slot-marco">${m.retrato ? `<img src="${esc(m.retrato)}" data-normal="${esc(m.retrato)}" data-elegido="${esc(m.retratoElegido || m.retrato)}" alt="" />` : '<span class="pj-slot-mas">+9</span>'}</span>
       <span class="pj-slot-nombre" aria-hidden="true">${esc(m.label.split(' ')[0])}</span>
     </button>`).join('');
@@ -237,6 +257,98 @@ function pintarSlots() {
     b.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && i !== indice) previsualizar(i, true); });
     b.addEventListener('click', () => { if (i === indice) confirmar(); else previsualizar(i, true); });
   });
+}
+
+/* ── Multijugador en la selección ── */
+let sala = null;
+const avisoEl = $('#pjAviso');
+let avisoT = 0;
+function aviso(texto, color = '#ffffff') {
+  avisoEl.textContent = texto;
+  avisoEl.style.setProperty('--pc', color);
+  avisoEl.hidden = false;
+  avisoEl.classList.remove('pj--sale');
+  clearTimeout(avisoT);
+  avisoT = setTimeout(() => avisoEl.classList.add('pj--sale'), 3200);
+}
+avisoEl.addEventListener('animationend', () => { if (avisoEl.classList.contains('pj--sale')) avisoEl.hidden = true; });
+
+// Lo que llega de la sala se valida: solo claves conocidas y números.
+const CLAVES = new Set(EQUIPO.map((m) => m.key));
+function limpiarJugador(o) {
+  const n = Number.isInteger(o.n) && o.n > 0 && o.n < 10 ? o.n : null;
+  if (!n) return null;
+  return {
+    id: String(o.id).slice(0, 64), n,
+    en: o.en === 'azotea' ? 'azotea' : 'seleccion',
+    mira: CLAVES.has(o.mira) ? o.mira : null,
+    personaje: CLAVES.has(o.personaje) ? o.personaje : null,
+    parada: PARADAS.some((p) => p.id === o.parada) ? o.parada : null,
+    desde: Number(o.desde) || 0,
+  };
+}
+let jugadores = []; // los otros, ya validados
+const enAzotea = () => jugadores.filter((o) => o.en === 'azotea' && o.personaje);
+const ocupadoPor = (key) => enAzotea().find((o) => o.personaje === key) || null;
+const primerNombre = (key) => EQUIPO.find((m) => m.key === key).label.split(' ')[0];
+const miN = () => (sala && sala.yo.n) || 1;
+
+function pintarSala() {
+  const yo = miN();
+  document.body.style.setProperty('--pc', colorP(yo));
+  $('.pj-jugador').textContent = tagP(yo);
+  const hudP = $('#pjHudP');
+  hudP.textContent = tagP(yo);
+  hudP.hidden = !jugadores.length;
+  // Quién está conectado (solo si hay alguien más).
+  const barra = $('#pjSala');
+  barra.hidden = !jugadores.length;
+  barra.innerHTML = [{ n: yo, yo: true }, ...[...jugadores].sort((a, b) => a.n - b.n)].map((o) => {
+    const que = o.yo ? 'vos' : o.en === 'azotea' && o.personaje ? `en la azotea con ${esc(primerNombre(o.personaje))}` : o.mira ? `mirando a ${esc(primerNombre(o.mira))}` : 'eligiendo…';
+    return `<span class="pj-sala-j"><b class="pj-p" style="--pc:${colorP(o.n)}">${tagP(o.n)}</b>${que}</span>`;
+  }).join('');
+  // Marcas en los casilleros: dónde está cada uno y qué personajes se están jugando.
+  slotsEl.querySelectorAll('.pj-slot').forEach((b, k) => {
+    const key = EQUIPO[k].key;
+    const tags = [];
+    if (k === indice) tags.push({ n: yo, mio: true });
+    for (const o of jugadores) {
+      if ((o.en === 'azotea' && o.personaje === key) || (o.en === 'seleccion' && o.mira === key)) tags.push({ n: o.n });
+    }
+    const pantallita = b.querySelector('.pj-slot-pantalla');
+    pantallita.dataset.p = tags.map((t) => tagP(t.n)).join(' ');
+    b.style.setProperty('--pp', colorP((tags.find((t) => t.mio) || tags[0] || { n: yo }).n));
+    b.classList.toggle('pj--marcado', tags.length > 0);
+    b.classList.toggle('pj--titila', tags.some((t) => t.mio));
+    const ocupado = ocupadoPor(key);
+    b.classList.toggle('pj--ocupado', !!ocupado);
+    if (ocupado) b.style.setProperty('--po', colorP(ocupado.n));
+    b.setAttribute('aria-label', EQUIPO[k].label + (ocupado ? ` (lo está jugando ${tagP(ocupado.n)})` : ''));
+  });
+}
+
+let enAzoteaAntes = new Map();
+function alCambiarSala(otros) {
+  jugadores = [...otros.values()].map(limpiarJugador).filter(Boolean);
+  // Avisos de quién llega o se va de la azotea.
+  const ahora = new Map(enAzotea().map((o) => [o.id, o]));
+  for (const [id, o] of ahora) {
+    const antes = enAzoteaAntes.get(id);
+    if (!antes) aviso(`${tagP(o.n)} llegó a la azotea con ${primerNombre(o.personaje)}`, colorP(o.n));
+    else if (antes.personaje !== o.personaje) aviso(`${tagP(o.n)} ahora juega con ${primerNombre(o.personaje)}`, colorP(o.n));
+  }
+  for (const [id, o] of enAzoteaAntes) if (!ahora.has(id) && !jugadores.some((j) => j.id === id && j.en === 'azotea')) aviso(`${tagP(o.n)} salió de la azotea`, colorP(o.n));
+  enAzoteaAntes = ahora;
+  // Dos con el mismo personaje (eligieron a la vez): lo conserva el que llegó primero.
+  if (actual && !mundoEl.hidden && sala) {
+    const otro = ocupadoPor(actual.key);
+    if (otro && (otro.desde < sala.yo.desde || (otro.desde === sala.yo.desde && otro.id < sala.yo.id))) {
+      aviso(`${tagP(otro.n)} ya está jugando con ${primerNombre(actual.key)}. Elegí otro personaje.`, colorP(otro.n));
+      volverASeleccion();
+    }
+  }
+  pintarSala();
+  if (Mundo.ok) Mundo.sincronizarRemotos(enAzotea());
 }
 
 // Stats de la selección: 5 competencias de la evaluación real (competencias.js,
@@ -265,6 +377,8 @@ function previsualizar(i, sonar) {
     const img = b.querySelector('img');
     if (img) img.src = k === indice ? img.dataset.elegido : img.dataset.normal;
   });
+  pintarSala();
+  if (sala && pantalla.hidden === false) sala.actualizar({ mira: m.key });
   const prev = $('#pjPreview');
   const arte = $('#pjArte');
   if (!reduce) prev.classList.add('pj--cambio');
@@ -314,9 +428,17 @@ if (tactil) $('#pjTip').textContent = 'Tocá una foto para elegir · tocala de n
 let confirmando = false;
 async function confirmar() {
   if (confirmando) return;
-  confirmando = true;
   const m = EQUIPO[indice];
   const slot = slotsEl.querySelectorAll('.pj-slot')[indice];
+  const otro = ocupadoPor(m.key);
+  if (otro) {
+    aviso(`${tagP(otro.n)} ya está jugando con ${primerNombre(m.key)}. Elegí otro personaje.`, colorP(otro.n));
+    slot.classList.remove('pj--no');
+    void slot.offsetWidth;
+    slot.classList.add('pj--no');
+    return;
+  }
+  confirmando = true;
   Sonido.elegir();
   history.replaceState(null, '', `?miembro=${m.key}`);
   const listo = prepararMundo();
@@ -382,6 +504,7 @@ const ayuda = $('#pjAyuda');
 let ayudaMostrada = false;
 function entrarAlMundo(m, con3d) {
   actual = m;
+  sala?.actualizar({ en: 'azotea', personaje: m.key, parada: null, mira: null, desde: Date.now() });
   tematizar(m);
   datos = calcular(m, periodo);
   pantalla.hidden = true;
@@ -394,7 +517,8 @@ function entrarAlMundo(m, con3d) {
   pintarNav();
   cerrarPanel();
   if (con3d) {
-    Mundo.iniciarPersonaje(m);
+    Mundo.iniciarPersonaje(m, miN());
+    Mundo.sincronizarRemotos(enAzotea());
     pintarEtiquetas();
     $('#pjJoy').hidden = !tactil;
     if (!ayudaMostrada) {
@@ -416,16 +540,18 @@ function cambiarA(m) {
   entrarAlMundo(m, true);
 }
 
-$('#pjCambiar').addEventListener('click', () => {
+function volverASeleccion() {
   Mundo.pausar();
   cerrarPanel();
   mundoEl.hidden = true;
   pantalla.hidden = false;
   document.body.classList.remove('pj--jugando');
   history.replaceState(null, '', location.pathname);
+  sala?.actualizar({ en: 'seleccion', personaje: null, parada: null, mira: EQUIPO[indice].key });
   previsualizar(indice, false);
   slotsEl.querySelectorAll('.pj-slot')[indice].focus({ preventScroll: true });
-});
+}
+$('#pjCambiar').addEventListener('click', volverASeleccion);
 
 $('#pjPeriodo').addEventListener('change', (e) => {
   periodo = e.target.value;
@@ -472,6 +598,7 @@ function activarParada(id) {
   if (id === paradaActiva) return;
   if (cerradaAMano && cerradaAMano !== id) cerradaAMano = null;
   paradaActiva = id;
+  sala?.actualizar({ parada: id });
   navParadas.querySelectorAll('button').forEach((b) => b.setAttribute('aria-current', String(b.dataset.id === id)));
   capaEtiquetas.querySelectorAll('.pj-etiqueta').forEach((el) => el.classList.toggle('pj--activa', el.dataset.id === id));
   if (id) {
@@ -1033,6 +1160,17 @@ const Mundo = (() => {
     x, z, libre: true, yaw: Math.abs(x) > Math.abs(z) ? Math.sign(x) * Math.PI / 2 : (z > 0 ? 0 : Math.PI),
   }));
   const globo = { el: null, n: null, ultimo: null, hasta: 0, proximo: 0, v: null };
+  // Multijugador: los otros jugadores (id → personaje que mueve la red), sus
+  // últimas posiciones, los globitos de gestos y las chispas del choque.
+  const remotos = new Map();
+  const ultimasPos = new Map();
+  const burbujas = [];
+  const chispazos = [];
+  let miKey = null;
+  let saludoYo = 0;
+  let alMoverme = null;
+  let enviado = { t: 0, x: 0, z: 0, c: false };
+  let forzarPos = false;
   const camPos = { x: 0, y: 0, z: 0 };
   const camMira = { x: 0, y: 0, z: 0 };
 
@@ -1299,7 +1437,8 @@ const Mundo = (() => {
     anclas.push({ el, v: new T.Vector3(ox, altura, oz) });
   }
 
-  function iniciarPersonaje(m) {
+  // n: número de jugador; cada uno aparece en su lugar para no pisarse.
+  function iniciarPersonaje(m, n = 1) {
     if (P) {
       escena.remove(P.raiz);
       P.raiz.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
@@ -1311,7 +1450,7 @@ const Mundo = (() => {
     const acento = paraOscuro(m.color, '#262c47', 3);
     Object.values(anillos).forEach((a) => a.material.color.set(acento));
     marcador.material.color.set(acento);
-    pos.x = 0; pos.z = 1.2;
+    pos.x = [0, 1.5, -1.5, 3][(n - 1) % 4]; pos.z = 1.2;
     yaw = yawObjetivo = 0;
     destino = paradaDestino = null;
     teclas.clear();
@@ -1333,47 +1472,236 @@ const Mundo = (() => {
     lienzo.focus({ preventScroll: true });
   }
 
+  function quitarNpc(n) {
+    soltar(n);
+    if (globo.n === n) { globo.n = null; globo.el.hidden = true; }
+    if (globo.ultimo === n) globo.ultimo = null;
+    escena.remove(n.P.raiz);
+    n.P.raiz.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    n.el.remove();
+    esperando.splice(esperando.indexOf(n), 1);
+  }
+  function crearNpc(m) {
+    const i = EQUIPO.indexOf(m); // cada integrante tiene su lugar fijo en la azotea
+    const [x, z] = LUGARES[i];
+    const Q = PERSONAJES[m.personaje](m);
+    Q.raiz.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    const golpe = new T.Mesh(new T.CylinderGeometry(0.6, 0.6, 2, 10), new T.MeshBasicMaterial({ visible: false }));
+    golpe.position.y = 1;
+    golpe.userData.integrante = m.key;
+    Q.raiz.add(golpe);
+    const yaw0 = Math.atan2(-x, -z); // mirando al centro de la azotea
+    Q.raiz.position.set(x, 0, z);
+    Q.raiz.rotation.y = yaw0;
+    escena.add(Q.raiz);
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'pj-npc';
+    el.innerHTML = `<span><i style="background:${paraOscuro(m.color)}"></i>${esc(m.label.split(' ')[0])}</span><small>Tocá para jugar</small>`;
+    el.setAttribute('aria-label', `Jugar con ${m.label}`);
+    el.addEventListener('click', () => cambiarA(m));
+    capaEtiquetas.appendChild(el);
+    const taza = tacita();
+    taza.position.set(0, Q.mano - 0.02, 0.1);
+    taza.visible = false;
+    Q.brazos[0].add(taza);
+    esperando.push({
+      m, P: Q, x, z, yaw: yaw0, casa: { x, z, yaw: yaw0 }, desfase: i * 1.7, saludo: 0, cerca: false, golpe, el, taza,
+      alto: Q.flota ? 2.4 : 2.0, v: new T.Vector3(x, Q.flota ? 2.4 : 2.0, z), propias: frasesPropias(m),
+      // Arrancan quietos y al ratito cada uno se va a hacer algo.
+      estado: 'quieto', hasta: reduce ? Infinity : performance.now() + entre(800, 5000), destino: null, luego: null, lugar: null, ronda: null, compa: null, rumbo: yaw0, tCamino: 0, mejor: Infinity, sinAvance: 0,
+    });
+  }
+  // Esperan todos menos mi personaje y los que mueven otros jugadores.
+  function ajustarNpcs() {
+    if (!miKey) return;
+    const fuera = new Set([miKey, ...[...remotos.values()].map((r) => r.key)]);
+    for (const n of [...esperando]) if (fuera.has(n.m.key)) quitarNpc(n);
+    for (const m of EQUIPO) if (!fuera.has(m.key) && !esperando.some((n) => n.m === m)) crearNpc(m);
+  }
   function armarEsperando(elegido) {
-    for (const n of esperando) {
-      escena.remove(n.P.raiz);
-      n.P.raiz.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
-      n.el.remove();
-    }
-    esperando.length = 0;
+    for (const n of [...esperando]) quitarNpc(n);
     [...PUESTOS_CAFE, ...RONDAS, ...VISTAS].forEach((l) => { l.libre = true; });
     globo.n = globo.ultimo = null;
     if (globo.el) globo.el.hidden = true;
+    miKey = elegido.key;
+    ajustarNpcs();
+  }
+
+  /* ── Multijugador ── */
+  function quitarRemoto(id) {
+    const r = remotos.get(id);
+    if (!r) return;
+    escena.remove(r.Q.raiz);
+    r.Q.raiz.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    r.el.remove();
+    remotos.delete(id);
+  }
+  // lista: los otros jugadores que están en la azotea (ya validados).
+  function sincronizarRemotos(lista) {
+    if (!escena) return;
+    const ids = new Set(lista.map((o) => o.id));
+    for (const [id, r] of remotos) {
+      const o = lista.find((x) => x.id === id);
+      if (!ids.has(id) || o.personaje !== r.key) quitarRemoto(id);
+    }
+    for (const o of lista) {
+      let r = remotos.get(o.id);
+      if (!r) {
+        const m = EQUIPO.find((x) => x.key === o.personaje);
+        const Q = PERSONAJES[m.personaje](m);
+        Q.raiz.traverse((x) => { if (x.isMesh) x.castShadow = true; });
+        const p = ultimasPos.get(o.id);
+        Q.raiz.visible = !!p;
+        escena.add(Q.raiz);
+        const el = document.createElement('div');
+        el.className = 'pj-remoto';
+        capaEtiquetas.appendChild(el);
+        r = { id: o.id, key: m.key, m, Q, el, x: p ? p.x : 0, z: p ? p.z : 4, yaw: p ? p.yaw : 0, obj: p || null, c: false, saludo: 0, alto: Q.flota ? 2.45 : 2.05, v: new T.Vector3() };
+        remotos.set(o.id, r);
+        forzarPos = true; // que el nuevo me vea enseguida
+      }
+      r.n = o.n;
+      const p = PARADAS.find((x) => x.id === o.parada);
+      r.el.style.setProperty('--pc', colorP(o.n));
+      r.el.innerHTML = `<span><b class="pj-p">${tagP(o.n)}</b>${esc(r.m.label.split(' ')[0])}</span>${p ? `<small>${p.icono} ${esc(p.titulo)}</small>` : ''}`;
+    }
+    ajustarNpcs();
+    $('#pjGestos').hidden = remotos.size === 0;
+  }
+  function moverRemoto(id, p) {
+    const x = Number(p.x), z = Number(p.z), yawR = Number(p.yaw);
+    if (![x, z, yawR].every(Number.isFinite)) return;
+    const pos2 = { x: Math.max(-BORDE, Math.min(BORDE, x)), z: Math.max(-BORDE, Math.min(BORDE, z)), yaw: yawR, c: !!p.c };
+    ultimasPos.set(id, pos2);
+    const r = remotos.get(id);
+    if (!r) return;
+    r.obj = pos2;
+    if (!r.Q.raiz.visible) { r.x = pos2.x; r.z = pos2.z; r.yaw = pos2.yaw; r.Q.raiz.visible = true; }
+  }
+  function animarRemotos(t, dt) {
+    const f = 1 - Math.exp(-dt * 10);
+    for (const r of remotos.values()) {
+      let caminando = false;
+      if (r.obj) {
+        const dx = r.obj.x - r.x, dz = r.obj.z - r.z;
+        caminando = r.obj.c || Math.hypot(dx, dz) > 0.06;
+        r.x += dx * f;
+        r.z += dz * f;
+        let dif = r.obj.yaw - r.yaw;
+        dif = Math.atan2(Math.sin(dif), Math.cos(dif));
+        r.yaw += dif * (1 - Math.exp(-dt * 12));
+      }
+      r.saludo = Math.max(0, r.saludo - dt);
+      if (r.salto > 0) r.salto = Math.max(0, r.salto - dt);
+      r.Q.raiz.position.set(r.x, r.salto > 0 ? Math.sin((1 - r.salto / 0.4) * Math.PI) * 0.45 : 0, r.z);
+      r.Q.raiz.rotation.y = r.yaw;
+      r.v.set(r.x, r.alto, r.z);
+      animarCuerpo(r.Q, t, dt, caminando, { saluda: r.saludo > 0 });
+    }
+  }
+  // Mi posición a la sala: hasta 8 veces por segundo mientras camino, una vez
+  // al frenar y cada 2 s para los que recién llegan.
+  function avisarPosicion(ahora, caminando) {
+    if (!alMoverme) return;
+    const movido = Math.hypot(pos.x - enviado.x, pos.z - enviado.z) > 0.02;
+    const toca = forzarPos || (caminando && movido && ahora - enviado.t > 125) || (!caminando && enviado.c) || ahora - enviado.t > 2000;
+    if (!toca) return;
+    forzarPos = false;
+    enviado = { t: ahora, x: pos.x, z: pos.z, c: !!caminando };
+    alMoverme({ x: +pos.x.toFixed(2), z: +pos.z.toFixed(2), yaw: +yaw.toFixed(2), c: !!caminando });
+  }
+
+  // Gestos: globito arriba del personaje y saludo; "chocá los cinco" con
+  // alguien cerca: se miran, saltan y salen chispas entre los dos.
+  function burbuja(de, texto) {
+    const vieja = burbujas.find((b) => b.de === de);
+    if (vieja) { vieja.el.remove(); burbujas.splice(burbujas.indexOf(vieja), 1); }
+    const el = document.createElement('div');
+    el.className = 'pj-globo pj-globo--jugador';
+    el.textContent = texto;
+    capaEtiquetas.appendChild(el);
+    burbujas.push({ de, el, hasta: performance.now() + 2800, v: new T.Vector3() });
+  }
+  function chispazo(x, z) {
+    const n = 40;
+    const posiciones = new Float32Array(n * 3);
+    const vel = [];
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const v = 1 + Math.random() * 2.5;
+      vel.push([Math.cos(a) * v, 2 + Math.random() * 3, Math.sin(a) * v]);
+      posiciones.set([x, 1.6, z], i * 3);
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(posiciones, 3));
+    const puntos = new T.Points(geo, new T.PointsMaterial({ color: '#ffe27a', size: 0.14, transparent: true, depthWrite: false }));
+    escena.add(puntos);
+    chispazos.push({ puntos, vel, t: 0 });
+  }
+  function animarChispazos(dt) {
+    for (const c of [...chispazos]) {
+      c.t += dt;
+      const arr = c.puntos.geometry.attributes.position;
+      for (let i = 0; i < c.vel.length; i++) {
+        const v = c.vel[i];
+        v[1] -= 8 * dt;
+        arr.setXYZ(i, arr.getX(i) + v[0] * dt, Math.max(0.05, arr.getY(i) + v[1] * dt), arr.getZ(i) + v[2] * dt);
+      }
+      arr.needsUpdate = true;
+      c.puntos.material.opacity = Math.max(0, 1 - c.t / 1.1);
+      if (c.t > 1.2) {
+        escena.remove(c.puntos);
+        c.puntos.geometry.dispose();
+        c.puntos.material.dispose();
+        chispazos.splice(chispazos.indexOf(c), 1);
+      }
+    }
+  }
+  // de: null = yo; si no, el id del otro jugador.
+  function gesto(de, g) {
+    const G = GESTOS[g];
+    const r = de ? remotos.get(de) : null;
+    if (!G || (de && !r)) return;
+    const yoX = pos.x, yoZ = pos.z;
+    if (g === 'cinco') {
+      // ¿Con quién? El otro jugador más cerca (a menos de 2,4).
+      let compa = r;
+      if (!de) {
+        let mejor = 2.4;
+        compa = null;
+        for (const o of remotos.values()) {
+          const d = Math.hypot(o.x - yoX, o.z - yoZ);
+          if (d < mejor) { mejor = d; compa = o; }
+        }
+      }
+      if (compa && Math.hypot(compa.x - yoX, compa.z - yoZ) < 2.4) {
+        yawObjetivo = Math.atan2(compa.x - yoX, compa.z - yoZ);
+        salto = 0.35;
+        saludoYo = 1.2;
+        compa.saludo = 1.2;
+        compa.salto = 0.4;
+        chispazo((yoX + compa.x) / 2, (yoZ + compa.z) / 2);
+        burbuja(de || 'yo', '✋ ¡Choque!');
+        Sonido.elegir();
+        return;
+      }
+    }
+    if (de) r.saludo = 1.6;
+    else saludoYo = 1.6;
+    burbuja(de || 'yo', `${G.e} ${G.t}`);
+    if (de) Sonido.parada();
+  }
+  function posicionarBurbujas(r) {
     const ahora = performance.now();
-    EQUIPO.filter((m) => m !== elegido).forEach((m, i) => {
-      const [x, z] = LUGARES[i];
-      const Q = PERSONAJES[m.personaje](m);
-      Q.raiz.traverse((o) => { if (o.isMesh) o.castShadow = true; });
-      const golpe = new T.Mesh(new T.CylinderGeometry(0.6, 0.6, 2, 10), new T.MeshBasicMaterial({ visible: false }));
-      golpe.position.y = 1;
-      golpe.userData.integrante = m.key;
-      Q.raiz.add(golpe);
-      const yaw0 = Math.atan2(-x, -z); // mirando al centro de la azotea
-      Q.raiz.position.set(x, 0, z);
-      Q.raiz.rotation.y = yaw0;
-      escena.add(Q.raiz);
-      const el = document.createElement('button');
-      el.type = 'button';
-      el.className = 'pj-npc';
-      el.innerHTML = `<span><i style="background:${paraOscuro(m.color)}"></i>${esc(m.label.split(' ')[0])}</span><small>Tocá para jugar</small>`;
-      el.setAttribute('aria-label', `Jugar con ${m.label}`);
-      el.addEventListener('click', () => cambiarA(m));
-      capaEtiquetas.appendChild(el);
-      const taza = tacita();
-      taza.position.set(0, Q.mano - 0.02, 0.1);
-      taza.visible = false;
-      Q.brazos[0].add(taza);
-      esperando.push({
-        m, P: Q, x, z, yaw: yaw0, casa: { x, z, yaw: yaw0 }, desfase: i * 1.7, saludo: 0, cerca: false, golpe, el, taza,
-        alto: Q.flota ? 2.4 : 2.0, v: new T.Vector3(x, Q.flota ? 2.4 : 2.0, z), propias: frasesPropias(m),
-        // Arrancan quietos y al ratito cada uno se va a hacer algo.
-        estado: 'quieto', hasta: reduce ? Infinity : ahora + entre(800, 5000), destino: null, luego: null, lugar: null, ronda: null, compa: null, rumbo: yaw0, tCamino: 0, mejor: Infinity, sinAvance: 0,
-      });
-    });
+    for (const b of [...burbujas]) {
+      const quien = b.de === 'yo' ? { x: pos.x, z: pos.z, alto: P.flota ? 2.45 : 2.05 } : remotos.get(b.de);
+      if (!quien || ahora > b.hasta) { b.el.remove(); burbujas.splice(burbujas.indexOf(b), 1); continue; }
+      proy.v.copy(b.v.set(quien.x, quien.alto + 0.75, quien.z)).project(camara);
+      const x = ((proy.v.x + 1) / 2) * r.width;
+      const y = Math.max(b.el.offsetHeight + 4, ((1 - proy.v.y) / 2) * r.height);
+      b.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+    }
   }
 
   // Columna de luz, onda en el piso y chispas del color del personaje.
@@ -1459,6 +1787,8 @@ const Mundo = (() => {
       if (mundoEl.hidden || e.altKey || e.ctrlKey || e.metaKey) return;
       if (e.key === 'Escape' && !panel.hidden) { cerradaAMano = paradaActiva; cerrarPanel(); return; }
       if (e.target.closest('select, input, textarea')) return;
+      const g = Object.keys(GESTOS).find((x) => `Digit${GESTOS[x].tecla}` === e.code || `Numpad${GESTOS[x].tecla}` === e.code);
+      if (g && remotos.size) { e.preventDefault(); hacerGesto(g); return; }
       const k = MAPA_TECLAS[e.code];
       if (!k) return;
       e.preventDefault();
@@ -1525,7 +1855,7 @@ const Mundo = (() => {
   function chocar() {
     pos.x = Math.max(-BORDE, Math.min(BORDE, pos.x));
     pos.z = Math.max(-BORDE, Math.min(BORDE, pos.z));
-    for (const o of [...obstaculos, ...esperando.map((n) => ({ x: n.x, z: n.z, r: 0.45 }))]) {
+    for (const o of [...obstaculos, ...esperando.map((n) => ({ x: n.x, z: n.z, r: 0.45 })), ...[...remotos.values()].map((n) => ({ x: n.x, z: n.z, r: 0.45 }))]) {
       const dx = pos.x - o.x, dz = pos.z - o.z;
       const d = Math.hypot(dx, dz);
       const min = o.r + 0.35;
@@ -1714,7 +2044,8 @@ const Mundo = (() => {
   }
 
   function animarPersonaje(t, dt, caminando) {
-    animarCuerpo(P, t, dt, caminando);
+    saludoYo = Math.max(0, saludoYo - dt);
+    animarCuerpo(P, t, dt, caminando, { saluda: saludoYo > 0 });
     let sube = 0;
     if (salto > 0) { salto = Math.max(0, salto - dt); sube = Math.sin((1 - salto / 0.35) * Math.PI) * 0.35; }
     if (aparicionT >= 0) {
@@ -1762,7 +2093,7 @@ const Mundo = (() => {
   function etiquetas() {
     const r = lienzo.getBoundingClientRect();
     proy.v = proy.v || v3();
-    for (const a of [...anclas, ...esperando]) {
+    for (const a of [...anclas, ...esperando, ...remotos.values()]) {
       proy.v.copy(a.v).project(camara);
       const fuera = proy.v.z > 1 || proy.v.x < -1.2 || proy.v.x > 1.2 || proy.v.y < -1.2 || proy.v.y > 1.2;
       a.el.classList.toggle('pj--oculta', fuera);
@@ -1777,6 +2108,7 @@ const Mundo = (() => {
       const y = Math.max(globo.el.offsetHeight + 4, ((1 - proy.v.y) / 2) * r.height);
       globo.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
     }
+    posicionarBurbujas(r);
   }
 
   // Con el panel abierto la imagen se corre para que el personaje no quede
@@ -1841,7 +2173,10 @@ const Mundo = (() => {
 
     animarPersonaje(t, dt, !!caminando);
     animarEsperando(t, dt);
+    animarRemotos(t, dt);
     animarEfectos(dt);
+    animarChispazos(dt);
+    if (aparicionT < 0) avisarPosicion(ahora, !!caminando);
     if (aparicionT < 0) proximidad();
 
     for (const [id, aro] of Object.entries(anillos)) {
@@ -1882,13 +2217,29 @@ const Mundo = (() => {
 
   return {
     get ok() { return !!renderer; },
-    armar, iniciarPersonaje, irA, pausar, puntoEnPantalla,
+    set alMoverme(fn) { alMoverme = fn; },
+    armar, iniciarPersonaje, irA, pausar, puntoEnPantalla, sincronizarRemotos, moverRemoto, gesto,
   };
 })();
 
 /* ───────────────────────── Arranque ───────────────────────── */
 
 pintarSlots();
+sala = crearSala({
+  alCambiar: alCambiarSala,
+  alMover: (id, p) => { if (Mundo.ok) Mundo.moverRemoto(id, p); },
+  alGesto: (id, g) => { if (Mundo.ok && !mundoEl.hidden && GESTOS[g]) Mundo.gesto(id, g); },
+});
+sala.actualizar({ mira: EQUIPO[indice].key });
+Mundo.alMoverme = (p) => sala.mover(p);
+// Gestos (botones abajo y teclas 1 a 4): los ve el otro jugador.
+function hacerGesto(g) {
+  Mundo.gesto(null, g);
+  sala.gesto(g);
+}
+$('#pjGestos').innerHTML = Object.entries(GESTOS).map(([g, G]) => `
+  <button class="pj-gesto" type="button" data-g="${g}" title="${esc(G.t)} (tecla ${G.tecla})"><span aria-hidden="true">${G.e}</span><small>${esc(G.corto)}</small></button>`).join('');
+$('#pjGestos').addEventListener('click', (e) => { const b = e.target.closest('.pj-gesto'); if (b) hacerGesto(b.dataset.g); });
 const pedido = new URLSearchParams(location.search).get('miembro');
 const inicial = Math.max(0, EQUIPO.findIndex((m) => m.key === pedido));
 previsualizar(inicial, false);
