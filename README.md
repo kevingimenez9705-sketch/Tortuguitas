@@ -15,13 +15,14 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 
 ## Página de equipo y resultados por integrante
 
-`index.html` tiene una tarjeta por integrante (Kevin García, Agustín Márquez, Agustina Castillo, Rafael Barberi, Gustavo Sotelo, Otros). Cada una linkea a `dashboard.html?miembro=<clave>`, que filtra todos los KPIs/gráficos a los datos de esa persona. El mapeo integrante → `selector` de `data.js` vive en `MEMBER_MAP` dentro de `app.js`:
+`index.html` tiene una tarjeta por integrante (Kevin García, Agustín Márquez, Agustina Castillo, Rafael Barberi, Gustavo Sotelo, Albana Pais, Otros). Cada una linkea a `dashboard.html?miembro=<clave>`, que filtra todos los KPIs/gráficos a los datos de esa persona. El mapeo integrante → `selector` de `data.js` vive en `MEMBER_MAP` dentro de `app.js`:
 
 - **Kevin García** → sin filtro (`dashboard.html` sin query param): ve el panel ejecutivo completo, como coordinador.
 - **Agustín Márquez** → `selector: "Agustin"`.
 - **Agustina Castillo** → `selector: "Agustina"`.
 - **Rafael Barberi** → `selector: "Rafael"` (con altas desde agosto 2026).
 - **Gustavo Sotelo** → `selector: "Gustavo"` (con altas desde agosto 2026).
+- **Albana Pais** → `selector: "Albana"` (con altas desde octubre 2026).
 - **Otros** → agrupa `Emiliano`, `Mariano`, `Facundo` y `Seleccion` (altas sin selector puntual asignado en la planilla) en un solo resultado combinado.
 
 ## Oficina digital y datos en vivo
