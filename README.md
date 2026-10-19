@@ -15,14 +15,21 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 
 ## Página de equipo y resultados por integrante
 
-`index.html` tiene una tarjeta por integrante (Kevin García, Agustín Márquez, Agustina Castillo, Rafael Barberi, Gustavo Sotelo, Otros). Cada una linkea a `dashboard.html?miembro=<clave>`, que filtra todos los KPIs/gráficos a los datos de esa persona. El mapeo integrante → `selector` de `data.js` vive en `MEMBER_MAP` dentro de `app.js`:
+`index.html` tiene una tarjeta por integrante (Kevin García, Agustín Márquez, Agustina Castillo, Rafael Barberi, Gustavo Sotelo, Albana Pais, Otros). Cada una linkea a `dashboard.html?miembro=<clave>`, que filtra todos los KPIs/gráficos a los datos de esa persona. El mapeo integrante → `selector` de `data.js` vive en `MEMBER_MAP` dentro de `app.js`:
 
 - **Kevin García** → sin filtro (`dashboard.html` sin query param): ve el panel ejecutivo completo, como coordinador.
 - **Agustín Márquez** → `selector: "Agustin"`.
 - **Agustina Castillo** → `selector: "Agustina"`.
 - **Rafael Barberi** → `selector: "Rafael"` (con altas desde agosto 2026).
 - **Gustavo Sotelo** → `selector: "Gustavo"` (con altas desde agosto 2026).
+- **Albana Pais** → `selector: "Albana"` (con altas desde octubre 2026).
 - **Otros** → agrupa `Emiliano`, `Mariano`, `Facundo` y `Seleccion` (altas sin selector puntual asignado en la planilla) en un solo resultado combinado.
+
+## Elegí tu personaje (resultados en 3D)
+
+- `personajes.html` + `personajes.js` + `personajes.css` — tarjeta "Elegí tu personaje" de `index.html`. Pantalla de selección estilo arcade: las fotos abajo y, arriba, la tortuga de cada uno con sus altas, presentismo y cumplimiento de los últimos 12 meses (flechas + Enter, mouse o dedo). Al elegir, la foto vuela al centro y sale su personaje 3D (three.js, mismo `vendor/three.min.js` de la oficina): Kevin es Splinter, cada tortuga con su bandana y su arma, Albana es April y "Otros" un fantasma ninja.
+- En la azotea el personaje se mueve con flechas/WASD, clic o toque en el piso (joystick en celulares). Al pisar una parada se abre su panel: Altas, Presentismo día 1, Cumplimiento, Sabores Express, Hamburguesas Extremas, Ranking (presentismo y cumplimiento, sin volumen) y la guarida, que lleva al dashboard completo. Los paneles son 2D; el período se cambia arriba a la derecha.
+- Mismos cálculos que `app.js` sobre `data.js`. Link directo: `personajes.html?miembro=<clave>`. Sin WebGL, las paradas se muestran como tarjetas.
 
 ## Oficina digital y datos en vivo
 
