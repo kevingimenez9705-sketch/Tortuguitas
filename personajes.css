@@ -84,37 +84,65 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-preview{
   position:relative;
   display:grid;
-  grid-template-columns:1fr;
-  border-radius:20px;
-  overflow:hidden;
-  background:var(--pj-sup);
-  box-shadow:0 0 0 2px color-mix(in srgb, var(--c-osc) 70%, transparent), 0 20px 60px -20px var(--c);
-  transition:box-shadow .3s ease;
-  min-height:clamp(220px, calc(100vh - 440px), 420px);
+  grid-template-columns:minmax(0, 1.15fr) minmax(300px, 1fr);
+  align-items:center;
+  gap:12px;
+}
+/* Sin caja: la ilustración flota sobre un foco del color de cada uno, con los
+   bordes desvanecidos, y se ve completa (nada de caras cortadas). */
+.pj-preview::before{
+  content:"";
+  position:absolute;
+  left:0;top:50%;
+  width:56%;
+  aspect-ratio:2 / 1;
+  translate:0 -50%;
+  border-radius:50%;
+  background:radial-gradient(closest-side, color-mix(in srgb, var(--c) 60%, transparent), transparent);
+  transition:background .4s ease;
 }
 .pj-arte{
-  position:absolute;
-  inset:0;
+  position:relative;
+  aspect-ratio:1408 / 768;
+  width:100%;
   background-size:cover;
-  background-position:30% center;
-  transition:opacity .25s ease, transform .6s cubic-bezier(.2,.8,.2,1);
+  background-position:center;
+  /* Bordes desvanecidos: costados y abajo bien suaves, arriba apenas (hay
+     caras cerca del borde de arriba, como la de April). */
+  -webkit-mask-image:linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent), linear-gradient(180deg, transparent, #000 5%, #000 78%, transparent);
+  -webkit-mask-composite:source-in;
+  mask-image:linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent), linear-gradient(180deg, transparent, #000 5%, #000 78%, transparent);
+  mask-composite:intersect;
+  animation:pj-respira 7s ease-in-out infinite;
+  transition:opacity .35s ease, translate .55s cubic-bezier(.2,.8,.2,1);
 }
-.pj-preview.pj--cambio .pj-arte{opacity:0;transform:scale(1.04);}
-.pj-preview::after{
+/* Motas de luz que suben despacio sobre la ilustración. */
+.pj-arte::after{
   content:"";
   position:absolute;
   inset:0;
-  background:linear-gradient(90deg, transparent 35%, rgba(7,11,24,.82) 62%, rgba(7,11,24,.95));
-  pointer-events:none;
+  background-image:
+    radial-gradient(2.5px 2.5px at 18% 78%, rgba(255,214,140,.9), transparent),
+    radial-gradient(2px 2px at 34% 62%, rgba(255,255,255,.8), transparent),
+    radial-gradient(3px 3px at 61% 84%, rgba(255,214,140,.8), transparent),
+    radial-gradient(2px 2px at 77% 58%, rgba(255,255,255,.7), transparent),
+    radial-gradient(2.5px 2.5px at 88% 74%, rgba(255,214,140,.8), transparent),
+    radial-gradient(2px 2px at 47% 70%, rgba(255,255,255,.6), transparent);
+  animation:pj-motas 6s ease-in-out infinite;
 }
+.pj-preview.pj--cambio .pj-arte{opacity:0;translate:-28px 0;transition-duration:.12s;}
+.pj-preview.pj--cambio .pj-ficha > *{opacity:0;translate:14px 0;transition-duration:.12s;}
+@keyframes pj-respira{50%{scale:1.03;}}
+@keyframes pj-motas{0%{opacity:0;transform:translateY(16px);}40%{opacity:1;}100%{opacity:0;transform:translateY(-36px);}}
 .pj-ficha{
   position:relative;
-  z-index:1;
-  align-self:center;
-  justify-self:end;
-  width:min(420px, 46%);
-  padding:28px 32px;
+  padding:26px 30px;
+  border-radius:28px;
+  background:rgba(12,16,34,.78);
+  border:1px solid var(--pj-linea);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--c-osc) 35%, transparent), 0 24px 60px -30px var(--c);
 }
+.pj-ficha > *{transition:opacity .35s ease, translate .45s cubic-bezier(.2,.8,.2,1);}
 .pj-jugador{
   display:inline-block;
   font-family:var(--pj-pixel);
@@ -128,7 +156,7 @@ body.pj.pj--jugando{overflow:hidden;}
   margin:10px 0 2px;
   font-family:var(--pj-display);
   font-weight:400;
-  font-size:clamp(26px, 3.6vw, 44px);
+  font-size:clamp(24px, 2.4vw, 38px);
   line-height:1.05;
   text-transform:uppercase;
   color:#fff;
@@ -136,63 +164,65 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-puesto{margin:0;color:var(--pj-texto-2);font-weight:600;}
 .pj-frase{margin:4px 0 16px;color:var(--pj-texto-3);font-style:italic;}
 .pj-stats{margin:0;display:grid;gap:10px;}
-.pj-stat{display:grid;grid-template-columns:118px 1fr auto;align-items:center;gap:10px;}
-.pj-stat dt{font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--pj-texto-2);text-transform:uppercase;}
-.pj-stat dd{margin:0;font-weight:700;font-size:15px;text-align:right;}
-.pj-stat-barra{height:10px;border-radius:5px;background:rgba(255,255,255,.1);overflow:hidden;}
-.pj-stat-barra i{display:block;height:100%;border-radius:5px;background:var(--c-osc);width:0;transition:width .6s cubic-bezier(.2,.8,.2,1);}
-.pj-stat--num{grid-template-columns:118px 1fr;}
-.pj-stat--num dd{text-align:left;font-size:22px;}
+.pj-stat{display:grid;grid-template-columns:148px 1fr 50px;align-items:center;gap:10px;}
+.pj-stat dt{font-size:11.5px;line-height:1.15;font-weight:700;letter-spacing:.07em;color:var(--pj-texto-2);text-transform:uppercase;}
+.pj-stat dd{margin:0;font-weight:700;font-size:15px;text-align:right;white-space:nowrap;}
+.pj-stat dd small{margin-left:1px;font-size:11px;font-weight:600;color:var(--pj-texto-3);}
+/* Barra de 10 segmentos, como los stats de un juego; el relleno es la misma
+   barra recortada, así los segmentos coinciden. */
+.pj-stat-barra{
+  position:relative;
+  height:12px;
+  background:repeating-linear-gradient(90deg, rgba(255,255,255,.1) 0 calc(10% - 2px), transparent calc(10% - 2px) 10%);
+}
+.pj-stat-barra i{
+  position:absolute;
+  inset:0;
+  background:repeating-linear-gradient(90deg, var(--c-osc) 0 calc(10% - 2px), transparent calc(10% - 2px) 10%);
+  transition:clip-path .6s cubic-bezier(.2,.8,.2,1);
+}
+.pj-stat--nd dd{color:var(--pj-texto-3);font-family:var(--pj-pixel);font-size:12px;}
+.pj-periodo.pj--pronto{font-family:var(--pj-pixel);font-size:10px;line-height:1.6;color:#ffcf3f;animation:pj-parpadeo 1.2s steps(2) infinite;}
 .pj-periodo{margin:14px 0 0;font-size:12px;color:var(--pj-texto-3);}
 
-/* Casilleros estilo Metal Slug ("Soldier Select"): riel de metal remachado,
-   pantallita de arriba que prende "1P", retrato pixel art (images/retro-*.png)
-   y placa con el nombre. */
+/* Casilleros estilo Metal Slug ("Soldier Select") pero curvos: metal con
+   puntas redondeadas, retrato pixel art (images/retro-*.png) con arco arriba,
+   pantallita que prende "1P" y placa con el nombre. En pantallas anchas se
+   abren en abanico, como cartas en la mano (--abanico: -3 a 3, desde JS). */
 .pj-slots{
   display:grid;
   grid-template-columns:repeat(7, 104px);
   justify-content:center;
   gap:10px;
+  padding:6px 0 14px;
   align-self:center;
   max-width:100%;
-  padding:12px;
-  border-radius:10px;
-  border:2px solid #120f0b;
-  background:
-    radial-gradient(circle at 10px 10px, #b3aa97 0 2px, #241f19 2.5px 3.5px, transparent 4px),
-    radial-gradient(circle at calc(100% - 10px) 10px, #b3aa97 0 2px, #241f19 2.5px 3.5px, transparent 4px),
-    radial-gradient(circle at 10px calc(100% - 10px), #b3aa97 0 2px, #241f19 2.5px 3.5px, transparent 4px),
-    radial-gradient(circle at calc(100% - 10px) calc(100% - 10px), #b3aa97 0 2px, #241f19 2.5px 3.5px, transparent 4px),
-    repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 2px, transparent 2px 5px),
-    linear-gradient(180deg, #4a443a, #2c2822);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), inset 0 -3px 0 rgba(0,0,0,.4), 0 6px 0 #0c0a07;
 }
 .pj-slot{
   --sc:#888;
-  --remache:radial-gradient(circle, #c2b8a3 0 1.5px, #1b1712 2px 2.8px, transparent 3.2px);
+  --abanico:0;
+  --abanico-y:0;
   position:relative;
   display:flex;
   flex-direction:column;
   align-items:center;
   gap:6px;
-  padding:7px 7px 8px;
+  padding:8px 7px 9px;
   border:2px solid #120f0b;
-  border-radius:6px;
+  border-radius:26px 26px 18px 18px;
   background:
-    var(--remache) 3px 3px / 8px 8px no-repeat,
-    var(--remache) calc(100% - 3px) 3px / 8px 8px no-repeat,
-    var(--remache) 3px calc(100% - 3px) / 8px 8px no-repeat,
-    var(--remache) calc(100% - 3px) calc(100% - 3px) / 8px 8px no-repeat,
+    radial-gradient(120% 60% at 50% 0%, rgba(255,255,255,.14), transparent 60%),
     linear-gradient(180deg, #6a6255, #3d382f);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 0 rgba(0,0,0,.35), 0 3px 0 #0c0a07;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 0 rgba(0,0,0,.35), 0 4px 0 #0c0a07, 0 10px 18px -8px rgba(0,0,0,.6);
   cursor:pointer;
-  transition:transform .12s steps(2), box-shadow .12s steps(2);
+  transform-origin:50% 140%;
+  transition:transform .28s cubic-bezier(.3,1.4,.5,1), box-shadow .2s ease;
 }
 .pj-slot-pantalla{
   position:relative;
-  width:74%;
+  width:70%;
   height:18px;
-  border-radius:9px;
+  border-radius:999px;
   background:#050403;
   box-shadow:inset 0 2px 3px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.15);
 }
@@ -202,6 +232,7 @@ body.pj.pj--jugando{overflow:hidden;}
   width:100%;
   aspect-ratio:3 / 4;
   border:2px solid #0c0a07;
+  border-radius:44px 44px 12px 12px / 36px 36px 12px 12px;
   background:#000;
   overflow:hidden;
 }
@@ -210,6 +241,7 @@ body.pj.pj--jugando{overflow:hidden;}
   position:absolute;
   inset:0;
   pointer-events:none;
+  border-radius:inherit;
   background:repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 3px);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
 }
@@ -218,13 +250,13 @@ body.pj.pj--jugando{overflow:hidden;}
   object-fit:cover;
   display:grid;place-items:center;
   filter:grayscale(.5) brightness(.62);
-  transition:filter .12s steps(2);
+  transition:filter .2s ease;
 }
 .pj-slot .pj-slot-mas{font-family:var(--pj-pixel);font-size:16px;background:#2a1c12;color:#e8e2d4;}
 .pj-slot-nombre{
   max-width:100%;
-  padding:3px 7px 2px;
-  border-radius:4px;
+  padding:3px 9px 2px;
+  border-radius:999px;
   border:1px solid #120f0b;
   background:linear-gradient(180deg, #9a917f, #5f574a);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
@@ -239,7 +271,8 @@ body.pj.pj--jugando{overflow:hidden;}
 }
 .pj-slot:hover img,.pj-slot:hover .pj-slot-mas{filter:grayscale(.15) brightness(.9);}
 .pj-slot[aria-checked="true"]{
-  transform:translateY(-5px);
+  z-index:1;
+  transform:translateY(-6px);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 2px #ffcf3f, 0 0 26px -2px var(--sc), 0 8px 0 #0c0a07;
 }
 .pj-slot[aria-checked="true"] img,.pj-slot[aria-checked="true"] .pj-slot-mas{filter:none;}
@@ -259,6 +292,11 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-slot.pj--elegido{animation:pj-flash .5s steps(2) 2;}
 @keyframes pj-parpadeo{50%{opacity:.25;}}
 @keyframes pj-flash{50%{box-shadow:0 0 0 4px #fff, 0 0 40px 10px var(--sc);}}
+@media (min-width:761px){
+  .pj-slot{transform:translateY(calc(var(--abanico-y) * 1px)) rotate(calc(var(--abanico) * 4deg));}
+  .pj-slot:hover{transform:translateY(calc(var(--abanico-y) * 1px - 6px)) rotate(calc(var(--abanico) * 4deg));}
+  .pj-slot[aria-checked="true"]{transform:translateY(calc(var(--abanico-y) * 1px - 16px)) rotate(calc(var(--abanico) * 2deg)) scale(1.07);}
+}
 
 .pj-acciones{display:flex;flex-direction:column;align-items:center;gap:8px;}
 .pj-jugar{
@@ -266,7 +304,7 @@ body.pj.pj--jugando{overflow:hidden;}
   font-size:20px;
   padding:14px 38px;
   border:0;
-  border-radius:14px;
+  border-radius:999px;
   background:var(--c);
   color:var(--c-tinta) !important;
   box-shadow:0 5px 0 color-mix(in srgb, var(--c) 55%, #000), 0 0 30px -4px var(--c-osc);
@@ -279,15 +317,16 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-tip{margin:0;font-size:13px;color:var(--pj-texto-3);}
 
 @media (max-width:760px){
-  .pj-preview{min-height:0;}
-  .pj-arte{position:relative;inset:auto;aspect-ratio:16/9;background-position:center 30%;}
-  .pj-preview::after{display:none;}
-  .pj-ficha{justify-self:stretch;width:auto;padding:16px 18px 20px;}
+  .pj-preview{grid-template-columns:1fr;gap:0;}
+  .pj-preview::before{width:100%;top:28%;}
+  .pj-arte{-webkit-mask-image:linear-gradient(180deg, #000 70%, transparent);mask-image:linear-gradient(180deg, #000 70%, transparent);}
+  .pj-ficha{padding:16px 18px 20px;border-radius:22px;margin-top:-18px;}
   .pj-nombre{margin-top:8px;}
-  .pj-stat{grid-template-columns:104px 1fr auto;}
-  .pj-stat--num{grid-template-columns:104px 1fr;}
-  .pj-slots{grid-template-columns:repeat(4, minmax(0, 1fr));gap:10px 8px;padding:10px;align-self:stretch;}
-  .pj-slot{padding:5px 5px 6px;gap:5px;}
+  .pj-stat{grid-template-columns:118px 1fr 44px;gap:8px;}
+  .pj-stat dt{font-size:10.5px;}
+  .pj-slots{grid-template-columns:repeat(4, minmax(0, 1fr));gap:12px 8px;padding:4px 0 10px;align-self:stretch;}
+  .pj-slot{padding:6px 5px 7px;gap:5px;border-radius:22px 22px 14px 14px;}
+  .pj-slot-marco{border-radius:36px 36px 10px 10px / 28px 28px 10px 10px;}
   .pj-slot-pantalla{height:14px;}
   .pj-slot[aria-checked="true"] .pj-slot-pantalla::after{font-size:7px;}
   .pj-slot-nombre{font-size:10px;padding:2px 4px 1px;}
@@ -406,6 +445,33 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-npc.pj--cerca small{display:block;}
 .pj-npc:focus-visible{outline:2px solid #fff;outline-offset:2px;}
 .pj-npc.pj--oculta{visibility:hidden;}
+
+/* Globito de lo que dicen los que esperan (uno a la vez). */
+.pj-globo{
+  position:absolute;left:0;top:0;
+  max-width:220px;
+  padding:7px 11px;
+  border-radius:14px;
+  background:#fff;
+  color:#141a2e;
+  font-size:12.5px;
+  font-weight:600;
+  line-height:1.3;
+  box-shadow:0 6px 18px rgba(0,0,0,.35);
+  pointer-events:none;
+  transform-origin:50% 100%;
+  animation:pj-globo .28s cubic-bezier(.3,1.5,.5,1);
+}
+.pj-globo::after{
+  content:"";
+  position:absolute;
+  left:50%;bottom:-5px;
+  width:11px;height:11px;
+  background:#fff;
+  border-radius:2px;
+  transform:translateX(-50%) rotate(45deg);
+}
+@keyframes pj-globo{from{opacity:0;scale:.6;}}
 
 .pj-panel{
   position:absolute;
@@ -565,6 +631,6 @@ body.pj.pj--jugando{overflow:hidden;}
 @keyframes pj-destello{0%{opacity:0;}20%{opacity:.85;}100%{opacity:0;}}
 
 @media (prefers-reduced-motion: reduce){
-  .pj-slot,.pj-arte,.pj-stat-barra i,.pj-panel,.pj-etiqueta{transition:none !important;animation:none !important;}
+  .pj-slot,.pj-arte,.pj-arte::after,.pj-ficha > *,.pj-stat-barra i,.pj-periodo,.pj-panel,.pj-etiqueta{transition:none !important;animation:none !important;}
   .pj-slot[aria-checked="true"] .pj-slot-pantalla::after{animation:none;}
 }
