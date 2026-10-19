@@ -3,8 +3,8 @@
 // build, el mismo vendor/three.min.js de la oficina).
 //
 // 1. Selección: los retratos pixel art abajo y, arriba, la tortuga de cada uno (la misma
-//    imagen de index.html) con sus números de los últimos 12 meses. Se elige
-//    con flechas + Enter, el mouse o el dedo.
+//    imagen de index.html) con sus stats de competencias (evaluación real). Se
+//    elige con flechas + Enter, el mouse o el dedo.
 // 2. Aparición: el retrato vuela al centro y de ahí sale el personaje 3D: Kevin
 //    es Splinter, cada tortuga lleva su bandana y su arma, Albana es April y
 //    "Otros" un fantasma ninja.
@@ -27,7 +27,8 @@ const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
 
 // Mismos integrantes, colores, imágenes y textos que index.html y MEMBER_MAP de
 // app.js. selectores: null = todo el equipo (panel de Kevin).
-// retrato: ilustración pixel art estilo Metal Slug para la selección.
+// retrato: ilustración pixel art estilo Metal Slug para la selección;
+// retratoElegido (opcional): la cara que pone al quedar elegido (con "1P").
 const EQUIPO = [
   { key: 'kevin', label: 'Kevin García', puesto: 'Coordinador de Selección', frase: 'Autómata y estratégico', color: '#5c2430', retrato: 'images/retro-kevin.png', arte: 'images/tortuga-kevin.jpg', personaje: 'rata', selectores: null, dashboard: 'dashboard.html' },
   { key: 'agustin', label: 'Agustín Márquez', puesto: 'Selector', frase: 'El innovador', color: '#5b2d78', retrato: 'images/retro-agustin.png', arte: 'images/tortuga-agustin.jpg', personaje: 'tortuga', arma: 'bo', selectores: ['Agustin'] },
@@ -214,7 +215,6 @@ const Sonido = (() => {
 const pantalla = $('#pjSelect');
 const mundoEl = $('#pjMundo');
 const slotsEl = $('#pjSlots');
-const DOCE = EQUIPO.map((m) => calcular(m, '12'));
 let indice = 0;
 
 function tematizar(m) {
@@ -226,11 +226,12 @@ function tematizar(m) {
 
 function pintarSlots() {
   slotsEl.innerHTML = EQUIPO.map((m, i) => `
-    <button class="pj-slot" type="button" role="radio" data-i="${i}" aria-checked="false" aria-label="${esc(m.label)}" style="--sc:${paraOscuro(m.color, '#070b18', 3)}">
+    <button class="pj-slot" type="button" role="radio" data-i="${i}" aria-checked="false" aria-label="${esc(m.label)}" style="--sc:${paraOscuro(m.color, '#070b18', 3)};--abanico:${i - (EQUIPO.length - 1) / 2};--abanico-y:${Math.pow(i - (EQUIPO.length - 1) / 2, 2) * 3}">
       <span class="pj-slot-pantalla" aria-hidden="true"></span>
-      <span class="pj-slot-marco">${m.retrato ? `<img src="${esc(m.retrato)}" alt="" />` : '<span class="pj-slot-mas">+9</span>'}</span>
+      <span class="pj-slot-marco">${m.retrato ? `<img src="${esc(m.retrato)}" data-normal="${esc(m.retrato)}" data-elegido="${esc(m.retratoElegido || m.retrato)}" alt="" />` : '<span class="pj-slot-mas">+9</span>'}</span>
       <span class="pj-slot-nombre" aria-hidden="true">${esc(m.label.split(' ')[0])}</span>
     </button>`).join('');
+  EQUIPO.forEach((m) => { if (m.retratoElegido) new Image().src = m.retratoElegido; }); // sin parpadeo al cambiar de cara
   slotsEl.querySelectorAll('.pj-slot').forEach((b) => {
     const i = Number(b.dataset.i);
     b.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && i !== indice) previsualizar(i, true); });
@@ -238,19 +239,31 @@ function pintarSlots() {
   });
 }
 
-function stat(etiqueta, valor, ancho) {
-  if (ancho == null) return `<div class="pj-stat pj-stat--num"><dt>${etiqueta}</dt><dd>${valor}</dd></div>`;
-  return `<div class="pj-stat"><dt>${etiqueta}</dt><div class="pj-stat-barra" aria-hidden="true"><i style="width:${(ancho * 100).toFixed(1)}%"></i></div><dd>${valor}</dd></div>`;
+// Stats de la selección: 5 competencias de la evaluación real (competencias.js,
+// la misma del "Perfil de competencias" del dashboard), de 0 a 10. Sin
+// evaluación cargada (Albana, "Otros") van con "?".
+const STATS = [['equipo', 'Trabajo en equipo'], ['liderazgo', 'Liderazgo'], ['comunicacion', 'Comunicación'], ['creatividad', 'Creatividad'], ['adaptabilidad', 'Adaptabilidad']];
+function competencias(m) {
+  const c = window.COMPETENCIAS_DATA && window.COMPETENCIAS_DATA[m.key];
+  const cats = window.COMPETENCIAS_CATEGORIAS || [];
+  return STATS.map(([k, label]) => ({ label, v: c ? c.real[cats.findIndex((x) => x.key === k)] : null }));
+}
+function stat(etiqueta, v) {
+  const lleno = v == null ? 0 : v * 10;
+  return `<div class="pj-stat${v == null ? ' pj-stat--nd' : ''}"><dt>${etiqueta}</dt>
+    <div class="pj-stat-barra" aria-hidden="true"><i style="clip-path:inset(0 ${100 - lleno}% 0 0)"></i></div>
+    <dd>${v == null ? '?' : `${v}<small>/10</small>`}</dd></div>`;
 }
 
 function previsualizar(i, sonar) {
   indice = (i + EQUIPO.length) % EQUIPO.length;
   const m = EQUIPO[indice];
-  const d = DOCE[indice];
   tematizar(m);
   slotsEl.querySelectorAll('.pj-slot').forEach((b, k) => {
     b.setAttribute('aria-checked', String(k === indice));
     b.tabIndex = k === indice ? 0 : -1;
+    const img = b.querySelector('img');
+    if (img) img.src = k === indice ? img.dataset.elegido : img.dataset.normal;
   });
   const prev = $('#pjPreview');
   const arte = $('#pjArte');
@@ -261,11 +274,12 @@ function previsualizar(i, sonar) {
     $('#pjNombre').textContent = m.label;
     $('#pjPuesto').textContent = m.puesto;
     $('#pjFrase').textContent = m.frase;
-    $('#pjStats').innerHTML =
-      stat('Altas', fmtInt(d.altas)) +
-      stat('Presentismo', fmtPct(d.presentismo), d.presentismo || 0) +
-      stat('Cumplimiento', fmtPct(d.cumplimiento), d.cumplimiento || 0);
-    $('#pjPeriodoSel').textContent = `${m.selectores ? '' : 'Todo el equipo · '}Últimos 12 meses (${rango(d.meses)})`;
+    const comp = competencias(m);
+    const sinEvaluar = comp.every((c) => c.v == null);
+    $('#pjStats').innerHTML = comp.map((c) => stat(c.label, c.v)).join('');
+    const nota = $('#pjPeriodoSel');
+    nota.textContent = !sinEvaluar ? 'Evaluación de competencias · escala de 0 a 10' : m.key === 'otros' ? 'Sin evaluación de competencias' : 'Próximamente…';
+    nota.classList.toggle('pj--pronto', sinEvaluar && m.key !== 'otros');
     prev.classList.remove('pj--cambio');
   };
   if (reduce) aplicar(); else setTimeout(aplicar, 120);
@@ -325,7 +339,7 @@ async function aparicion(m, desde, con3d) {
   const x = (innerWidth - lado * 0.75) / 2;
   const y = (innerHeight - lado) / 2;
   if (!reduce) {
-    img.src = m.retrato || m.arte;
+    img.src = m.retratoElegido || m.retrato || m.arte;
     Object.assign(img.style, { left: x + 'px', top: y + 'px', width: lado * 0.75 + 'px', height: lado + 'px' });
     capa.hidden = false;
     const esc0 = desde.width / (lado * 0.75);
@@ -739,6 +753,7 @@ function tortuga(m) {
     P.brazos.push(g);
   }
   armas(m.arma, P);
+  P.mano = -0.45; // altura de la mano (brazo), para la taza de café
   return P;
 }
 
@@ -811,6 +826,7 @@ function rata(m) {
   }
   const cola = new T.CatmullRomCurve3([[0, 0.32, -0.3], [0, 0.12, -0.62], [0.22, 0.05, -0.92], [0.48, 0.1, -1.04]].map((p) => new T.Vector3(...p)));
   P.raiz.add(malla(new T.TubeGeometry(cola, 20, 0.032, 6), rosa));
+  P.mano = -0.47; // altura de la mano (brazo), para la taza de café
   return P;
 }
 
@@ -849,6 +865,7 @@ function april() {
     t.add(g);
     P.brazos.push(g);
   }
+  P.mano = -0.43; // altura de la mano (brazo), para la taza de café
   return P;
 }
 
@@ -874,10 +891,38 @@ function fantasma(m) {
     t.add(g);
     P.brazos.push(g);
   }
+  P.mano = -0.05; // altura de la mano (brazo), para la taza de café
   return P;
 }
 
 const PERSONAJES = { tortuga, rata, april, fantasma };
+
+function tacita() {
+  const g = new T.Group();
+  g.add(cil(0.06, 0.05, 0.09, '#f5efe6', 0, 0.045, 0, 12));
+  g.add(cil(0.052, 0.052, 0.006, '#3b2416', 0, 0.088, 0, 12));
+  g.add(rot(anillo(0.028, 0.008, '#f5efe6', 0.07, 0.05, 0), 0, 0, Math.PI / 2));
+  return g;
+}
+
+// Lo que dicen los que esperan en la azotea (un globito a la vez).
+const FRASES = {
+  cafe: ['☕ Pausa de café', '☕ ¿Alguien quiere uno?', '¿Quién trajo facturas? 🥐', '☕ Este me salva la tarde'],
+  charla: ['¿Cómo venís con las búsquedas?', 'Jajaja 😂', '¡No sabés lo que me pasó!', '¿Arrancaron los ingresos de hoy?', 'Hoy no para el teléfono 📞', '¿Y esa búsqueda cómo va?', '¿Viste el ranking? 👀'],
+  ciudad: ['Qué vista 🌃', 'Mañana arranco temprano', 'Se viene el finde 😎', '🌙 …'],
+  fantasma: ['Buuu 👻', 'Yo antes trabajaba acá…', '¿Siguen con la planilla vieja? 👻'],
+};
+// Con sus números reales del mes en curso (si ya tiene altas este mes).
+function frasesPropias(m) {
+  const d = calcular(m, '1');
+  if (d.meses[0] !== MES_HOY || !d.altas) return [];
+  if (!m.selectores) return [`El equipo lleva ${fmtInt(d.altas)} altas este mes 🙌`];
+  const lista = [`Este mes llevo ${fmtInt(d.altas)} altas 💪`];
+  if (d.cumplimiento != null && !d.cumFueraDePeriodo) lista.push(`Cumplimiento del mes: ${fmtPct(d.cumplimiento)} 🎯`);
+  return lista;
+}
+const entre = (a, b) => a + Math.random() * (b - a);
+const alAzar = (lista) => lista[Math.floor(Math.random() * lista.length)];
 
 /* ───────────── Objetos de cada parada ───────────── */
 
@@ -976,6 +1021,18 @@ const Mundo = (() => {
   // Los demás integrantes, quietos en lugares que no tapan paradas ni caminos.
   const esperando = [];
   const LUGARES = [[-2.8, -8.9], [2.8, -8.9], [-9.0, -1.6], [9.0, -1.4], [-8.6, 4.4], [7.4, 8.7], [-6.6, 9.0]];
+  // Mientras esperan van a la barra de café, se juntan de a dos a charlar o
+  // se asoman al borde a mirar la ciudad (como los robots de la oficina 3D).
+  const CAFE = { x: -9.3, z: -4.3 };
+  const PUESTOS_CAFE = [[-8.15, -4.3], [-8.5, -3.35], [-8.5, -5.25]].map(([x, z]) => ({ x, z, yaw: Math.atan2(CAFE.x - x, CAFE.z - z), libre: true }));
+  const RONDAS = [
+    [[-4.4, -9.4], [-5.7, -9.4]], [[6.0, -9.4], [7.3, -9.4]], [[9.4, 4.6], [9.4, 5.9]],
+    [[-4.0, 9.6], [-5.3, 9.6]], [[4.6, 9.5], [5.9, 9.5]],
+  ].map((par) => ({ par: par.map(([x, z]) => ({ x, z, yaw: 0 })), libre: true }));
+  const VISTAS = [[-10.1, 0.8], [10.1, -3.2], [-1.2, -10.1], [4.3, -10.1], [-10.1, -6.4]].map(([x, z]) => ({
+    x, z, libre: true, yaw: Math.abs(x) > Math.abs(z) ? Math.sign(x) * Math.PI / 2 : (z > 0 ? 0 : Math.PI),
+  }));
+  const globo = { el: null, n: null, ultimo: null, hasta: 0, proximo: 0, v: null };
   const camPos = { x: 0, y: 0, z: 0 };
   const camMira = { x: 0, y: 0, z: 0 };
 
@@ -1010,6 +1067,12 @@ const Mundo = (() => {
     azotea();
     ciudad();
     PARADAS.forEach(parada);
+    cafeteria();
+    globo.el = document.createElement('div');
+    globo.el.className = 'pj-globo';
+    globo.el.hidden = true;
+    capaEtiquetas.appendChild(globo.el);
+    globo.v = new T.Vector3();
     marcador = rot(malla(new T.RingGeometry(0.22, 0.32, 28), new T.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0 }), 0, 0.03, 0, false), -Math.PI / 2);
     escena.add(marcador);
 
@@ -1111,6 +1174,40 @@ const Mundo = (() => {
     [[-9.4, 6.4], [-9.4, 7.4]].forEach(([x, z]) => { escena.add(cil(0.18, 0.18, 0.8, '#7d8594', x, 0.4, z, 12)); obstaculos.push({ x, z, r: 0.3 }); });
     // Guirnaldas de luces en tres bordes.
     [[[-10.4, -10.4], [10.4, -10.4]], [[-10.4, -10.4], [-10.4, 10.4]], [[10.4, -10.4], [10.4, 3.6]]].forEach(([a, b]) => guirnalda(a, b));
+  }
+
+  // Mesa alta con cafetera, termo, tazas y cartel de neón.
+  function cafeteria() {
+    const g = grupo(CAFE.x, 0, CAFE.z);
+    g.add(cil(0.34, 0.4, 0.05, '#3b3b40', 0, 0.025, 0, 16));
+    g.add(cil(0.07, 0.09, 0.9, '#3b3b40', 0, 0.47, 0, 10));
+    g.add(cil(0.72, 0.72, 0.07, '#8a5a32', 0, 0.94, 0, 28));
+    g.add(caja(0.32, 0.44, 0.3, '#c0392b', -0.25, 1.2, -0.2, 0.05));
+    g.add(caja(0.18, 0.05, 0.1, '#2b2f3a', -0.25, 1.06, -0.02, 0.02));
+    g.add(esfera(0.035, brilla('#7cfc9a', 2), -0.15, 1.34, -0.04, 8));
+    g.add(cil(0.08, 0.08, 0.34, '#d6dbe4', 0.28, 1.15, -0.22, 12));
+    [[0.22, 0.24], [0.42, 0.04], [-0.02, 0.38]].forEach(([x, z]) => { const t = tacita(); t.position.set(x, 0.975, z); g.add(t); });
+    g.add(cil(0.03, 0.03, 2.4, '#3b3b40', -0.55, 1.2, -0.55, 8));
+    const neon = lienzoCanvas(256, 104, (c, w, h) => {
+      c.fillStyle = '#1a0f0a';
+      c.fillRect(0, 0, w, h);
+      c.font = 'bold 58px "Bungee", "Arial Black", sans-serif';
+      c.textAlign = 'center';
+      c.textBaseline = 'middle';
+      c.shadowColor = '#ffb36b';
+      c.shadowBlur = 18;
+      c.fillStyle = '#ffd9a8';
+      c.fillText('☕ CAFÉ', w / 2, h / 2 + 4);
+    });
+    const cartel = new T.Mesh(new T.PlaneGeometry(1.1, 0.45), new T.MeshBasicMaterial({ map: neon }));
+    cartel.position.set(-0.55, 2.25, -0.55);
+    cartel.rotation.y = Math.PI / 4; // mirando a la cámara y al centro
+    g.add(cartel);
+    const luz = new T.PointLight('#ffb36b', 5, 4, 2);
+    luz.position.set(0, 1.7, 0);
+    g.add(luz);
+    escena.add(g);
+    obstaculos.push({ x: CAFE.x, z: CAFE.z, r: 0.8 });
   }
 
   function guirnalda([ax, az], [bx, bz]) {
@@ -1243,6 +1340,10 @@ const Mundo = (() => {
       n.el.remove();
     }
     esperando.length = 0;
+    [...PUESTOS_CAFE, ...RONDAS, ...VISTAS].forEach((l) => { l.libre = true; });
+    globo.n = globo.ultimo = null;
+    if (globo.el) globo.el.hidden = true;
+    const ahora = performance.now();
     EQUIPO.filter((m) => m !== elegido).forEach((m, i) => {
       const [x, z] = LUGARES[i];
       const Q = PERSONAJES[m.personaje](m);
@@ -1262,7 +1363,16 @@ const Mundo = (() => {
       el.setAttribute('aria-label', `Jugar con ${m.label}`);
       el.addEventListener('click', () => cambiarA(m));
       capaEtiquetas.appendChild(el);
-      esperando.push({ m, P: Q, x, z, yaw0, yaw: yaw0, desfase: i * 1.7, saludo: 0, cerca: false, golpe, el, v: new T.Vector3(x, Q.flota ? 2.4 : 2.0, z) });
+      const taza = tacita();
+      taza.position.set(0, Q.mano - 0.02, 0.1);
+      taza.visible = false;
+      Q.brazos[0].add(taza);
+      esperando.push({
+        m, P: Q, x, z, yaw: yaw0, casa: { x, z, yaw: yaw0 }, desfase: i * 1.7, saludo: 0, cerca: false, golpe, el, taza,
+        alto: Q.flota ? 2.4 : 2.0, v: new T.Vector3(x, Q.flota ? 2.4 : 2.0, z), propias: frasesPropias(m),
+        // Arrancan quietos y al ratito cada uno se va a hacer algo.
+        estado: 'quieto', hasta: reduce ? Infinity : ahora + entre(800, 5000), destino: null, luego: null, lugar: null, ronda: null, compa: null, rumbo: yaw0, tCamino: 0, mejor: Infinity, sinAvance: 0,
+      });
     });
   }
 
@@ -1423,17 +1533,22 @@ const Mundo = (() => {
     }
   }
 
-  // Piernas y brazos al caminar, respiración quieto y, si saluda, el brazo
-  // derecho arriba moviéndose de lado a lado.
-  function animarCuerpo(Q, t, dt, caminando, saluda = false) {
+  // Piernas y brazos al caminar y respiración quieto. pose: saluda (brazo
+  // derecho arriba de lado a lado), taza (izquierdo con la taza; sorbo = a la
+  // boca) y gesto (el derecho acompaña mientras habla).
+  function animarCuerpo(Q, t, dt, caminando, pose = {}) {
     Q.fase += dt * (caminando ? 11 : 0);
     const balanceo = caminando ? Math.sin(Q.fase) : 0;
     const f = 1 - Math.exp(-dt * 14);
     Q.piernas.forEach((g, i) => { g.rotation.x += ((i ? -1 : 1) * balanceo * 0.7 - g.rotation.x) * f; });
     Q.brazos.forEach((g, i) => {
       if (g.userData.z0 === undefined) g.userData.z0 = g.rotation.z;
-      const arriba = saluda && i === 1;
-      g.rotation.x += ((arriba ? -2.7 : (i ? 1 : -1) * balanceo * 0.6) - g.rotation.x) * f;
+      let x = (i ? 1 : -1) * balanceo * 0.6;
+      if (i === 0 && pose.taza) x = pose.sorbo ? -1.9 : -0.75;
+      if (i === 1 && pose.gesto) x = -0.55 + Math.sin(t * 7) * 0.3;
+      const arriba = pose.saluda && i === 1;
+      if (arriba) x = -2.7;
+      g.rotation.x += (x - g.rotation.x) * f;
       g.rotation.z = arriba ? g.userData.z0 + Math.sin(t * 12) * 0.35 : g.rotation.z + (g.userData.z0 - g.rotation.z) * f;
     });
     let y = caminando ? Math.abs(Math.cos(Q.fase)) * 0.06 : Math.sin(t * 2.2) * 0.015;
@@ -1441,21 +1556,161 @@ const Mundo = (() => {
     Q.torso.position.y = y;
   }
 
-  // Los que esperan miran a su alrededor; si te acercás se dan vuelta y saludan.
+  // ── Actividades de los que esperan ──
+  function ir(n, lugar, actividad, seg) {
+    n.estado = 'yendo';
+    n.destino = lugar;
+    n.luego = { actividad, seg };
+    n.tCamino = 0;
+    n.mejor = Infinity;
+    n.sinAvance = 0;
+  }
+  function reservar(n, lugar, actividad, seg) {
+    lugar.libre = false;
+    n.lugar = lugar;
+    ir(n, lugar, actividad, seg);
+  }
+  function soltar(n) {
+    if (n.lugar) { n.lugar.libre = true; n.lugar = null; }
+    if (n.ronda) {
+      n.ronda.libre = true;
+      if (n.compa) { n.compa.ronda = null; n.compa.compa = null; }
+      n.ronda = null;
+      n.compa = null;
+    }
+  }
+  function llegar(n, ahora) {
+    n.estado = n.luego.actividad;
+    n.hasta = ahora + n.luego.seg * 1000;
+    n.luego = null;
+  }
+  // Elige qué hacer: café, charla con alguien libre, mirar la ciudad o volver a su lugar.
+  function pensar(n, ahora) {
+    soltar(n);
+    const r = Math.random();
+    const cafe = PUESTOS_CAFE.filter((p) => p.libre);
+    const rondas = RONDAS.filter((p) => p.libre);
+    const vistas = VISTAS.filter((p) => p.libre);
+    const compas = esperando.filter((o) => o !== n && o.estado === 'quieto' && !o.cerca);
+    if (r < 0.34 && cafe.length) reservar(n, alAzar(cafe), 'cafe', entre(9, 14));
+    else if (r < 0.72 && compas.length && rondas.length) {
+      const o = alAzar(compas);
+      const ronda = alAzar(rondas);
+      soltar(o);
+      ronda.libre = false;
+      n.ronda = o.ronda = ronda;
+      n.compa = o;
+      o.compa = n;
+      const seg = entre(10, 15);
+      ir(n, ronda.par[0], 'charla', seg);
+      ir(o, ronda.par[1], 'charla', seg);
+    } else if (r < 0.88 && vistas.length) reservar(n, alAzar(vistas), 'ciudad', entre(6, 10));
+    else ir(n, n.casa, 'quieto', entre(4, 8));
+  }
+  function terminar(n, ahora) {
+    const o = n.estado === 'charla' ? n.compa : null;
+    pensar(n, ahora);
+    if (o && o.estado === 'charla') pensar(o, ahora);
+  }
+  // Camina hacia su destino esquivando objetos, compañeros y al personaje.
+  function caminarNpc(n, dt, ahora) {
+    const dx = n.destino.x - n.x, dz = n.destino.z - n.z;
+    const d = Math.hypot(dx, dz);
+    n.tCamino += dt;
+    // Trabado (por ejemplo, detrás del personaje en un paso angosto): hace lo suyo ahí mismo.
+    if (d < n.mejor - 0.05) { n.mejor = d; n.sinAvance = 0; } else n.sinAvance += dt;
+    if (d < 0.1 || n.sinAvance > 3 || n.tCamino > 25) { llegar(n, ahora); return false; }
+    let vx = dx / d, vz = dz / d;
+    const suave = Math.min(1, d); // cerca del destino casi no se desvía
+    const desviar = (x, z, lim, peso) => {
+      const ex = n.x - x, ez = n.z - z;
+      const e = Math.hypot(ex, ez);
+      if (e >= lim || e < 0.001) return;
+      const f = ((lim - e) / lim) * peso * suave;
+      const lado = dx * ez - dz * ex >= 0 ? 1 : -1; // rodea siempre para el mismo lado
+      vx += (ex / e) * f + (-ez / e) * f * 0.7 * lado;
+      vz += (ez / e) * f + (ex / e) * f * 0.7 * lado;
+    };
+    for (const o of obstaculos) desviar(o.x, o.z, o.r + 0.9, 1.6);
+    for (const o of esperando) if (o !== n) desviar(o.x, o.z, 0.75, 1);
+    desviar(pos.x, pos.z, 0.9, 1.2);
+    const v = Math.hypot(vx, vz) || 1;
+    n.x += (vx / v) * 1.5 * dt;
+    n.z += (vz / v) * 1.5 * dt;
+    for (const o of obstaculos) {
+      const ex = n.x - o.x, ez = n.z - o.z;
+      const e = Math.hypot(ex, ez);
+      const min = o.r + 0.3;
+      if (e < min && e > 0.0001) { n.x = o.x + (ex / e) * min; n.z = o.z + (ez / e) * min; }
+    }
+    n.x = Math.max(-BORDE, Math.min(BORDE, n.x));
+    n.z = Math.max(-BORDE, Math.min(BORDE, n.z));
+    n.rumbo = Math.atan2(vx, vz);
+    return true;
+  }
+
+  // Un globito a la vez; en una charla se van turnando.
+  function frase(n) {
+    if (n.m.key === 'otros') return alAzar(FRASES.fantasma);
+    if (n.estado === 'charla' && n.propias.length && Math.random() < 0.4) return alAzar(n.propias);
+    return alAzar(FRASES[n.estado]);
+  }
+  function globos(ahora) {
+    const n0 = globo.n;
+    if (n0 && (ahora > globo.hasta || n0.cerca || !['cafe', 'charla', 'ciudad'].includes(n0.estado))) {
+      globo.el.hidden = true;
+      globo.ultimo = n0;
+      globo.n = null;
+      globo.proximo = ahora + entre(900, 2600);
+    }
+    if (globo.n || ahora < globo.proximo) return;
+    const ultimo = globo.ultimo;
+    const quienes = esperando.filter((n) => !n.cerca && (n.estado === 'cafe' || n.estado === 'ciudad' || (n.estado === 'charla' && n.compa && n.compa.estado === 'charla')));
+    if (!quienes.length) { globo.proximo = ahora + 1000; return; }
+    const responde = ultimo && ultimo.estado === 'charla' && ultimo.compa && quienes.includes(ultimo.compa) && Math.random() < 0.75;
+    const n = responde ? ultimo.compa : alAzar(quienes);
+    globo.n = n;
+    globo.hasta = ahora + 3400;
+    globo.el.textContent = frase(n);
+    globo.el.hidden = false;
+  }
+
+  // Cada uno con su actividad; si te acercás dejan lo que hacen, se dan vuelta y saludan.
   function animarEsperando(t, dt) {
+    const ahora = performance.now();
     for (const n of esperando) {
       const cerca = aparicionT < 0 && Math.hypot(pos.x - n.x, pos.z - n.z) < 2.6;
       if (cerca && !n.cerca) n.saludo = 1.8;
       n.cerca = cerca;
       n.el.classList.toggle('pj--cerca', cerca);
       n.saludo = Math.max(0, n.saludo - dt);
-      const objetivo = cerca ? Math.atan2(pos.x - n.x, pos.z - n.z) : n.yaw0 + Math.sin((t + n.desfase) * 0.45) * 0.5;
+      let caminando = false;
+      if (n.estado === 'yendo') caminando = caminarNpc(n, dt, ahora); // si pasa cerca, saluda sin frenar
+      else if (cerca) n.hasta += dt * 1000; // la actividad espera mientras te atiende
+      else if (n.estado === 'charla' && n.compa && n.compa.estado === 'yendo') n.hasta += dt * 1000; // espera al otro
+      else if (ahora > n.hasta) terminar(n, ahora);
+      let objetivo;
+      if (caminando) objetivo = n.rumbo;
+      else if (cerca) objetivo = Math.atan2(pos.x - n.x, pos.z - n.z);
+      else if (n.estado === 'charla' && n.compa) objetivo = Math.atan2(n.compa.x - n.x, n.compa.z - n.z);
+      else if (n.estado === 'quieto') objetivo = n.casa.yaw + Math.sin((t + n.desfase) * 0.45) * 0.5;
+      else objetivo = n.destino.yaw;
       let dif = objetivo - n.yaw;
       dif = Math.atan2(Math.sin(dif), Math.cos(dif));
-      n.yaw += dif * (1 - Math.exp(-dt * (cerca ? 8 : 2)));
+      n.yaw += dif * (1 - Math.exp(-dt * (cerca || caminando ? 8 : 3)));
+      n.P.raiz.position.set(n.x, 0, n.z);
       n.P.raiz.rotation.y = n.yaw;
-      animarCuerpo(n.P, t + n.desfase, dt, false, n.saludo > 0);
+      n.v.set(n.x, n.alto, n.z);
+      const tomando = n.estado === 'cafe' && !cerca;
+      n.taza.visible = tomando;
+      animarCuerpo(n.P, t + n.desfase, dt, caminando, {
+        saluda: n.saludo > 0,
+        taza: tomando,
+        sorbo: (t + n.desfase) % 4 < 1.1,
+        gesto: n.estado === 'charla' && !cerca && globo.n === n,
+      });
     }
+    if (!reduce) globos(ahora);
   }
 
   function animarPersonaje(t, dt, caminando) {
@@ -1515,6 +1770,12 @@ const Mundo = (() => {
       const x = ((proy.v.x + 1) / 2) * r.width;
       const y = Math.max(a.el.offsetHeight + 4, ((1 - proy.v.y) / 2) * r.height); // que no se corte arriba
       a.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+    }
+    if (globo.n) {
+      proy.v.copy(globo.v.set(globo.n.x, globo.n.alto + 0.75, globo.n.z)).project(camara);
+      const x = ((proy.v.x + 1) / 2) * r.width;
+      const y = Math.max(globo.el.offsetHeight + 4, ((1 - proy.v.y) / 2) * r.height);
+      globo.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
 
