@@ -4,7 +4,7 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 
 ## Estructura
 
-- `index.html` + `inicio.css` — portada con dos opciones: **Elegí tu personaje** (`personajes.html`, los retratos pixel art en abanico) y **Oficina digital** (`oficina.html`, Clippy con el equipo girando alrededor: las 4 tortugas del escudo, `images/icono-*.png`, y Splinter y April dibujados en el mismo estilo, `images/icono-kevin.svg` e `icono-albana.svg`). Mismo tema nocturno y redondeado de la selección; entra a cada una con la transición de portal de `transition.js`.
+- `index.html` + `inicio.css` — portada con dos opciones: **Elegí tu personaje** (`personajes.html`, los retratos pixel art en abanico) y **Oficina digital** (`oficina.html`, Clippy con el equipo girando alrededor: Splinter, las 4 tortugas del escudo y April, `images/icono-*.png`). Mismo tema nocturno y redondeado de la selección; entra a cada una con la transición de portal de `transition.js`.
 - `dashboard.html` — layout y contenedores de cada card/gráfico del dashboard (antes `index.html`). Funciona como panel general (sin filtrar) o filtrado por integrante vía `?miembro=`.
 - `styles.css` — estilos de ambas páginas.
 - `data.js` — `window.ALTAS_DATA`: datos crudos normalizados (altas + cumplimiento). Reemplazar con la exportación actualizada del Excel para refrescar el dashboard.
