@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="20 22 160 160">
+  <!-- Splinter (Kevin) con el estilo emblema de las tortugas del escudo:
+       trazo oscuro grueso, colores planos con sombra y brillo, ceño
+       fruncido y dientes apretados. Túnica bordó, el color de Kevin. -->
+  <defs>
+    <radialGradient id="f" cx="50%" cy="45%" r="70%">
+      <stop offset="0" stop-color="#4a5a4f"/>
+      <stop offset="1" stop-color="#151d18"/>
+    </radialGradient>
+  </defs>
+  <rect x="0" y="0" width="200" height="200" fill="url(#f)"/>
+  <path d="M10 40 L60 10 M140 10 L190 40" stroke="#6d7a80" stroke-width="10" stroke-linecap="round"/>
+  <g stroke="#140f0b" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <!-- túnica bordó -->
+    <path d="M14 204 C22 172 52 160 74 158 L100 190 L126 158 C148 160 178 172 186 204 Z" fill="#8c3344"/>
+    <path d="M74 158 L100 190 L126 158 L114 152 L100 172 L86 152 Z" fill="#5c2430"/>
+    <!-- orejas -->
+    <circle cx="48" cy="58" r="30" fill="#8a6347"/>
+    <circle cx="152" cy="58" r="30" fill="#8a6347"/>
+    <circle cx="50" cy="60" r="16" fill="#e59aa0" stroke-width="4"/>
+    <circle cx="150" cy="60" r="16" fill="#e59aa0" stroke-width="4"/>
+    <!-- cabeza -->
+    <path d="M36 100 C34 56 166 56 164 100 C162 130 132 150 116 172 C108 182 92 182 84 172 C68 150 38 130 36 100 Z" fill="#9b7354"/>
+  </g>
+  <!-- sombras y brillos del pelo -->
+  <path d="M42 106 C50 128 70 142 86 164 C68 154 48 134 42 106 Z" fill="#6f4f36"/>
+  <path d="M158 106 C150 128 130 142 114 164 C132 154 152 134 158 106 Z" fill="#6f4f36"/>
+  <path d="M60 72 C76 62 98 60 116 64" fill="none" stroke="#c39a76" stroke-width="6" stroke-linecap="round"/>
+  <path d="M42 50 C44 42 50 36 58 34" fill="none" stroke="#b38b67" stroke-width="5" stroke-linecap="round"/>
+  <path d="M142 34 C150 36 156 42 158 50" fill="none" stroke="#b38b67" stroke-width="5" stroke-linecap="round"/>
+  <g stroke="#140f0b" stroke-linejoin="round" stroke-linecap="round">
+    <!-- hocico claro -->
+    <path d="M72 128 C78 112 122 112 128 128 C126 148 114 168 100 170 C86 168 74 148 72 128 Z" fill="#d9b48f" stroke-width="5"/>
+    <path d="M80 122 C88 116 100 115 108 116" fill="none" stroke="#efd3b2" stroke-width="4"/>
+    <!-- nariz -->
+    <ellipse cx="100" cy="140" rx="12" ry="8" fill="#e5838f" stroke-width="5"/>
+    <ellipse cx="96" cy="138" rx="4" ry="2.5" fill="#f6c3ca" stroke="none"/>
+    <!-- dientes apretados -->
+    <path d="M84 152 C92 148 108 148 116 152 L113 164 C106 168 94 168 87 164 Z" fill="#f4efe4" stroke-width="4.5"/>
+    <path d="M93 150 L93 166 M100 149 L100 167 M107 150 L107 166 M86 158 L114 158" stroke-width="2.5"/>
+    <!-- barba -->
+    <path d="M88 172 L100 194 L112 172 C106 178 94 178 88 172 Z" fill="#ece2d0" stroke-width="5"/>
+    <!-- ojos enojados -->
+    <path d="M54 96 L92 106 L87 120 C72 122 60 116 54 96 Z" fill="#fff" stroke-width="5"/>
+    <path d="M146 96 L108 106 L113 120 C128 122 140 116 146 96 Z" fill="#fff" stroke-width="5"/>
+    <circle cx="80" cy="110" r="5.5" fill="#140f0b" stroke="none"/>
+    <circle cx="120" cy="110" r="5.5" fill="#140f0b" stroke="none"/>
+    <!-- cejas -->
+    <path d="M48 84 L97 101" stroke-width="11"/>
+    <path d="M152 84 L103 101" stroke-width="11"/>
+    <!-- bigotes -->
+    <path d="M74 136 L34 126 M74 144 L36 150 M126 136 L166 126 M126 144 L164 150" stroke="#f2e6d0" stroke-width="3"/>
+  </g>
+</svg>

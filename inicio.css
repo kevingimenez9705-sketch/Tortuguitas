@@ -110,7 +110,9 @@ body.inicio{
   transform:translate(-50%, -50%) translateX(calc(var(--i) * 64px)) translateY(calc(var(--i) * var(--i) * 5px - 6px)) rotate(calc(var(--i) * 8deg));
 }
 
-/* Clippy en el centro y los 6 agentes girando alrededor. */
+/* Clippy en el centro y el equipo girando alrededor: las 4 tortugas del
+   escudo (images/icono-*.png) y Splinter y April dibujados en su mismo estilo
+   (icono-kevin.svg, icono-albana.svg), con un aro de su color. */
 .inicio-clippy{
   position:absolute;
   left:50%;top:52%;
@@ -126,18 +128,18 @@ body.inicio{
   width:0;height:0;
   animation:in-girar 26s linear infinite;
 }
-.inicio-orbita span{position:absolute;transform:rotate(var(--a)) translateX(108px) rotate(calc(var(--a) * -1));}
+.inicio-orbita span{position:absolute;transform:rotate(var(--a)) translateX(112px) rotate(calc(var(--a) * -1));}
 .inicio-orbita i{
-  display:grid;place-items:center;
-  width:40px;height:40px;
+  display:block;
+  width:48px;height:48px;
   translate:-50% -50%;
   border-radius:50%;
-  font-style:normal;
-  font-size:22px;
+  overflow:hidden;
   background:#141a33;
-  box-shadow:0 0 0 2px color-mix(in srgb, var(--op) 45%, transparent);
+  box-shadow:0 0 0 2px var(--c), 0 0 14px -2px var(--c);
   animation:in-girar 26s linear infinite reverse;
 }
+.inicio-orbita img{display:block;width:100%;height:100%;object-fit:cover;}
 @keyframes in-girar{to{rotate:360deg;}}
 
 @media (max-width:760px){
@@ -148,7 +150,8 @@ body.inicio{
   .inicio-escena--abanico img{width:78px;transform:translate(-50%, -50%) translateX(calc(var(--i) * 40px)) translateY(calc(var(--i) * var(--i) * 3px)) rotate(calc(var(--i) * 6deg));}
   .inicio-opcion:hover .inicio-escena--abanico img{transform:translate(-50%, -50%) translateX(calc(var(--i) * 44px)) translateY(calc(var(--i) * var(--i) * 3px - 4px)) rotate(calc(var(--i) * 7deg));}
   .inicio-clippy{width:104px;height:104px;}
-  .inicio-orbita span{transform:rotate(var(--a)) translateX(86px) rotate(calc(var(--a) * -1));}
+  .inicio-orbita span{transform:rotate(var(--a)) translateX(88px) rotate(calc(var(--a) * -1));}
+  .inicio-orbita i{width:40px;height:40px;}
   .inicio-texto{padding:4px 22px 24px;}
   .inicio-texto strong{font-size:22px;}
 }
