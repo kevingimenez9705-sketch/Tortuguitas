@@ -1,4 +1,4 @@
-// transition.js — transiciones "portal" entre index.html y dashboard.html.
+// transition.js — transiciones "portal" entre index.html (portada) y el resto.
 // Al tocar una tarjeta (o "← Equipo") un círculo con la foto de fondo de la
 // persona (su tortuga; sin retrato ni nombre) se expande desde el elemento tocado hasta cubrir la pantalla y
 // recién ahí navega. En la página de llegada esa cortina se cierra hacia el
@@ -71,14 +71,14 @@
           bg: hero.style.getPropertyValue('--tortuga-bg').trim(),
         })));
       } else {
-        // index.html -> hoja de cada integrante
-        document.querySelectorAll('.unit-card').forEach(card => portalLink(card, c => ({
-          color: c.style.borderTopColor || '#5c2430',
+        // index.html -> "Elegí tu personaje" u "Oficina digital"
+        document.querySelectorAll('.unit-card, .inicio-opcion').forEach(card => portalLink(card, c => ({
+          color: c.dataset.color || c.style.borderTopColor || '#5c2430',
           bg: c.style.getPropertyValue('--tortuga-bg').trim(),
         })));
-        // Precarga lo pesado del dashboard (data.js + Chart.js) mientras se
-        // mira el equipo: así la espera detrás del portal es casi nula.
-        const prefetch = () => ['data.js', 'vendor/chart.umd.min.js'].forEach(href => {
+        // Precarga lo pesado de las dos opciones (data.js + three.js) mientras
+        // se mira la portada: así la espera detrás del portal es casi nula.
+        const prefetch = () => ['data.js', 'vendor/three.min.js?v=0.186.1'].forEach(href => {
           const l = document.createElement('link');
           l.rel = 'prefetch';
           l.href = href;
@@ -91,7 +91,7 @@
       // Entrada en cascada: tarjetas del equipo, o hero + bloques del dashboard.
       const items = hero
         ? [hero, ...document.querySelectorAll('.container > *:not(.hero)')]
-        : [...document.querySelectorAll('.unit-card')];
+        : [...document.querySelectorAll('.unit-card, .inicio-opcion')];
       const base = curtain ? 300 : 0;
       items.forEach((el, i) => {
         el.style.setProperty('--reveal-delay', (base + Math.min(i, 8) * 70) + 'ms');

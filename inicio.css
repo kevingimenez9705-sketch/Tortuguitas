@@ -1,0 +1,158 @@
+/* inicio.css — portada (index.html): dos opciones, "Elegí tu personaje" y
+   "Oficina digital", con el mismo tema nocturno y redondeado de
+   personajes.html. styles.css se carga solo por la cortina .portal de
+   transition.js. --op: acento de cada opción. */
+body.inicio{
+  --in-fondo:#070b18;
+  --in-texto:#eef1f8;
+  --in-texto-2:#b9c1d6;
+  --in-linea:rgba(255,255,255,.09);
+  --in-display:"Bungee","Arial Black",Impact,system-ui,sans-serif;
+  margin:0;
+  min-height:100vh;
+  min-height:100dvh;
+  color:var(--in-texto);
+  background:
+    repeating-linear-gradient(0deg, rgba(255,255,255,.025) 0 1px, transparent 1px 3px),
+    radial-gradient(50% 45% at 25% 70%, rgba(63,191,127,.18), transparent 70%),
+    radial-gradient(50% 45% at 75% 70%, rgba(123,147,255,.2), transparent 70%),
+    var(--in-fondo);
+  background-attachment:fixed;
+}
+.inicio-main{
+  max-width:1100px;
+  margin:0 auto;
+  padding:28px 16px 40px;
+  display:flex;
+  flex-direction:column;
+  gap:28px;
+}
+.inicio-top{display:flex;flex-direction:column;align-items:center;text-align:center;gap:6px;}
+.inicio-logo{
+  width:120px;height:120px;
+  border-radius:50%;
+  object-fit:cover;
+  box-shadow:0 0 0 3px rgba(255,255,255,.12), 0 12px 40px -10px rgba(63,191,127,.6);
+}
+.inicio-titulo{
+  margin:10px 0 0;
+  font-family:var(--in-display);
+  font-weight:400;
+  font-size:clamp(26px, 5vw, 48px);
+  letter-spacing:.03em;
+  text-transform:uppercase;
+  /* Letras de metal cincelado, igual que "Elegí tu personaje". */
+  color:#d9d3c5;
+  background:linear-gradient(180deg, #f4f1ea 0%, #c4bcab 44%, #7b7363 52%, #b7af9e 78%, #e2dccf 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  -webkit-text-stroke:1.5px #1b1712;
+  filter:drop-shadow(0 3px 0 #1b1712);
+}
+.inicio-sub{margin:0;color:var(--in-texto-2);font-size:15px;}
+
+.inicio-opciones{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:22px;}
+.inicio-opcion{
+  --op:#3fbf7f;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  border-radius:32px;
+  overflow:hidden;
+  text-decoration:none;
+  color:inherit;
+  background:linear-gradient(180deg, color-mix(in srgb, var(--op) 16%, #121831), #0d1226 70%);
+  border:1px solid var(--in-linea);
+  box-shadow:0 0 0 1px color-mix(in srgb, var(--op) 30%, transparent), 0 24px 60px -30px var(--op);
+  transition:transform .28s cubic-bezier(.3,1.4,.5,1), box-shadow .25s ease;
+}
+.inicio-opcion:hover,.inicio-opcion:focus-visible{
+  transform:translateY(-6px);
+  box-shadow:0 0 0 2px var(--op), 0 30px 70px -26px var(--op);
+}
+.inicio-opcion:focus-visible{outline:3px solid #fff;outline-offset:4px;}
+.inicio-escena{
+  position:relative;
+  display:block;
+  height:250px;
+  background:radial-gradient(60% 70% at 50% 60%, color-mix(in srgb, var(--op) 30%, transparent), transparent 75%);
+}
+.inicio-texto{display:flex;flex-direction:column;gap:8px;padding:6px 30px 30px;}
+.inicio-texto strong{font-family:var(--in-display);font-weight:400;font-size:26px;letter-spacing:.02em;}
+.inicio-texto > span:not(.inicio-cta){color:var(--in-texto-2);line-height:1.45;}
+.inicio-cta{
+  align-self:flex-start;
+  margin-top:8px;
+  padding:10px 22px;
+  border-radius:999px;
+  background:var(--op);
+  color:#0b1020;
+  font-weight:800;
+  transition:transform .2s ease;
+}
+.inicio-opcion:hover .inicio-cta{transform:translateX(4px);}
+
+/* Los retratos pixel art en abanico; se abren un poco más al pasar el mouse. */
+.inicio-escena--abanico img{
+  position:absolute;
+  left:50%;top:54%;
+  width:96px;
+  aspect-ratio:3 / 4;
+  object-fit:cover;
+  border:3px solid #1b1712;
+  border-radius:30px 30px 10px 10px / 24px 24px 10px 10px;
+  box-shadow:0 10px 20px -8px rgba(0,0,0,.7);
+  transform:translate(-50%, -50%) translateX(calc(var(--i) * 52px)) translateY(calc(var(--i) * var(--i) * 4px)) rotate(calc(var(--i) * 6deg));
+  transition:transform .35s cubic-bezier(.3,1.4,.5,1);
+}
+.inicio-opcion:hover .inicio-escena--abanico img{
+  transform:translate(-50%, -50%) translateX(calc(var(--i) * 64px)) translateY(calc(var(--i) * var(--i) * 5px - 6px)) rotate(calc(var(--i) * 8deg));
+}
+
+/* Clippy en el centro y los 6 agentes girando alrededor. */
+.inicio-clippy{
+  position:absolute;
+  left:50%;top:52%;
+  width:130px;height:130px;
+  translate:-50% -50%;
+  border-radius:50%;
+  object-fit:cover;
+  box-shadow:0 0 0 3px rgba(255,255,255,.12), 0 0 40px 6px color-mix(in srgb, var(--op) 55%, transparent);
+}
+.inicio-orbita{
+  position:absolute;
+  left:50%;top:52%;
+  width:0;height:0;
+  animation:in-girar 26s linear infinite;
+}
+.inicio-orbita span{position:absolute;transform:rotate(var(--a)) translateX(108px) rotate(calc(var(--a) * -1));}
+.inicio-orbita i{
+  display:grid;place-items:center;
+  width:40px;height:40px;
+  translate:-50% -50%;
+  border-radius:50%;
+  font-style:normal;
+  font-size:22px;
+  background:#141a33;
+  box-shadow:0 0 0 2px color-mix(in srgb, var(--op) 45%, transparent);
+  animation:in-girar 26s linear infinite reverse;
+}
+@keyframes in-girar{to{rotate:360deg;}}
+
+@media (max-width:760px){
+  .inicio-main{padding-top:20px;gap:20px;}
+  .inicio-logo{width:96px;height:96px;}
+  .inicio-opciones{grid-template-columns:1fr;gap:16px;}
+  .inicio-escena{height:200px;}
+  .inicio-escena--abanico img{width:78px;transform:translate(-50%, -50%) translateX(calc(var(--i) * 40px)) translateY(calc(var(--i) * var(--i) * 3px)) rotate(calc(var(--i) * 6deg));}
+  .inicio-opcion:hover .inicio-escena--abanico img{transform:translate(-50%, -50%) translateX(calc(var(--i) * 44px)) translateY(calc(var(--i) * var(--i) * 3px - 4px)) rotate(calc(var(--i) * 7deg));}
+  .inicio-clippy{width:104px;height:104px;}
+  .inicio-orbita span{transform:rotate(var(--a)) translateX(86px) rotate(calc(var(--a) * -1));}
+  .inicio-texto{padding:4px 22px 24px;}
+  .inicio-texto strong{font-size:22px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .inicio-orbita,.inicio-orbita i{animation:none;}
+  .inicio-opcion,.inicio-escena--abanico img,.inicio-cta{transition:none;}
+}
