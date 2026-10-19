@@ -2,16 +2,17 @@
 // arcade del equipo y, al elegir, la azotea 3D de esa persona (three.js, sin
 // build, el mismo vendor/three.min.js de la oficina).
 //
-// 1. Selección: las fotos abajo y, arriba, la tortuga de cada uno (la misma
+// 1. Selección: los retratos pixel art abajo y, arriba, la tortuga de cada uno (la misma
 //    imagen de index.html) con sus números de los últimos 12 meses. Se elige
 //    con flechas + Enter, el mouse o el dedo.
-// 2. Aparición: la foto vuela al centro y de ahí sale el personaje 3D: Kevin
+// 2. Aparición: el retrato vuela al centro y de ahí sale el personaje 3D: Kevin
 //    es Splinter, cada tortuga lleva su bandana y su arma, Albana es April y
 //    "Otros" un fantasma ninja.
 // 3. Azotea: el personaje se mueve con flechas/WASD, clic o toque en el piso
 //    (joystick en celulares). Al pisar una parada se abre su panel: altas,
 //    presentismo, cumplimiento, cada marca, ranking y la guarida, que lleva
-//    al dashboard completo.
+//    al dashboard completo. Los demás integrantes esperan en la azotea: se
+//    dan vuelta y saludan cuando te acercás, y tocándolos se juega con ellos.
 //
 // Los números salen de data.js con los mismos criterios que app.js:
 // presentismo sin las altas sin dato de ingreso, cumplimiento = enviados /
@@ -24,16 +25,17 @@ const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
 
 /* ───────────────────────── Equipo ───────────────────────── */
 
-// Mismos integrantes, colores, fotos y textos que index.html y MEMBER_MAP de
+// Mismos integrantes, colores, imágenes y textos que index.html y MEMBER_MAP de
 // app.js. selectores: null = todo el equipo (panel de Kevin).
+// retrato: ilustración pixel art estilo Metal Slug para la selección.
 const EQUIPO = [
-  { key: 'kevin', label: 'Kevin García', puesto: 'Coordinador de Selección', frase: 'Autómata y estratégico', color: '#5c2430', foto: 'images/kevin-garcia.jpg', arte: 'images/tortuga-kevin.jpg', personaje: 'rata', selectores: null, dashboard: 'dashboard.html' },
-  { key: 'agustin', label: 'Agustín Márquez', puesto: 'Selector', frase: 'El innovador', color: '#5b2d78', foto: 'images/agustin-marquez.jpg', arte: 'images/tortuga-agustin.jpg', personaje: 'tortuga', arma: 'bo', selectores: ['Agustin'] },
-  { key: 'agustina', label: 'Agustina Castillo', puesto: 'Selector Jr', frase: 'La creativa', color: '#cc2f2f', foto: 'images/agustina-castillo.jpg', arte: 'images/tortuga-agustina.jpg', personaje: 'tortuga', arma: 'sai', selectores: ['Agustina'] },
-  { key: 'rafael', label: 'Rafael Barberi', puesto: 'Selector Jr', frase: 'El compañero confiable', color: '#e2721f', foto: 'images/rafael-barberi.jpg', arte: 'images/tortuga-rafael.jpg', personaje: 'tortuga', arma: 'nunchaku', selectores: ['Rafael'] },
-  { key: 'gustavo', label: 'Gustavo Sotelo', puesto: 'Selector Jr', frase: 'El más versátil', color: '#4f8fc9', foto: 'images/gustavo-sotelo.jpg', arte: 'images/tortuga-gustavo.jpg', personaje: 'tortuga', arma: 'katana', selectores: ['Gustavo'] },
-  { key: 'albana', label: 'Albana Pais', puesto: 'Selectora Jr', frase: 'La estructurada', color: '#d4a017', foto: 'images/Albana-pais.jpeg', arte: 'images/tortuga-albana2.jpg', personaje: 'april', selectores: ['Albana'] },
-  { key: 'otros', label: 'Otros', puesto: 'Selectores adicionales', frase: 'Los que caminaron en el infierno y no salieron', color: '#a9714a', foto: null, arte: 'images/muertos en el camino.jpg', personaje: 'fantasma', selectores: ['Emiliano', 'Mariano', 'Facundo', 'Alexis', 'Agustin Monte', 'Luana', 'Araceli', 'Giselle', 'Balbina'] },
+  { key: 'kevin', label: 'Kevin García', puesto: 'Coordinador de Selección', frase: 'Autómata y estratégico', color: '#5c2430', retrato: 'images/retro-kevin.png', arte: 'images/tortuga-kevin.jpg', personaje: 'rata', selectores: null, dashboard: 'dashboard.html' },
+  { key: 'agustin', label: 'Agustín Márquez', puesto: 'Selector', frase: 'El innovador', color: '#5b2d78', retrato: 'images/retro-agustin.png', arte: 'images/tortuga-agustin.jpg', personaje: 'tortuga', arma: 'bo', selectores: ['Agustin'] },
+  { key: 'agustina', label: 'Agustina Castillo', puesto: 'Selector Jr', frase: 'La creativa', color: '#cc2f2f', retrato: 'images/retro-agustina.png', arte: 'images/tortuga-agustina.jpg', personaje: 'tortuga', arma: 'sai', selectores: ['Agustina'] },
+  { key: 'rafael', label: 'Rafael Barberi', puesto: 'Selector Jr', frase: 'El compañero confiable', color: '#e2721f', retrato: 'images/retro-rafael.png', arte: 'images/tortuga-rafael.jpg', personaje: 'tortuga', arma: 'nunchaku', selectores: ['Rafael'] },
+  { key: 'gustavo', label: 'Gustavo Sotelo', puesto: 'Selector Jr', frase: 'El más versátil', color: '#4f8fc9', retrato: 'images/retro-gustavo.png', arte: 'images/tortuga-gustavo.jpg', personaje: 'tortuga', arma: 'katana', selectores: ['Gustavo'] },
+  { key: 'albana', label: 'Albana Pais', puesto: 'Selectora Jr', frase: 'La estructurada', color: '#d4a017', retrato: 'images/retro-albana.png', arte: 'images/tortuga-albana2.jpg', personaje: 'april', selectores: ['Albana'] },
+  { key: 'otros', label: 'Otros', puesto: 'Selectores adicionales', frase: 'Los que caminaron en el infierno y no salieron', color: '#a9714a', arte: 'images/muertos en el camino.jpg', personaje: 'fantasma', selectores: ['Emiliano', 'Mariano', 'Facundo', 'Alexis', 'Agustin Monte', 'Luana', 'Araceli', 'Giselle', 'Balbina'] },
 ];
 EQUIPO.forEach((m) => { m.dashboard = m.dashboard || `dashboard.html?miembro=${m.key}`; });
 
@@ -225,7 +227,9 @@ function tematizar(m) {
 function pintarSlots() {
   slotsEl.innerHTML = EQUIPO.map((m, i) => `
     <button class="pj-slot" type="button" role="radio" data-i="${i}" aria-checked="false" aria-label="${esc(m.label)}" style="--sc:${paraOscuro(m.color, '#070b18', 3)}">
-      ${m.foto ? `<img src="${esc(m.foto)}" alt="" loading="lazy" />` : '<span class="pj-slot-mas">+9</span>'}
+      <span class="pj-slot-pantalla" aria-hidden="true"></span>
+      <span class="pj-slot-marco">${m.retrato ? `<img src="${esc(m.retrato)}" alt="" />` : '<span class="pj-slot-mas">+9</span>'}</span>
+      <span class="pj-slot-nombre" aria-hidden="true">${esc(m.label.split(' ')[0])}</span>
     </button>`).join('');
   slotsEl.querySelectorAll('.pj-slot').forEach((b) => {
     const i = Number(b.dataset.i);
@@ -317,15 +321,15 @@ async function confirmar() {
 async function aparicion(m, desde, con3d) {
   const capa = $('#pjAparicion');
   const img = capa.querySelector('img');
-  const lado = Math.round(Math.min(innerWidth, innerHeight) * 0.36);
-  const x = (innerWidth - lado) / 2;
+  const lado = Math.round(Math.min(innerWidth, innerHeight) * 0.42); // alto del retrato (3:4)
+  const x = (innerWidth - lado * 0.75) / 2;
   const y = (innerHeight - lado) / 2;
   if (!reduce) {
-    img.src = m.foto || m.arte;
-    Object.assign(img.style, { left: x + 'px', top: y + 'px', width: lado + 'px', height: lado + 'px' });
+    img.src = m.retrato || m.arte;
+    Object.assign(img.style, { left: x + 'px', top: y + 'px', width: lado * 0.75 + 'px', height: lado + 'px' });
     capa.hidden = false;
-    const esc0 = desde.width / lado;
-    const dx = desde.left + desde.width / 2 - (x + lado / 2);
+    const esc0 = desde.width / (lado * 0.75);
+    const dx = desde.left + desde.width / 2 - (x + (lado * 0.75) / 2);
     const dy = desde.top + desde.height / 2 - (y + lado / 2);
     await img.animate([
       { transform: `translate(${dx}px, ${dy}px) scale(${esc0})` },
@@ -361,6 +365,7 @@ const capaEtiquetas = $('#pjCapa');
 const navParadas = $('#pjParadas');
 const ayuda = $('#pjAyuda');
 
+let ayudaMostrada = false;
 function entrarAlMundo(m, con3d) {
   actual = m;
   tematizar(m);
@@ -369,21 +374,32 @@ function entrarAlMundo(m, con3d) {
   mundoEl.hidden = false;
   document.body.classList.add('pj--jugando');
   const foto = $('#pjHudFoto');
-  foto.src = m.foto || '';
-  foto.classList.toggle('pj--sin', !m.foto);
+  foto.src = m.retrato || '';
+  foto.classList.toggle('pj--sin', !m.retrato);
   $('#pjHudNombre').textContent = m.label;
   pintarNav();
   cerrarPanel();
   if (con3d) {
     Mundo.iniciarPersonaje(m);
     pintarEtiquetas();
-    ayuda.textContent = tactil ? 'Mové el joystick o tocá el piso para caminar' : 'Caminá con las flechas o WASD · o hacé clic en el piso';
-    ayuda.classList.remove('pj--fuera');
     $('#pjJoy').hidden = !tactil;
-    setTimeout(() => ayuda.classList.add('pj--fuera'), 9000);
+    if (!ayudaMostrada) {
+      ayudaMostrada = true;
+      ayuda.textContent = tactil ? 'Mové el joystick o tocá el piso para caminar' : 'Caminá con las flechas o WASD · o hacé clic en el piso';
+      ayuda.classList.remove('pj--fuera');
+      setTimeout(() => ayuda.classList.add('pj--fuera'), 9000);
+    }
   } else {
     modoPlano();
   }
+}
+
+// Tocar a alguien que espera en la azotea: se juega con esa persona.
+function cambiarA(m) {
+  indice = EQUIPO.indexOf(m);
+  history.replaceState(null, '', `?miembro=${m.key}`);
+  Sonido.elegir();
+  entrarAlMundo(m, true);
 }
 
 $('#pjCambiar').addEventListener('click', () => {
@@ -957,6 +973,9 @@ const Mundo = (() => {
   const golpes = []; // mallas invisibles para el clic en cada parada
   const anillos = {};
   const anclas = [];
+  // Los demás integrantes, quietos en lugares que no tapan paradas ni caminos.
+  const esperando = [];
+  const LUGARES = [[-2.8, -8.9], [2.8, -8.9], [-9.0, -1.6], [9.0, -1.4], [-8.6, 4.4], [7.4, 8.7], [-6.6, 9.0]];
   const camPos = { x: 0, y: 0, z: 0 };
   const camMira = { x: 0, y: 0, z: 0 };
 
@@ -1200,7 +1219,8 @@ const Mundo = (() => {
     destino = paradaDestino = null;
     teclas.clear();
     joy.x = joy.z = 0;
-    paradaActiva = null;
+    activarParada(null);
+    armarEsperando(m);
     medir();
     colocarCamara(1);
     if (reduce) {
@@ -1214,6 +1234,36 @@ const Mundo = (() => {
     }
     reanudar();
     lienzo.focus({ preventScroll: true });
+  }
+
+  function armarEsperando(elegido) {
+    for (const n of esperando) {
+      escena.remove(n.P.raiz);
+      n.P.raiz.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+      n.el.remove();
+    }
+    esperando.length = 0;
+    EQUIPO.filter((m) => m !== elegido).forEach((m, i) => {
+      const [x, z] = LUGARES[i];
+      const Q = PERSONAJES[m.personaje](m);
+      Q.raiz.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+      const golpe = new T.Mesh(new T.CylinderGeometry(0.6, 0.6, 2, 10), new T.MeshBasicMaterial({ visible: false }));
+      golpe.position.y = 1;
+      golpe.userData.integrante = m.key;
+      Q.raiz.add(golpe);
+      const yaw0 = Math.atan2(-x, -z); // mirando al centro de la azotea
+      Q.raiz.position.set(x, 0, z);
+      Q.raiz.rotation.y = yaw0;
+      escena.add(Q.raiz);
+      const el = document.createElement('button');
+      el.type = 'button';
+      el.className = 'pj-npc';
+      el.innerHTML = `<span><i style="background:${paraOscuro(m.color)}"></i>${esc(m.label.split(' ')[0])}</span><small>Tocá para jugar</small>`;
+      el.setAttribute('aria-label', `Jugar con ${m.label}`);
+      el.addEventListener('click', () => cambiarA(m));
+      capaEtiquetas.appendChild(el);
+      esperando.push({ m, P: Q, x, z, yaw0, yaw: yaw0, desfase: i * 1.7, saludo: 0, cerca: false, golpe, el, v: new T.Vector3(x, Q.flota ? 2.4 : 2.0, z) });
+    });
   }
 
   // Columna de luz, onda en el piso y chispas del color del personaje.
@@ -1263,7 +1313,7 @@ const Mundo = (() => {
   function colocarCamara(f) {
     const o = offsetCamara();
     camMira.x += (pos.x - camMira.x) * f;
-    camMira.z += (pos.z - 1 - camMira.z) * f; // mira un poco adelante: se ven mejor las paradas del fondo
+    camMira.z += (pos.z - 1.8 - camMira.z) * f; // mira un poco adelante: se ven mejor las paradas del fondo
     camMira.y = 0.9;
     let { y, z } = o;
     if (introT >= 0) {
@@ -1347,6 +1397,8 @@ const Mundo = (() => {
     const ndc = new T.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
     const ray = rayo();
     ray.setFromCamera(ndc, camara);
+    const quien = ray.intersectObjects(esperando.map((n) => n.golpe), false)[0];
+    if (quien) { cambiarA(EQUIPO.find((m) => m.key === quien.object.userData.integrante)); return; }
     const hit = ray.intersectObjects(golpes, false)[0];
     if (hit) { irA(hit.object.userData.parada); return; }
     const p = new T.Vector3();
@@ -1363,7 +1415,7 @@ const Mundo = (() => {
   function chocar() {
     pos.x = Math.max(-BORDE, Math.min(BORDE, pos.x));
     pos.z = Math.max(-BORDE, Math.min(BORDE, pos.z));
-    for (const o of obstaculos) {
+    for (const o of [...obstaculos, ...esperando.map((n) => ({ x: n.x, z: n.z, r: 0.45 }))]) {
       const dx = pos.x - o.x, dz = pos.z - o.z;
       const d = Math.hypot(dx, dz);
       const min = o.r + 0.35;
@@ -1371,15 +1423,43 @@ const Mundo = (() => {
     }
   }
 
-  function animarPersonaje(t, dt, caminando) {
-    P.fase += dt * (caminando ? 11 : 0);
-    const balanceo = caminando ? Math.sin(P.fase) : 0;
+  // Piernas y brazos al caminar, respiración quieto y, si saluda, el brazo
+  // derecho arriba moviéndose de lado a lado.
+  function animarCuerpo(Q, t, dt, caminando, saluda = false) {
+    Q.fase += dt * (caminando ? 11 : 0);
+    const balanceo = caminando ? Math.sin(Q.fase) : 0;
     const f = 1 - Math.exp(-dt * 14);
-    P.piernas.forEach((g, i) => { g.rotation.x += ((i ? -1 : 1) * balanceo * 0.7 - g.rotation.x) * f; });
-    P.brazos.forEach((g, i) => { g.rotation.x += ((i ? 1 : -1) * balanceo * 0.6 - g.rotation.x) * f; });
-    let y = caminando ? Math.abs(Math.cos(P.fase)) * 0.06 : Math.sin(t * 2.2) * 0.015;
-    if (P.flota) y = 0.22 + Math.sin(t * 2.4) * 0.09;
-    P.torso.position.y = y;
+    Q.piernas.forEach((g, i) => { g.rotation.x += ((i ? -1 : 1) * balanceo * 0.7 - g.rotation.x) * f; });
+    Q.brazos.forEach((g, i) => {
+      if (g.userData.z0 === undefined) g.userData.z0 = g.rotation.z;
+      const arriba = saluda && i === 1;
+      g.rotation.x += ((arriba ? -2.7 : (i ? 1 : -1) * balanceo * 0.6) - g.rotation.x) * f;
+      g.rotation.z = arriba ? g.userData.z0 + Math.sin(t * 12) * 0.35 : g.rotation.z + (g.userData.z0 - g.rotation.z) * f;
+    });
+    let y = caminando ? Math.abs(Math.cos(Q.fase)) * 0.06 : Math.sin(t * 2.2) * 0.015;
+    if (Q.flota) y = 0.22 + Math.sin(t * 2.4) * 0.09;
+    Q.torso.position.y = y;
+  }
+
+  // Los que esperan miran a su alrededor; si te acercás se dan vuelta y saludan.
+  function animarEsperando(t, dt) {
+    for (const n of esperando) {
+      const cerca = aparicionT < 0 && Math.hypot(pos.x - n.x, pos.z - n.z) < 2.6;
+      if (cerca && !n.cerca) n.saludo = 1.8;
+      n.cerca = cerca;
+      n.el.classList.toggle('pj--cerca', cerca);
+      n.saludo = Math.max(0, n.saludo - dt);
+      const objetivo = cerca ? Math.atan2(pos.x - n.x, pos.z - n.z) : n.yaw0 + Math.sin((t + n.desfase) * 0.45) * 0.5;
+      let dif = objetivo - n.yaw;
+      dif = Math.atan2(Math.sin(dif), Math.cos(dif));
+      n.yaw += dif * (1 - Math.exp(-dt * (cerca ? 8 : 2)));
+      n.P.raiz.rotation.y = n.yaw;
+      animarCuerpo(n.P, t + n.desfase, dt, false, n.saludo > 0);
+    }
+  }
+
+  function animarPersonaje(t, dt, caminando) {
+    animarCuerpo(P, t, dt, caminando);
     let sube = 0;
     if (salto > 0) { salto = Math.max(0, salto - dt); sube = Math.sin((1 - salto / 0.35) * Math.PI) * 0.35; }
     if (aparicionT >= 0) {
@@ -1427,13 +1507,13 @@ const Mundo = (() => {
   function etiquetas() {
     const r = lienzo.getBoundingClientRect();
     proy.v = proy.v || v3();
-    for (const a of anclas) {
+    for (const a of [...anclas, ...esperando]) {
       proy.v.copy(a.v).project(camara);
       const fuera = proy.v.z > 1 || proy.v.x < -1.2 || proy.v.x > 1.2 || proy.v.y < -1.2 || proy.v.y > 1.2;
       a.el.classList.toggle('pj--oculta', fuera);
       if (fuera) continue;
       const x = ((proy.v.x + 1) / 2) * r.width;
-      const y = ((1 - proy.v.y) / 2) * r.height;
+      const y = Math.max(a.el.offsetHeight + 4, ((1 - proy.v.y) / 2) * r.height); // que no se corte arriba
       a.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
     }
   }
@@ -1499,6 +1579,7 @@ const Mundo = (() => {
     yaw += dif * (1 - Math.exp(-dt * 12));
 
     animarPersonaje(t, dt, !!caminando);
+    animarEsperando(t, dt);
     animarEfectos(dt);
     if (aparicionT < 0) proximidad();
 

@@ -12,6 +12,8 @@ body.pj{
   --pj-texto-2:#b9c1d6;
   --pj-texto-3:#8a93ab;
   --pj-display:"Bungee","Arial Black",Impact,system-ui,sans-serif;
+  --pj-pixel:"Press Start 2P",ui-monospace,monospace;
+  --pj-placa:"Black Ops One","Arial Black",system-ui,sans-serif;
   --c:#5c2430;
   --c-osc:#c9707f;
   --c-tinta:#fff;
@@ -62,8 +64,14 @@ body.pj.pj--jugando{overflow:hidden;}
   font-size:clamp(20px, 4vw, 38px);
   letter-spacing:.04em;
   text-transform:uppercase;
-  color:#fff;
-  text-shadow:0 3px 0 var(--c), 0 0 24px color-mix(in srgb, var(--c-osc) 60%, transparent);
+  /* Letras de metal cincelado, como el "SOLDIER SELECT" de Metal Slug. */
+  color:#d9d3c5;
+  background:linear-gradient(180deg, #f4f1ea 0%, #c4bcab 44%, #7b7363 52%, #b7af9e 78%, #e2dccf 100%);
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  -webkit-text-stroke:1.5px #1b1712;
+  filter:drop-shadow(0 3px 0 #1b1712) drop-shadow(0 0 16px color-mix(in srgb, var(--c-osc) 45%, transparent));
 }
 .pj-sonido{
   width:38px;height:38px;border-radius:50%;
@@ -82,7 +90,7 @@ body.pj.pj--jugando{overflow:hidden;}
   background:var(--pj-sup);
   box-shadow:0 0 0 2px color-mix(in srgb, var(--c-osc) 70%, transparent), 0 20px 60px -20px var(--c);
   transition:box-shadow .3s ease;
-  min-height:clamp(260px, 46vw, 470px);
+  min-height:clamp(220px, calc(100vh - 440px), 420px);
 }
 .pj-arte{
   position:absolute;
@@ -109,9 +117,9 @@ body.pj.pj--jugando{overflow:hidden;}
 }
 .pj-jugador{
   display:inline-block;
-  font-family:var(--pj-display);
-  font-size:13px;
-  padding:3px 10px;
+  font-family:var(--pj-pixel);
+  font-size:11px;
+  padding:5px 9px 4px;
   border-radius:6px;
   background:var(--c);
   color:var(--c-tinta);
@@ -137,54 +145,119 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-stat--num dd{text-align:left;font-size:22px;}
 .pj-periodo{margin:14px 0 0;font-size:12px;color:var(--pj-texto-3);}
 
+/* Casilleros estilo Metal Slug ("Soldier Select"): riel de metal remachado,
+   pantallita de arriba que prende "1P", retrato pixel art (images/retro-*.png)
+   y placa con el nombre. */
 .pj-slots{
   display:grid;
-  grid-template-columns:repeat(7, 88px);
+  grid-template-columns:repeat(7, 104px);
   justify-content:center;
-  gap:12px;
+  gap:10px;
+  align-self:center;
+  max-width:100%;
+  padding:12px;
+  border-radius:10px;
+  border:2px solid #120f0b;
+  background:
+    radial-gradient(circle at 10px 10px, #b3aa97 0 2px, #241f19 2.5px 3.5px, transparent 4px),
+    radial-gradient(circle at calc(100% - 10px) 10px, #b3aa97 0 2px, #241f19 2.5px 3.5px, transparent 4px),
+    radial-gradient(circle at 10px calc(100% - 10px), #b3aa97 0 2px, #241f19 2.5px 3.5px, transparent 4px),
+    radial-gradient(circle at calc(100% - 10px) calc(100% - 10px), #b3aa97 0 2px, #241f19 2.5px 3.5px, transparent 4px),
+    repeating-linear-gradient(90deg, rgba(255,255,255,.025) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg, #4a443a, #2c2822);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.14), inset 0 -3px 0 rgba(0,0,0,.4), 0 6px 0 #0c0a07;
 }
 .pj-slot{
   --sc:#888;
+  --remache:radial-gradient(circle, #c2b8a3 0 1.5px, #1b1712 2px 2.8px, transparent 3.2px);
   position:relative;
-  aspect-ratio:1;
-  padding:0;
-  border-radius:14px;
-  border:3px solid rgba(255,255,255,.14);
-  background:var(--pj-sup-2);
-  overflow:visible;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  padding:7px 7px 8px;
+  border:2px solid #120f0b;
+  border-radius:6px;
+  background:
+    var(--remache) 3px 3px / 8px 8px no-repeat,
+    var(--remache) calc(100% - 3px) 3px / 8px 8px no-repeat,
+    var(--remache) 3px calc(100% - 3px) / 8px 8px no-repeat,
+    var(--remache) calc(100% - 3px) calc(100% - 3px) / 8px 8px no-repeat,
+    linear-gradient(180deg, #6a6255, #3d382f);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), inset 0 -2px 0 rgba(0,0,0,.35), 0 3px 0 #0c0a07;
   cursor:pointer;
-  transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
+  transition:transform .12s steps(2), box-shadow .12s steps(2);
+}
+.pj-slot-pantalla{
+  position:relative;
+  width:74%;
+  height:18px;
+  border-radius:9px;
+  background:#050403;
+  box-shadow:inset 0 2px 3px rgba(0,0,0,.9), 0 1px 0 rgba(255,255,255,.15);
+}
+.pj-slot-marco{
+  position:relative;
+  display:block;
+  width:100%;
+  aspect-ratio:3 / 4;
+  border:2px solid #0c0a07;
+  background:#000;
+  overflow:hidden;
+}
+.pj-slot-marco::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(0,0,0,.12) 0 1px, transparent 1px 3px);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
 }
 .pj-slot img,.pj-slot .pj-slot-mas{
   width:100%;height:100%;
-  border-radius:11px;
   object-fit:cover;
   display:grid;place-items:center;
-  filter:grayscale(.55) brightness(.75);
-  transition:filter .15s ease;
+  filter:grayscale(.5) brightness(.62);
+  transition:filter .12s steps(2);
 }
-.pj-slot .pj-slot-mas{font-family:var(--pj-display);font-size:24px;background:#5a3c28;color:#fff;}
-.pj-slot:hover img,.pj-slot:hover .pj-slot-mas{filter:none;}
+.pj-slot .pj-slot-mas{font-family:var(--pj-pixel);font-size:16px;background:#2a1c12;color:#e8e2d4;}
+.pj-slot-nombre{
+  max-width:100%;
+  padding:3px 7px 2px;
+  border-radius:4px;
+  border:1px solid #120f0b;
+  background:linear-gradient(180deg, #9a917f, #5f574a);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+  font-family:var(--pj-placa);
+  font-size:12px;
+  line-height:1.15;
+  color:#efe9dc;
+  text-shadow:1px 1px 0 #1b1712, -1px -1px 0 rgba(255,255,255,.12);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.pj-slot:hover img,.pj-slot:hover .pj-slot-mas{filter:grayscale(.15) brightness(.9);}
 .pj-slot[aria-checked="true"]{
-  transform:translateY(-6px);
-  border-color:var(--sc);
-  box-shadow:0 0 0 2px #fff, 0 10px 30px -6px var(--sc);
+  transform:translateY(-5px);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 0 0 2px #ffcf3f, 0 0 26px -2px var(--sc), 0 8px 0 #0c0a07;
 }
 .pj-slot[aria-checked="true"] img,.pj-slot[aria-checked="true"] .pj-slot-mas{filter:none;}
-.pj-slot[aria-checked="true"]::before{
-  content:"P1";
+.pj-slot[aria-checked="true"] .pj-slot-pantalla::after{
+  content:"1P";
   position:absolute;
-  top:-26px;left:50%;
-  transform:translateX(-50%);
-  font-family:var(--pj-display);
-  font-size:12px;
-  color:#fff;
-  text-shadow:0 2px 0 var(--sc);
-  animation:pj-rebote 1s ease-in-out infinite;
+  inset:0;
+  display:grid;
+  place-items:center;
+  font-family:var(--pj-pixel);
+  font-size:9px;
+  color:#ffcf3f;
+  text-shadow:0 0 6px #ff8a00;
+  animation:pj-parpadeo 1s steps(2) infinite;
 }
 .pj-slot:focus-visible{outline:3px solid #fff;outline-offset:3px;}
 .pj-slot.pj--elegido{animation:pj-flash .5s steps(2) 2;}
-@keyframes pj-rebote{50%{transform:translate(-50%, -4px);}}
+@keyframes pj-parpadeo{50%{opacity:.25;}}
 @keyframes pj-flash{50%{box-shadow:0 0 0 4px #fff, 0 0 40px 10px var(--sc);}}
 
 .pj-acciones{display:flex;flex-direction:column;align-items:center;gap:8px;}
@@ -213,7 +286,11 @@ body.pj.pj--jugando{overflow:hidden;}
   .pj-nombre{margin-top:8px;}
   .pj-stat{grid-template-columns:104px 1fr auto;}
   .pj-stat--num{grid-template-columns:104px 1fr;}
-  .pj-slots{grid-template-columns:repeat(4, minmax(0, 1fr));gap:14px 10px;padding-top:22px;}
+  .pj-slots{grid-template-columns:repeat(4, minmax(0, 1fr));gap:10px 8px;padding:10px;align-self:stretch;}
+  .pj-slot{padding:5px 5px 6px;gap:5px;}
+  .pj-slot-pantalla{height:14px;}
+  .pj-slot[aria-checked="true"] .pj-slot-pantalla::after{font-size:7px;}
+  .pj-slot-nombre{font-size:10px;padding:2px 4px 1px;}
   .pj-jugar{width:100%;}
 }
 
@@ -241,7 +318,7 @@ body.pj.pj--jugando{overflow:hidden;}
 }
 .pj-hud > *{pointer-events:auto;}
 .pj-hud-quien{display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;}
-.pj-hud-foto{width:44px;height:44px;border-radius:50%;object-fit:cover;border:3px solid var(--c-osc);background:var(--pj-sup-2);}
+.pj-hud-foto{width:40px;height:52px;border-radius:4px;object-fit:cover;object-position:top;border:2px solid #120f0b;box-shadow:0 0 0 2px var(--c-osc);background:#000;}
 .pj-hud-foto.pj--sin{display:none;}
 .pj-hud-quien strong{display:block;font-family:var(--pj-display);font-weight:400;font-size:15px;letter-spacing:.02em;}
 .pj-cambiar{
@@ -306,6 +383,29 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-etiqueta span{font-size:17px;font-weight:700;color:#fff;}
 .pj-etiqueta.pj--activa{border-color:var(--c-osc);background:color-mix(in srgb, var(--c) 55%, rgba(12,16,34,.9));scale:1.12;}
 .pj-etiqueta.pj--oculta{visibility:hidden;}
+
+/* Cartelito con el nombre de los que esperan en la azotea (tocar = jugar). */
+.pj-npc{
+  position:absolute;left:0;top:0;
+  pointer-events:auto;
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid var(--pj-linea);
+  background:rgba(12,16,34,.7);
+  font-size:11px;font-weight:700;
+  color:var(--pj-texto-2) !important;
+  white-space:nowrap;
+  will-change:transform;
+}
+.pj-npc i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+.pj-npc small{display:none;font-size:10px;font-weight:600;color:var(--pj-texto-3);}
+.pj-npc:hover,.pj-npc.pj--cerca{color:#fff !important;border-color:rgba(255,255,255,.4);background:rgba(12,16,34,.9);}
+.pj-npc.pj--cerca{border-radius:10px;padding:5px 10px;}
+.pj-npc.pj--cerca small{display:block;}
+.pj-npc:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.pj-npc.pj--oculta{visibility:hidden;}
 
 .pj-panel{
   position:absolute;
@@ -423,7 +523,7 @@ body.pj.pj--jugando{overflow:hidden;}
 @media (max-width:760px){
   .pj-hud{top:8px;left:8px;right:8px;}
   .pj-hud-quien{padding:6px 10px 6px 6px;}
-  .pj-hud-foto{width:36px;height:36px;}
+  .pj-hud-foto{width:32px;height:42px;}
   .pj-hud-quien strong{font-size:13px;}
   .pj-hud-periodo{padding:6px 8px;}
   .pj-hud-periodo span{display:none;}
@@ -448,10 +548,12 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-aparicion{position:fixed;inset:0;z-index:20;pointer-events:none;}
 .pj-aparicion img{
   position:fixed;
-  border-radius:50%;
+  border-radius:6px;
   object-fit:cover;
-  border:4px solid #fff;
-  box-shadow:0 0 0 6px var(--c), 0 0 60px 20px var(--c-osc);
+  image-rendering:pixelated;
+  background:#000;
+  border:4px solid #120f0b;
+  box-shadow:0 0 0 4px #ffcf3f, 0 0 60px 20px var(--c-osc);
 }
 .pj-aparicion::after{
   content:"";
@@ -464,5 +566,5 @@ body.pj.pj--jugando{overflow:hidden;}
 
 @media (prefers-reduced-motion: reduce){
   .pj-slot,.pj-arte,.pj-stat-barra i,.pj-panel,.pj-etiqueta{transition:none !important;animation:none !important;}
-  .pj-slot[aria-checked="true"]::before{animation:none;}
+  .pj-slot[aria-checked="true"] .pj-slot-pantalla::after{animation:none;}
 }
