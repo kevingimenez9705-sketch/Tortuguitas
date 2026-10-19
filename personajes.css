@@ -307,6 +307,29 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-etiqueta.pj--activa{border-color:var(--c-osc);background:color-mix(in srgb, var(--c) 55%, rgba(12,16,34,.9));scale:1.12;}
 .pj-etiqueta.pj--oculta{visibility:hidden;}
 
+/* Cartelito con el nombre de los que esperan en la azotea (tocar = jugar). */
+.pj-npc{
+  position:absolute;left:0;top:0;
+  pointer-events:auto;
+  cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:1px;
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid var(--pj-linea);
+  background:rgba(12,16,34,.7);
+  font-size:11px;font-weight:700;
+  color:var(--pj-texto-2) !important;
+  white-space:nowrap;
+  will-change:transform;
+}
+.pj-npc i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+.pj-npc small{display:none;font-size:10px;font-weight:600;color:var(--pj-texto-3);}
+.pj-npc:hover,.pj-npc.pj--cerca{color:#fff !important;border-color:rgba(255,255,255,.4);background:rgba(12,16,34,.9);}
+.pj-npc.pj--cerca{border-radius:10px;padding:5px 10px;}
+.pj-npc.pj--cerca small{display:block;}
+.pj-npc:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.pj-npc.pj--oculta{visibility:hidden;}
+
 .pj-panel{
   position:absolute;
   top:76px;right:12px;bottom:76px;

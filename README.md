@@ -28,7 +28,7 @@ Sitio estático (HTML/CSS/JS vanilla + Chart.js) con una página de equipo de Se
 ## Elegí tu personaje (resultados en 3D)
 
 - `personajes.html` + `personajes.js` + `personajes.css` — tarjeta "Elegí tu personaje" de `index.html`. Pantalla de selección estilo arcade: las fotos abajo y, arriba, la tortuga de cada uno con sus altas, presentismo y cumplimiento de los últimos 12 meses (flechas + Enter, mouse o dedo). Al elegir, la foto vuela al centro y sale su personaje 3D (three.js, mismo `vendor/three.min.js` de la oficina): Kevin es Splinter, cada tortuga con su bandana y su arma, Albana es April y "Otros" un fantasma ninja.
-- En la azotea el personaje se mueve con flechas/WASD, clic o toque en el piso (joystick en celulares). Al pisar una parada se abre su panel: Altas, Presentismo día 1, Cumplimiento, Sabores Express, Hamburguesas Extremas, Ranking (presentismo y cumplimiento, sin volumen) y la guarida, que lleva al dashboard completo. Los paneles son 2D; el período se cambia arriba a la derecha.
+- En la azotea el personaje se mueve con flechas/WASD, clic o toque en el piso (joystick en celulares). Al pisar una parada se abre su panel: Altas, Presentismo día 1, Cumplimiento, Sabores Express, Hamburguesas Extremas, Ranking (presentismo y cumplimiento, sin volumen) y la guarida, que lleva al dashboard completo. Los paneles son 2D; el período se cambia arriba a la derecha. Los demás integrantes esperan en la azotea: miran alrededor, se dan vuelta y saludan cuando te acercás, y tocándolos (o su cartelito) se pasa a jugar con esa persona.
 - Mismos cálculos que `app.js` sobre `data.js`. Link directo: `personajes.html?miembro=<clave>`. Sin WebGL, las paradas se muestran como tarjetas.
 
 ## Oficina digital y datos en vivo
