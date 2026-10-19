@@ -2,10 +2,10 @@
 // arcade del equipo y, al elegir, la azotea 3D de esa persona (three.js, sin
 // build, el mismo vendor/three.min.js de la oficina).
 //
-// 1. Selección: las fotos abajo y, arriba, la tortuga de cada uno (la misma
+// 1. Selección: los retratos pixel art abajo y, arriba, la tortuga de cada uno (la misma
 //    imagen de index.html) con sus números de los últimos 12 meses. Se elige
 //    con flechas + Enter, el mouse o el dedo.
-// 2. Aparición: la foto vuela al centro y de ahí sale el personaje 3D: Kevin
+// 2. Aparición: el retrato vuela al centro y de ahí sale el personaje 3D: Kevin
 //    es Splinter, cada tortuga lleva su bandana y su arma, Albana es April y
 //    "Otros" un fantasma ninja.
 // 3. Azotea: el personaje se mueve con flechas/WASD, clic o toque en el piso
@@ -25,16 +25,17 @@ const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
 
 /* ───────────────────────── Equipo ───────────────────────── */
 
-// Mismos integrantes, colores, fotos y textos que index.html y MEMBER_MAP de
+// Mismos integrantes, colores, imágenes y textos que index.html y MEMBER_MAP de
 // app.js. selectores: null = todo el equipo (panel de Kevin).
+// retrato: ilustración pixel art estilo Metal Slug para la selección.
 const EQUIPO = [
-  { key: 'kevin', label: 'Kevin García', puesto: 'Coordinador de Selección', frase: 'Autómata y estratégico', color: '#5c2430', foto: 'images/kevin-garcia.jpg', arte: 'images/tortuga-kevin.jpg', personaje: 'rata', selectores: null, dashboard: 'dashboard.html' },
-  { key: 'agustin', label: 'Agustín Márquez', puesto: 'Selector', frase: 'El innovador', color: '#5b2d78', foto: 'images/agustin-marquez.jpg', arte: 'images/tortuga-agustin.jpg', personaje: 'tortuga', arma: 'bo', selectores: ['Agustin'] },
-  { key: 'agustina', label: 'Agustina Castillo', puesto: 'Selector Jr', frase: 'La creativa', color: '#cc2f2f', foto: 'images/agustina-castillo.jpg', arte: 'images/tortuga-agustina.jpg', personaje: 'tortuga', arma: 'sai', selectores: ['Agustina'] },
-  { key: 'rafael', label: 'Rafael Barberi', puesto: 'Selector Jr', frase: 'El compañero confiable', color: '#e2721f', foto: 'images/rafael-barberi.jpg', arte: 'images/tortuga-rafael.jpg', personaje: 'tortuga', arma: 'nunchaku', selectores: ['Rafael'] },
-  { key: 'gustavo', label: 'Gustavo Sotelo', puesto: 'Selector Jr', frase: 'El más versátil', color: '#4f8fc9', foto: 'images/gustavo-sotelo.jpg', arte: 'images/tortuga-gustavo.jpg', personaje: 'tortuga', arma: 'katana', selectores: ['Gustavo'] },
-  { key: 'albana', label: 'Albana Pais', puesto: 'Selectora Jr', frase: 'La estructurada', color: '#d4a017', foto: 'images/Albana-pais.jpeg', arte: 'images/tortuga-albana2.jpg', personaje: 'april', selectores: ['Albana'] },
-  { key: 'otros', label: 'Otros', puesto: 'Selectores adicionales', frase: 'Los que caminaron en el infierno y no salieron', color: '#a9714a', foto: null, arte: 'images/muertos en el camino.jpg', personaje: 'fantasma', selectores: ['Emiliano', 'Mariano', 'Facundo', 'Alexis', 'Agustin Monte', 'Luana', 'Araceli', 'Giselle', 'Balbina'] },
+  { key: 'kevin', label: 'Kevin García', puesto: 'Coordinador de Selección', frase: 'Autómata y estratégico', color: '#5c2430', retrato: 'images/retro-kevin.png', arte: 'images/tortuga-kevin.jpg', personaje: 'rata', selectores: null, dashboard: 'dashboard.html' },
+  { key: 'agustin', label: 'Agustín Márquez', puesto: 'Selector', frase: 'El innovador', color: '#5b2d78', retrato: 'images/retro-agustin.png', arte: 'images/tortuga-agustin.jpg', personaje: 'tortuga', arma: 'bo', selectores: ['Agustin'] },
+  { key: 'agustina', label: 'Agustina Castillo', puesto: 'Selector Jr', frase: 'La creativa', color: '#cc2f2f', retrato: 'images/retro-agustina.png', arte: 'images/tortuga-agustina.jpg', personaje: 'tortuga', arma: 'sai', selectores: ['Agustina'] },
+  { key: 'rafael', label: 'Rafael Barberi', puesto: 'Selector Jr', frase: 'El compañero confiable', color: '#e2721f', retrato: 'images/retro-rafael.png', arte: 'images/tortuga-rafael.jpg', personaje: 'tortuga', arma: 'nunchaku', selectores: ['Rafael'] },
+  { key: 'gustavo', label: 'Gustavo Sotelo', puesto: 'Selector Jr', frase: 'El más versátil', color: '#4f8fc9', retrato: 'images/retro-gustavo.png', arte: 'images/tortuga-gustavo.jpg', personaje: 'tortuga', arma: 'katana', selectores: ['Gustavo'] },
+  { key: 'albana', label: 'Albana Pais', puesto: 'Selectora Jr', frase: 'La estructurada', color: '#d4a017', retrato: 'images/retro-albana.png', arte: 'images/tortuga-albana2.jpg', personaje: 'april', selectores: ['Albana'] },
+  { key: 'otros', label: 'Otros', puesto: 'Selectores adicionales', frase: 'Los que caminaron en el infierno y no salieron', color: '#a9714a', arte: 'images/muertos en el camino.jpg', personaje: 'fantasma', selectores: ['Emiliano', 'Mariano', 'Facundo', 'Alexis', 'Agustin Monte', 'Luana', 'Araceli', 'Giselle', 'Balbina'] },
 ];
 EQUIPO.forEach((m) => { m.dashboard = m.dashboard || `dashboard.html?miembro=${m.key}`; });
 
@@ -223,98 +224,15 @@ function tematizar(m) {
   s.setProperty('--c-tinta', tintaSobre(m.color));
 }
 
-/* Retratos pixelados estilo Metal Slug: la foto se recorta vertical (3:4) y
-   cerca de la cara, se
-   achica a 36×48 px, se le sube contraste y saturación con un toque cálido,
-   se reduce la paleta, el fondo pasa a negro y la figura lleva contorno
-   oscuro. Se calcula una vez en un canvas y se muestra ampliada sin suavizar
-   (image-rendering: pixelated). Si algo falla, queda la foto original. */
-const retratos = new Map();
-function retrato(m) {
-  if (!m.foto) return Promise.resolve(null);
-  if (!retratos.has(m.key)) retratos.set(m.key, pixelar(m.foto).catch(() => m.foto));
-  return retratos.get(m.key);
-}
-function pixelar(src, ancho = 36, alto = 48, niveles = 6) {
-  return new Promise((ok, mal) => {
-    const img = new Image();
-    img.onerror = mal;
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = ancho;
-      c.height = alto;
-      const g = c.getContext('2d', { willReadFrequently: true });
-      const W = img.naturalWidth, H = img.naturalHeight;
-      const sh = Math.min(H, (W * alto) / ancho) * 0.72; // primer plano: cara y hombros
-      const sw = (sh * ancho) / alto;
-      g.imageSmoothingQuality = 'high';
-      g.drawImage(img, (W - sw) / 2, H * 0.04, sw, sh, 0, 0, ancho, alto);
-      const datos = g.getImageData(0, 0, ancho, alto);
-      const px = datos.data;
-      const at = (x, y) => (y * ancho + x) * 4;
-      const dist = (i, r) => Math.hypot(px[i] - r[0], px[i + 1] - r[1], px[i + 2] - r[2]);
-      // Color del fondo: el del medio (por brillo) entre el borde de arriba y los costados.
-      const borde = [];
-      for (let x = 0; x < ancho; x++) borde.push(at(x, 0));
-      for (let y = 0; y < alto; y++) borde.push(at(0, y), at(ancho - 1, y));
-      borde.sort((a, b) => (px[a] + px[a + 1] + px[a + 2]) - (px[b] + px[b + 1] + px[b + 2]));
-      const medio = borde[borde.length >> 1];
-      const ref = [px[medio], px[medio + 1], px[medio + 2]];
-      // Fondo = lo parecido a ese color y conectado con los bordes.
-      const fondo = new Uint8Array(ancho * alto);
-      const pila = [];
-      for (let x = 0; x < ancho; x++) pila.push([x, 0]);
-      for (let y = 0; y < alto; y++) pila.push([0, y], [ancho - 1, y]);
-      while (pila.length) {
-        const [x, y] = pila.pop();
-        if (x < 0 || y < 0 || x >= ancho || y >= alto || fondo[y * ancho + x] || dist(at(x, y), ref) > 38) continue;
-        fondo[y * ancho + x] = 1;
-        pila.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
-      }
-      const tocaFondo = (x, y) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dx, dy]) => {
-        const X = x + dx, Y = y + dy;
-        return X >= 0 && Y >= 0 && X < ancho && Y < alto && fondo[Y * ancho + X] === 1;
-      });
-      // El halo claro del recorte (y lo que quedó suelto en los bordes) también es fondo.
-      for (let vuelta = 0; vuelta < 2; vuelta++) {
-        const halo = [];
-        for (let y = 0; y < alto; y++) for (let x = 0; x < ancho; x++) {
-          const enBorde = x === 0 || x === ancho - 1;
-          // La fila de arriba mezcla pelo y fondo al recortar: siempre va de fondo.
-          if (!fondo[y * ancho + x] && (y === 0 || ((tocaFondo(x, y) || enBorde) && dist(at(x, y), ref) < 75))) halo.push(y * ancho + x);
-        }
-        halo.forEach((k) => { fondo[k] = 1; });
-      }
-      const paso = 255 / (niveles - 1);
-      const nivel = (v) => Math.max(0, Math.min(255, Math.round(v / paso) * paso));
-      for (let y = 0; y < alto; y++) for (let x = 0; x < ancho; x++) {
-        const i = at(x, y);
-        if (fondo[y * ancho + x]) { px[i] = 6; px[i + 1] = 4; px[i + 2] = 3; continue; }
-        if (tocaFondo(x, y)) { px[i] = 26; px[i + 1] = 14; px[i + 2] = 8; continue; }
-        const l = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-        const sat = (v) => (l + (v - l) * 1.15 - 128) * 1.15 + 128;
-        px[i] = nivel(sat(px[i]) + 4);
-        px[i + 1] = nivel(sat(px[i + 1]));
-        px[i + 2] = nivel(sat(px[i + 2]) - 6);
-      }
-      g.putImageData(datos, 0, 0);
-      ok(c.toDataURL());
-    };
-    img.src = src;
-  });
-}
-
 function pintarSlots() {
   slotsEl.innerHTML = EQUIPO.map((m, i) => `
     <button class="pj-slot" type="button" role="radio" data-i="${i}" aria-checked="false" aria-label="${esc(m.label)}" style="--sc:${paraOscuro(m.color, '#070b18', 3)}">
       <span class="pj-slot-pantalla" aria-hidden="true"></span>
-      <span class="pj-slot-marco">${m.foto ? '<img alt="" />' : '<span class="pj-slot-mas">+9</span>'}</span>
+      <span class="pj-slot-marco">${m.retrato ? `<img src="${esc(m.retrato)}" alt="" />` : '<span class="pj-slot-mas">+9</span>'}</span>
       <span class="pj-slot-nombre" aria-hidden="true">${esc(m.label.split(' ')[0])}</span>
     </button>`).join('');
   slotsEl.querySelectorAll('.pj-slot').forEach((b) => {
     const i = Number(b.dataset.i);
-    const img = b.querySelector('img');
-    if (img) retrato(EQUIPO[i]).then((url) => { img.src = url; });
     b.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse' && i !== indice) previsualizar(i, true); });
     b.addEventListener('click', () => { if (i === indice) confirmar(); else previsualizar(i, true); });
   });
@@ -407,7 +325,7 @@ async function aparicion(m, desde, con3d) {
   const x = (innerWidth - lado * 0.75) / 2;
   const y = (innerHeight - lado) / 2;
   if (!reduce) {
-    img.src = (await retrato(m)) || m.arte;
+    img.src = m.retrato || m.arte;
     Object.assign(img.style, { left: x + 'px', top: y + 'px', width: lado * 0.75 + 'px', height: lado + 'px' });
     capa.hidden = false;
     const esc0 = desde.width / (lado * 0.75);
@@ -456,9 +374,8 @@ function entrarAlMundo(m, con3d) {
   mundoEl.hidden = false;
   document.body.classList.add('pj--jugando');
   const foto = $('#pjHudFoto');
-  foto.removeAttribute('src');
-  foto.classList.toggle('pj--sin', !m.foto);
-  retrato(m).then((url) => { if (actual === m && url) foto.src = url; });
+  foto.src = m.retrato || '';
+  foto.classList.toggle('pj--sin', !m.retrato);
   $('#pjHudNombre').textContent = m.label;
   pintarNav();
   cerrarPanel();
