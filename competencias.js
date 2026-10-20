@@ -47,6 +47,11 @@ window.COMPETENCIAS_DATA = {
     autoevaluacion: [9, 8, 8.5, 9, 8.5, 8, 8, 9, 8, 8],
     real: [9, 9, 7, 10, 8, 8, 6, 7, 8, 7],
   },
+  albana: {
+    nombre: 'Albana Pais',
+    autoevaluacion: [8, 8, 8, 8, 8, 8, 6, 9, 9, 7],
+    real: [7, 9, 9, 10, 7, 8, 6, 8, 8, 6],
+  },
   kevin: {
     nombre: 'Kevin García',
     autoevaluacion: [8.5, 8.5, 9, 8, 9.5, 9, 7, 7.5, 9, 6.5],
