@@ -27,6 +27,10 @@
 //    jugador o alguien que espera); al que le pega se tambalea y, si era
 //    alguien que espera, a veces te la devuelve. Entre jugadores decide el
 //    que tira: si en su pantalla le pegó, se lo avisa a la sala.
+// 6. Cementerio (cementerio.js, botón "Bajar al cementerio"): otra escena con
+//    el mismo personaje. De las tumbas salen los fantasmas de los que ya no
+//    están y te persiguen; hay que aguantar 60 s o te quedás con ellos. Los
+//    otros jugadores ven el aviso y no te ven en la azotea mientras tanto.
 //
 // Los números salen de data.js con los mismos criterios que app.js:
 // presentismo sin las altas sin dato de ingreso, cumplimiento = enviados /
@@ -35,6 +39,7 @@
 // (nunca volumen de altas), igual que el resumen del año.
 // Sin WebGL, o si three.js no carga, las paradas se muestran como tarjetas.
 import { crearSala } from './sala.js?v=20261020b';
+import { armarCementerio, DURACION as DURACION_CEM, BORDE as BORDE_CEM } from './cementerio.js?v=20261020';
 
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
 const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
@@ -257,6 +262,9 @@ const Sonido = (() => {
     elegir: () => [523, 659, 784, 1047].forEach((f, i) => tono(f, 0.14, { en: i * 0.07, vol: 0.035 })),
     aparecer: () => tono(160, 0.55, { tipo: 'sawtooth', vol: 0.025, hasta: 960 }),
     parada: () => { tono(880, 0.08, { tipo: 'triangle', vol: 0.05 }); tono(1320, 0.12, { tipo: 'triangle', vol: 0.04, en: 0.06 }); },
+    cuenta: (ya) => tono(ya ? 880 : 440, ya ? 0.3 : 0.12, { tipo: 'square', vol: 0.03 }),
+    susto: () => { tono(620, 0.9, { tipo: 'sawtooth', vol: 0.03, hasta: 70 }); tono(300, 0.9, { tipo: 'triangle', vol: 0.03, hasta: 50, en: 0.05 }); },
+    escape: () => [392, 523, 659, 784, 1047].forEach((f, i) => tono(f, 0.16, { tipo: 'triangle', en: i * 0.09, vol: 0.04 })),
     get activo() { return activo; },
     alternar() { activo = !activo; guardar('pj-sonido', activo ? 'si' : 'no'); return activo; },
   };
@@ -316,7 +324,7 @@ function limpiarJugador(o) {
     en: o.en === 'azotea' ? 'azotea' : 'seleccion',
     mira: CLAVES.has(o.mira) ? o.mira : null,
     personaje: CLAVES.has(o.personaje) ? o.personaje : null,
-    parada: PARADAS.some((p) => p.id === o.parada) ? o.parada : null,
+    parada: o.parada === 'cementerio' || PARADAS.some((p) => p.id === o.parada) ? o.parada : null,
     desde: Number(o.desde) || 0,
   };
 }
@@ -337,7 +345,8 @@ function pintarSala() {
   const barra = $('#pjSala');
   barra.hidden = !jugadores.length;
   barra.innerHTML = [{ n: yo, yo: true }, ...[...jugadores].sort((a, b) => a.n - b.n)].map((o) => {
-    const que = o.yo ? 'vos' : o.en === 'azotea' && o.personaje ? `en la azotea con ${esc(primerNombre(o.personaje))}` : o.mira ? `mirando a ${esc(primerNombre(o.mira))}` : 'eligiendo…';
+    const donde = o.parada === 'cementerio' ? 'en el cementerio' : 'en la azotea';
+    const que = o.yo ? 'vos' : o.en === 'azotea' && o.personaje ? `${donde} con ${esc(primerNombre(o.personaje))}` : o.mira ? `mirando a ${esc(primerNombre(o.mira))}` : 'eligiendo…';
     return `<span class="pj-sala-j"><b class="pj-p" style="--pc:${colorP(o.n)}">${tagP(o.n)}</b>${que}</span>`;
   }).join('');
   // Marcas en los casilleros: dónde está cada uno y qué personajes se están jugando.
@@ -369,6 +378,8 @@ function alCambiarSala(otros) {
     const antes = enAzoteaAntes.get(id);
     if (!antes) aviso(`${tagP(o.n)} llegó a la azotea con ${primerNombre(o.personaje)}`, colorP(o.n));
     else if (antes.personaje !== o.personaje) aviso(`${tagP(o.n)} ahora juega con ${primerNombre(o.personaje)}`, colorP(o.n));
+    else if (antes.parada !== 'cementerio' && o.parada === 'cementerio') aviso(`${tagP(o.n)} bajó al cementerio 👻`, colorP(o.n));
+    else if (antes.parada === 'cementerio' && o.parada !== 'cementerio') aviso(`${tagP(o.n)} volvió del cementerio`, colorP(o.n));
   }
   for (const [id, o] of enAzoteaAntes) if (!ahora.has(id) && !jugadores.some((j) => j.id === id && j.en === 'azotea')) aviso(`${tagP(o.n)} salió de la azotea`, colorP(o.n));
   enAzoteaAntes = ahora;
@@ -381,7 +392,7 @@ function alCambiarSala(otros) {
     }
   }
   pintarSala();
-  if (Mundo.ok) Mundo.sincronizarRemotos(enAzotea());
+  if (Mundo.ok) Mundo.sincronizarRemotos(enAzotea().filter((o) => o.parada !== 'cementerio')); // los del cementerio no se ven
 }
 
 // Stats de la selección: 5 competencias de la evaluación real (competencias.js,
@@ -575,6 +586,7 @@ function cambiarA(m) {
 }
 
 function volverASeleccion() {
+  Mundo.salirCementerio();
   Mundo.pausar();
   cerrarPanel();
   mundoEl.hidden = true;
@@ -598,8 +610,10 @@ $('#pjPeriodo').addEventListener('change', (e) => {
 
 function pintarNav() {
   navParadas.innerHTML = PARADAS.map((p) => `
-    <button class="pj-parada-btn" type="button" data-id="${p.id}"><span aria-hidden="true">${p.icono}</span>${esc(p.titulo)}</button>`).join('');
-  navParadas.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => Mundo.irA(b.dataset.id)));
+    <button class="pj-parada-btn" type="button" data-id="${p.id}"><span aria-hidden="true">${p.icono}</span>${esc(p.titulo)}</button>`).join('') +
+    '<button class="pj-parada-btn pj-cem-btn" type="button" data-cementerio><span aria-hidden="true">🪦</span>Bajar al cementerio</button>';
+  navParadas.querySelectorAll('button[data-id]').forEach((b) => b.addEventListener('click', () => Mundo.irA(b.dataset.id)));
+  navParadas.querySelector('[data-cementerio]').addEventListener('click', bajarAlCementerio);
 }
 
 // Dato corto que se ve en el cartel flotante de cada parada.
@@ -1503,6 +1517,11 @@ const Mundo = (() => {
   let forzarPos = false;
   const camPos = { x: 0, y: 0, z: 0 };
   const camMira = { x: 0, y: 0, z: 0 };
+  // Cementerio (cementerio.js): otra escena con el mismo personaje. estado:
+  // cuenta (3, 2, 1), corre, atrapado o escapo; tiempo: segundos corridos.
+  let cem = null;
+  const juego = { on: false, estado: 'cuenta', t0: 0, tiempo: 0, cuenta: 0, hundir: 0 };
+  let alCementerio = null; // avisos a la pantalla (cuenta, tiempo, fin, salir, otra, fuera)
 
   function armar() {
     renderer = new T.WebGLRenderer({ antialias: true });
@@ -1939,6 +1958,7 @@ const Mundo = (() => {
 
   // n: número de jugador; cada uno aparece en su lugar para no pisarse.
   function iniciarPersonaje(m, n = 1) {
+    salirCementerio();
     if (P) {
       escena.remove(P.raiz);
       P.raiz.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
@@ -2345,7 +2365,7 @@ const Mundo = (() => {
   // Otro jugador le pegó a alguien (lo decidió en su pantalla): a mí (a =
   // null) o a un tercero. Se borra su tiro en vuelo y se muestra el golpe.
   function golpeRemoto(de, a, tipo) {
-    if (!TIROS[tipo]) return;
+    if (!TIROS[tipo] || (!a && juego.on)) return; // en el cementerio no te llegan
     const victima = a ? remotos.get(a) : null;
     if (a && !victima) return;
     const pr = proyectiles.find((x) => x.de === de && x.tipo === tipo);
@@ -2478,12 +2498,20 @@ const Mundo = (() => {
       if (frente.on) { alTeclaTerminal?.(e); return; } // en la terminal las teclas navegan el panel
       if (e.key === 'Escape' && !panel.hidden) { cerradaAMano = paradaActiva; cerrarPanel(); return; }
       if (e.target.closest('select, input, textarea')) return;
-      const g = Object.keys(GESTOS).find((x) => `Digit${GESTOS[x].tecla}` === e.code || `Numpad${GESTOS[x].tecla}` === e.code);
+      if (juego.on) { // en el cementerio: Esc sube; terminado, Enter o espacio vuelven a correr
+        const fin = juego.estado === 'atrapado' || juego.estado === 'escapo';
+        if (e.code === 'Escape' || (fin && (e.code === 'Enter' || e.code === 'Space') && !e.target.closest('button, a'))) {
+          e.preventDefault();
+          alCementerio?.({ tipo: e.code === 'Escape' ? 'salir' : 'otra' });
+          return;
+        }
+      }
+      const g = !juego.on && Object.keys(GESTOS).find((x) => `Digit${GESTOS[x].tecla}` === e.code || `Numpad${GESTOS[x].tecla}` === e.code);
       if (g && remotos.size) { e.preventDefault(); hacerGesto(g); return; }
-      const tiro = Object.keys(TIROS).find((x) => `Digit${TIROS[x].tecla}` === e.code || `Numpad${TIROS[x].tecla}` === e.code)
-        || ((e.code === 'Space' || e.code === 'KeyF') && !e.target.closest('button, a') ? 'pizza' : null);
+      const tiro = !juego.on && (Object.keys(TIROS).find((x) => `Digit${TIROS[x].tecla}` === e.code || `Numpad${TIROS[x].tecla}` === e.code)
+        || ((e.code === 'Space' || e.code === 'KeyF') && !e.target.closest('button, a') ? 'pizza' : null));
       if (tiro) { e.preventDefault(); hacerTiro(tiro); return; }
-      if (e.code === 'KeyE') { e.preventDefault(); tocarCerca(); return; }
+      if (e.code === 'KeyE' && !juego.on) { e.preventDefault(); tocarCerca(); return; }
       const k = MAPA_TECLAS[e.code];
       if (!k) return;
       e.preventDefault();
@@ -2532,6 +2560,13 @@ const Mundo = (() => {
     const ndc = new T.Vector2(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
     const ray = rayo();
     ray.setFromCamera(ndc, camara);
+    if (juego.on) { // en el cementerio solo se camina
+      const p = new T.Vector3();
+      if (juego.estado === 'corre' && ray.ray.intersectPlane(new T.Plane(new T.Vector3(0, 1, 0), 0), p)) {
+        destino = { x: Math.max(-BORDE_CEM, Math.min(BORDE_CEM, p.x)), z: Math.max(-BORDE_CEM, Math.min(BORDE_CEM, p.z)) };
+      }
+      return;
+    }
     const quien = ray.intersectObjects(esperando.map((n) => n.golpe), false)[0];
     if (quien) { cambiarA(EQUIPO.find((m) => m.key === quien.object.userData.integrante)); return; }
     const hit = ray.intersectObjects(golpes, false)[0];
@@ -2851,23 +2886,20 @@ const Mundo = (() => {
     else camara.setViewOffset(r.width, r.height, vista.x, vista.y, r.width, r.height);
   }
 
-  function cuadro(ahora) {
-    raf = requestAnimationFrame(cuadro);
-    const dt = Math.min(0.1, (ahora - (ultimo || ahora)) / 1000);
-    ultimo = ahora;
-    const t = ahora / 1000;
-
+  // Un paso del personaje: teclas o joystick (si está libre) y si no, el
+  // destino del clic. Devuelve si caminó.
+  function caminar(dt, libre, choque) {
     let mx = 0, mz = 0, fuerza = 1;
-    if (!frente.on) {
+    if (libre) {
       if (teclas.has('izq')) mx -= 1;
       if (teclas.has('der')) mx += 1;
       if (teclas.has('arr')) mz -= 1;
       if (teclas.has('aba')) mz += 1;
-    }
-    if (!frente.on && !mx && !mz && (joy.x || joy.z)) {
-      mx = joy.x; mz = joy.z;
-      fuerza = Math.min(1, Math.hypot(mx, mz));
-      if (fuerza < 0.15) mx = mz = 0;
+      if (!mx && !mz && (joy.x || joy.z)) {
+        mx = joy.x; mz = joy.z;
+        fuerza = Math.min(1, Math.hypot(mx, mz));
+        if (fuerza < 0.15) mx = mz = 0;
+      }
     }
     if (!mx && !mz && destino) {
       mx = destino.x - pos.x; mz = destino.z - pos.z;
@@ -2875,29 +2907,138 @@ const Mundo = (() => {
       if (d < 0.08) { destino = null; mx = mz = 0; }
       else fuerza = Math.min(1, d * 2.5);
     }
-    frente.k += ((frente.on ? 1 : 0) - frente.k) * (1 - Math.exp(-dt * 3.5));
-    const caminando = (mx || mz) && aparicionT < 0;
-    if (caminando) {
-      const largo = Math.hypot(mx, mz);
-      const paso = VEL * fuerza * dt;
-      const antes = { x: pos.x, z: pos.z };
-      pos.x += (mx / largo) * paso;
-      pos.z += (mz / largo) * paso;
-      chocar();
-      // Trabado contra algo camino a un destino: se da por llegado.
-      if (destino && Math.hypot(pos.x - antes.x, pos.z - antes.z) < paso * 0.3) {
-        atascado += dt;
-        if (atascado > 0.4) { destino = null; atascado = 0; }
-      } else atascado = 0;
-      yawObjetivo = Math.atan2(mx, mz);
-    } else if (frente.on && terminal) {
-      yawObjetivo = Math.atan2(terminal.position.x - pos.x, terminal.position.z - pos.z); // mira la consola
-    } else if (paradaActiva && !destino) {
-      yawObjetivo = 0; // quieto en una parada: mira a la cámara
-    }
+    if (!(mx || mz) || aparicionT >= 0) return false;
+    const largo = Math.hypot(mx, mz);
+    const paso = VEL * fuerza * dt;
+    const antes = { x: pos.x, z: pos.z };
+    pos.x += (mx / largo) * paso;
+    pos.z += (mz / largo) * paso;
+    choque();
+    // Trabado contra algo camino a un destino: se da por llegado.
+    if (destino && Math.hypot(pos.x - antes.x, pos.z - antes.z) < paso * 0.3) {
+      atascado += dt;
+      if (atascado > 0.4) { destino = null; atascado = 0; }
+    } else atascado = 0;
+    yawObjetivo = Math.atan2(mx, mz);
+    return true;
+  }
+  function girar(dt) {
     let dif = yawObjetivo - yaw;
     dif = Math.atan2(Math.sin(dif), Math.cos(dif));
     yaw += dif * (1 - Math.exp(-dt * 12));
+  }
+
+  /* ── Cementerio ── */
+  function entrarCementerio() {
+    if (!P || juego.on || aparicionT >= 0) return false;
+    if (!cem) cem = armarCementerio({ T, malla, caja, cil, esfera, rot, grupo, fantasma: PERSONAJES.fantasma, animarCuerpo, capa: $('#pjCemCapa') });
+    vistaFrente(false);
+    frente.k = 0;
+    juego.on = true;
+    cem.escena.add(P.raiz);
+    camara.clearViewOffset();
+    vista.x = vista.y = 0;
+    empezarCementerio();
+    return true;
+  }
+  // Entra por la reja, de espaldas a la cámara, y cuenta 3, 2, 1.
+  function empezarCementerio() {
+    pos.x = cem.salida.x;
+    pos.z = cem.salida.z;
+    yaw = yawObjetivo = Math.PI;
+    destino = paradaDestino = null;
+    teclas.clear();
+    joy.x = joy.z = 0;
+    golpeYo = salto = 0;
+    camMira.x = pos.x;
+    camMira.z = pos.z - 1.8;
+    introT = performance.now();
+    cem.reiniciar();
+    juego.estado = 'cuenta';
+    juego.t0 = performance.now();
+    juego.tiempo = juego.hundir = 0;
+    juego.cuenta = -1;
+  }
+  // Sube por la escalera: aparece en la azotea al lado de la puerta.
+  function salirCementerio() {
+    if (!juego.on) return;
+    juego.on = false;
+    cem.callar();
+    escena.add(P.raiz);
+    pos.x = 0;
+    pos.z = 8.4;
+    yaw = yawObjetivo = Math.PI;
+    destino = paradaDestino = null;
+    teclas.clear();
+    camMira.x = pos.x;
+    camMira.z = pos.z - 1.8;
+    forzarPos = true;
+    alCementerio?.({ tipo: 'fuera' });
+  }
+  function chocarCementerio() {
+    pos.x = Math.max(-BORDE_CEM, Math.min(BORDE_CEM, pos.x));
+    pos.z = Math.max(-BORDE_CEM, Math.min(BORDE_CEM, pos.z));
+    for (const o of cem.obstaculos) {
+      const dx = pos.x - o.x, dz = pos.z - o.z;
+      const d = Math.hypot(dx, dz);
+      const min = o.r + 0.35;
+      if (d < min && d > 0.0001) { pos.x = o.x + (dx / d) * min; pos.z = o.z + (dz / d) * min; }
+    }
+  }
+  function terminarCementerio(quien, t) {
+    juego.estado = quien ? 'atrapado' : 'escapo';
+    destino = null;
+    if (quien) {
+      cem.decir(quien, '¡Te quedás con nosotros! 👻', t, 600);
+      yawObjetivo = Math.atan2(quien.x - pos.x, quien.z - pos.z);
+      golpeYo = 0.6;
+    } else salto = 0.35;
+    alCementerio?.({ tipo: 'fin', gano: !quien, quien: quien && quien.nombre, color: quien && quien.color, tiempo: quien ? juego.tiempo : DURACION_CEM });
+  }
+  function cuadroCementerio(ahora, dt, t) {
+    const corre = juego.estado === 'corre';
+    if (!corre) destino = null;
+    const caminando = corre && caminar(dt, true, chocarCementerio);
+    girar(dt);
+    animarPersonaje(t, dt, caminando);
+    if (juego.estado === 'cuenta') {
+      const k = (ahora - juego.t0) / 1000;
+      const n = Math.max(0, 3 - Math.floor(k));
+      if (n !== juego.cuenta) { juego.cuenta = n; alCementerio?.({ tipo: 'cuenta', n }); }
+      if (k >= 3) juego.estado = 'corre';
+    } else if (corre) {
+      juego.tiempo += dt; // tiempo del juego (no del reloj): en una pantalla lenta los fantasmas también van lentos
+      alCementerio?.({ tipo: 'tiempo', resta: Math.max(0, DURACION_CEM - juego.tiempo) });
+      if (juego.tiempo >= DURACION_CEM) terminarCementerio(null, t);
+    }
+    const quien = cem.animar(t, dt, pos, juego.estado === 'corre' ? juego.tiempo : null);
+    if (quien && juego.estado === 'corre') terminarCementerio(quien, t);
+    if (juego.estado === 'atrapado') { // te quedás con ellos: te hundís en la tierra
+      juego.hundir = Math.min(1, juego.hundir + dt / 2.2);
+      P.raiz.position.y -= 1.9 * suave(juego.hundir);
+    }
+    cem.escena.fog.density = camara.aspect < 1 ? 0.022 : 0.04; // en celulares la cámara queda más lejos
+    colocarCamara(1 - Math.exp(-dt * 5));
+    cem.etiquetas(camara, lienzo.getBoundingClientRect());
+    renderer.render(cem.escena, camara);
+  }
+
+  function cuadro(ahora) {
+    raf = requestAnimationFrame(cuadro);
+    const dt = Math.min(0.1, (ahora - (ultimo || ahora)) / 1000);
+    ultimo = ahora;
+    const t = ahora / 1000;
+
+    if (juego.on) { cuadroCementerio(ahora, dt, t); return; }
+
+    frente.k += ((frente.on ? 1 : 0) - frente.k) * (1 - Math.exp(-dt * 3.5));
+    const caminando = caminar(dt, !frente.on, chocar); // caminando mira hacia donde va
+    if (!caminando && frente.on && terminal) {
+      yawObjetivo = Math.atan2(terminal.position.x - pos.x, terminal.position.z - pos.z); // mira la consola
+    } else if (!caminando && paradaActiva && !destino) {
+      yawObjetivo = 0; // quieto en una parada: mira a la cámara
+    }
+    girar(dt);
 
     animarPersonaje(t, dt, !!caminando);
     animarEsperando(t, dt);
@@ -2954,6 +3095,9 @@ const Mundo = (() => {
     set alPegar(fn) { alPegar = fn; },
     set textoProp(fn) { textoProp = fn; },
     set alTeclaTerminal(fn) { alTeclaTerminal = fn; },
+    set alCementerio(fn) { alCementerio = fn; },
+    get enCementerio() { return juego.on; },
+    entrarCementerio, salirCementerio, otraVezCementerio: () => { if (juego.on) empezarCementerio(); },
     armar, iniciarPersonaje, irA, pausar, puntoEnPantalla, sincronizarRemotos, moverRemoto, gesto, tirar, tiroRemoto, golpeRemoto, vistaFrente, salirDeParada, tocarProp,
   };
 })();
@@ -2983,6 +3127,77 @@ function hacerTiro(tipo) {
 Mundo.alPegar = (a, tipo) => sala.golpe({ a, tipo });
 // En la terminal: ← → (o A/D) cambian de sección, 1 a 6 van directo y Esc
 // (o ↓/S) sale.
+/* ───────────── Cementerio (cementerio.js) ───────────── */
+// Botón "Bajar al cementerio": se corre de los fantasmas DURACION_CEM
+// segundos. El récord (lo más que aguantó) queda en este navegador.
+const cemEl = $('#pjCem');
+const cemCartel = $('#pjCemCartel');
+const cemTiempo = $('#pjCemTiempo');
+const cemRecordEl = $('#pjCemRecord');
+let cemRecord = Number(leer('pj-cementerio-record')) || 0;
+const fmtSeg = (s) => s.toFixed(1).replace('.', ',') + ' s';
+function pintarRecord() {
+  cemRecordEl.textContent = cemRecord >= DURACION_CEM ? 'Récord: ¡escapaste! 🏃' : cemRecord ? `Récord: ${fmtSeg(cemRecord)}` : 'Sin récord todavía';
+}
+function bajarAlCementerio() {
+  if (!Mundo.ok || mundoEl.hidden || Mundo.enCementerio) return;
+  activarParada(null);
+  if (!Mundo.entrarCementerio()) return;
+  cemEl.hidden = false;
+  mundoEl.classList.add('pj--cementerio');
+  cemTiempo.textContent = fmtSeg(DURACION_CEM);
+  pintarRecord();
+  sala?.actualizar({ parada: 'cementerio' });
+  Sonido.aparecer();
+}
+function cartelCem(html, fin = false) {
+  cemCartel.innerHTML = html;
+  cemCartel.hidden = false;
+  cemCartel.classList.toggle('pj--fin', fin);
+  cemCartel.style.animation = 'none';
+  void cemCartel.offsetWidth;
+  cemCartel.style.animation = '';
+  if (fin) cemCartel.querySelector('button')?.focus({ preventScroll: true });
+}
+Mundo.alCementerio = (ev) => {
+  if (ev.tipo === 'cuenta') {
+    if (ev.n) cartelCem(`<b class="pj-cem-num">${ev.n}</b><p>Aguantá ${DURACION_CEM} segundos sin que te alcancen los fantasmas, o te quedás con ellos.</p>`);
+    else { cartelCem('<b class="pj-cem-num">¡Corré!</b>'); setTimeout(() => { if (!cemCartel.classList.contains('pj--fin')) cemCartel.hidden = true; }, 900); }
+    Sonido.cuenta(!ev.n);
+  } else if (ev.tipo === 'tiempo') {
+    cemTiempo.textContent = fmtSeg(ev.resta);
+    cemTiempo.classList.toggle('pj--poco', ev.resta < 10);
+  } else if (ev.tipo === 'fin') {
+    const nuevo = ev.tiempo > cemRecord;
+    if (nuevo) { cemRecord = Math.min(DURACION_CEM, ev.tiempo); guardar('pj-cementerio-record', cemRecord.toFixed(1)); }
+    pintarRecord();
+    const botones = '<div class="pj-cem-botones"><button type="button" data-cem="otra">Correr de nuevo</button><button type="button" data-cem="salir">Subir a la azotea ↑</button></div>';
+    if (ev.gano) {
+      cartelCem(`<b class="pj-cem-fin">🏃 ¡Escapaste!</b><p>Aguantaste los ${DURACION_CEM} segundos: no te quedaste con ellos.</p>${botones}`, true);
+      Sonido.escape();
+    } else {
+      cartelCem(`<b class="pj-cem-fin">👻 Te quedaste con <span style="color:${esc(ev.color)}">${esc(ev.quien)}</span></b><p>Aguantaste ${fmtSeg(ev.tiempo)}${nuevo ? ' · ¡nuevo récord!' : ''}</p>${botones}`, true);
+      Sonido.susto();
+    }
+  } else if (ev.tipo === 'salir' || ev.tipo === 'otra') accionCem(ev.tipo); // Esc, Enter o espacio
+  else if (ev.tipo === 'fuera') {
+    cemEl.hidden = cemCartel.hidden = true;
+    cemCartel.classList.remove('pj--fin');
+    mundoEl.classList.remove('pj--cementerio');
+    if (!mundoEl.hidden) sala?.actualizar({ parada: null });
+  }
+};
+function accionCem(tipo) {
+  if (tipo === 'salir') { Mundo.salirCementerio(); return; }
+  cemCartel.hidden = true;
+  cemCartel.classList.remove('pj--fin');
+  cemTiempo.textContent = fmtSeg(DURACION_CEM);
+  cemTiempo.classList.remove('pj--poco');
+  Mundo.otraVezCementerio();
+}
+cemCartel.addEventListener('click', (e) => { const b = e.target.closest('[data-cem]'); if (b) accionCem(b.dataset.cem); });
+$('#pjCemSalir').addEventListener('click', () => Mundo.salirCementerio());
+
 Mundo.alTeclaTerminal = (e) => {
   if (e.target.closest('select, input, textarea')) return;
   const n = Number(e.key);
@@ -3008,7 +3223,7 @@ Mundo.textoProp = (clave) => {
     tanque: ['💧 Lleno, como la agenda de entrevistas', '💧 Glu glu glu…'],
     aire: ['❄️ ¡Aire a full!', '❄️ Brrr… ¿quién lo puso en 16?'],
     antena: [`📡 ${jugadores.length + 1} en la sala ahora`, '📡 Señal de la oficina: 5 rayitas'],
-    puerta: ['🚪 Abajo está la oficina… mejor quedate un rato más', '🚪 ¡Shh! Que no se entere RRHH'],
+    puerta: ['🚪 Esta escalera baja al cementerio… 👻 (botón 🪦 de abajo)', '🚪 Dicen que abajo hay fantasmas que repiten "Hoy tenemos ONB"…'],
     cafe: ['☕ Café recién hecho. ¿Quién se suma?', '☕ El tercero del día, como siempre'],
   }[clave];
   return textos ? alAzar(textos) : '✨';

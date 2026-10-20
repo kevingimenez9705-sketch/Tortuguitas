@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Bungee&family=Orbitron:wght@500;700;900&family=Press+Start+2P&display=swap" />
 <link rel="stylesheet" href="styles.css?v=20261016b" />
-<link rel="stylesheet" href="personajes.css?v=20261020c" />
+<link rel="stylesheet" href="personajes.css?v=20261020d" />
 </head>
 <body class="pj">
 <script src="transition.js?v=20261019"></script>
@@ -93,6 +93,21 @@
     </footer>
   </section>
 
+  <!-- Cementerio: hay que correr de los fantasmas -->
+  <section class="pj-cem" id="pjCem" hidden aria-label="Cementerio">
+    <div class="pj-cem-capa" id="pjCemCapa"></div>
+    <header class="pj-cem-hud">
+      <button class="pj-cem-subir pj-glass" id="pjCemSalir" type="button">↑ Azotea</button>
+      <div class="pj-cem-reloj pj-glass">
+        <span class="pj-cem-marca">🪦 Cementerio</span>
+        <strong id="pjCemTiempo" aria-live="off">60,0 s</strong>
+        <small id="pjCemRecord"></small>
+      </div>
+    </header>
+    <div class="pj-cem-cartel" id="pjCemCartel" hidden role="status"></div>
+    <p class="pj-cem-ayuda">Flechas/WASD, clic o joystick para correr · Esc sube a la azotea</p>
+  </section>
+
   <div class="pj-gestos pj-glass" id="pjGestos" hidden role="toolbar" aria-label="Tirar cosas y gestos"></div>
   <div class="pj-joy" id="pjJoy" hidden><div class="pj-joy-perilla"></div></div>
   <p class="pj-ayuda" id="pjAyuda"></p>
@@ -108,6 +123,6 @@
 <script src="competencias.js?v=20261020"></script>
 <script src="vendor/supabase.umd.js?v=2.117.2"></script>
 <script src="supabase.js?v=20261019"></script>
-<script type="module" src="personajes.js?v=20261020d"></script>
+<script type="module" src="personajes.js?v=20261020e"></script>
 </body>
 </html>

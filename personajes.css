@@ -960,3 +960,105 @@ body.pj.pj--jugando{overflow:hidden;}
 @media (prefers-reduced-motion: reduce){
   .pj-holo,.pj-holo::after,.pj-holo-cuerpo,.pj-prop{animation:none !important;}
 }
+
+/* ───────────── 6. Cementerio ───────────── */
+/* Minijuego (cementerio.js): reloj arriba, nombres y frases de los
+   fantasmas sobre la escena y un cartel para la cuenta y el final. */
+.pj-cem-btn{border-color:rgba(160,255,190,.25) !important;color:#bfffd4 !important;}
+.pj-cem-btn:hover{background:rgba(93,255,154,.12) !important;}
+.pj-mundo.pj--cementerio .pj-hud,
+.pj-mundo.pj--cementerio .pj-paradas,
+.pj-mundo.pj--cementerio .pj-gestos,
+.pj-mundo.pj--cementerio .pj-capa,
+.pj-mundo.pj--cementerio .pj-panel,
+.pj-mundo.pj--cementerio .pj-holo,
+.pj-mundo.pj--cementerio .pj-ayuda{display:none !important;}
+.pj-cem{position:absolute;inset:0;pointer-events:none;font-family:inherit;}
+.pj-cem-capa{position:absolute;inset:0;overflow:hidden;}
+.pj-cem-nombre{
+  position:absolute;left:0;top:0;
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid rgba(190,215,255,.25);
+  background:rgba(8,12,26,.72);
+  font-size:11px;font-weight:700;
+  color:#dfe8ff;
+  white-space:nowrap;
+  will-change:transform;
+}
+.pj-cem-nombre i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+.pj-cem-globo{background:#eef3ff;font-style:italic;}
+.pj-cem-hud{
+  position:absolute;top:12px;left:12px;right:12px;
+  display:flex;justify-content:center;align-items:flex-start;
+}
+.pj-cem-subir{
+  position:absolute;left:0;top:0;
+  pointer-events:auto;
+  padding:10px 14px;
+  font-weight:700;font-size:13px;
+  color:#fff !important;
+  cursor:pointer;
+}
+.pj-cem-reloj{
+  display:flex;flex-direction:column;align-items:center;
+  padding:8px 18px 9px;
+  min-width:170px;
+}
+.pj-cem-marca{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#a9f5c4;}
+.pj-cem-reloj strong{font-family:var(--pj-display);font-weight:400;font-size:30px;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums;}
+.pj-cem-reloj strong.pj--poco{color:#ff8f8f;animation:pj-cem-late 1s ease-in-out infinite;}
+.pj-cem-reloj small{font-size:11px;color:var(--pj-texto-3);}
+@keyframes pj-cem-late{50%{transform:scale(1.08);}}
+.pj-cem-cartel{
+  position:absolute;left:50%;top:42%;
+  translate:-50% -50%;
+  width:min(440px, calc(100% - 32px));
+  padding:20px 22px;
+  border-radius:24px;
+  text-align:center;
+  background:rgba(7,11,22,.8);
+  border:1px solid rgba(160,255,190,.25);
+  box-shadow:0 20px 60px -20px rgba(93,255,154,.45);
+  color:#eef1f8;
+  animation:pj-cem-cartel .35s cubic-bezier(.3,1.5,.5,1);
+}
+.pj-cem-cartel:not(.pj--fin){background:transparent;border:0;box-shadow:none;}
+.pj-cem-cartel p{margin:8px 0 0;color:#c6d0e6;font-size:14px;line-height:1.45;text-shadow:0 2px 8px #000;}
+.pj-cem-num{display:block;font-family:var(--pj-display);font-weight:400;font-size:84px;line-height:1;color:#bfffd4;text-shadow:0 0 30px rgba(93,255,154,.7), 0 4px 0 #0b1a12;}
+.pj-cem-fin{display:block;font-family:var(--pj-display);font-weight:400;font-size:26px;line-height:1.2;}
+.pj-cem-botones{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:16px;pointer-events:auto;}
+.pj-cem-botones button{
+  padding:10px 18px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);
+  font-weight:700;
+  color:#fff !important;
+  cursor:pointer;
+}
+.pj-cem-botones button:first-child{background:#5dff9a;border-color:#5dff9a;color:#08140d !important;}
+.pj-cem-botones button:focus-visible,.pj-cem-subir:focus-visible{outline:3px solid #fff;outline-offset:2px;}
+@keyframes pj-cem-cartel{from{opacity:0;scale:.7;}}
+.pj-cem-ayuda{
+  position:absolute;left:50%;bottom:18px;
+  translate:-50% 0;
+  margin:0;
+  padding:6px 14px;
+  border-radius:999px;
+  background:rgba(7,11,22,.6);
+  font-size:12px;
+  color:#aab4cc;
+  white-space:nowrap;
+}
+@media (max-width:760px){
+  .pj-cem-hud{top:8px;left:8px;right:8px;}
+  .pj-cem-reloj{min-width:0;padding:6px 14px;}
+  .pj-cem-reloj strong{font-size:24px;}
+  .pj-cem-subir{padding:8px 11px;font-size:12px;}
+  .pj-cem-ayuda{display:none;}
+  .pj-cem-num{font-size:68px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .pj-cem-cartel,.pj-cem-reloj strong.pj--poco{animation:none !important;}
+}
