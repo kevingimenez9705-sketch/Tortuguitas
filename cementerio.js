@@ -3,17 +3,18 @@
 // mausoleo. De las tumbas salen los fantasmas de los que ya no están en el
 // equipo (los selectores de "Otros"), con su nombre y sus frases, y te
 // persiguen: hay que aguantar DURACION segundos sin que te alcancen, o te
-// quedás con ellos. personajes.js mueve al personaje, la cámara y la
-// pantalla; acá van la escena, los fantasmas y el reloj.
+// quedás con ellos. Con un tiro (pizza, hamburguesa, globo) quedan aturdidos
+// unos segundos. personajes.js mueve al personaje, los tiros, la cámara y la
+// pantalla; acá van la escena y los fantasmas.
 export const DURACION = 60;
 export const FANTASMAS = [
   { nombre: 'Araceli', color: '#e05d8a' },
-  { nombre: 'Mariano', color: '#7b6cf0' },
+  { nombre: 'Mariano', color: '#f0a94c' },
   { nombre: 'Alexis', color: '#e8c53a' },
   { nombre: 'Luana', color: '#5fd4b0' },
-  { nombre: 'Facundo', color: '#3fbf6f' },
-  { nombre: 'Emiliano', color: '#2ec4e6' },
-  { nombre: 'Giselle', color: '#f2994a' },
+  { nombre: 'Facundo', color: '#3fbf7f' },
+  { nombre: 'Emiliano', color: '#06b6d4' },
+  { nombre: 'Giselle', color: '#f26d5b' },
   { nombre: 'Agustin Monte', color: '#3a8fd9' },
   { nombre: 'Balbina', color: '#d14fc4' },
 ];
@@ -23,6 +24,9 @@ export const FRASES = [
 ];
 export const BORDE = 13; // el jugador camina entre -BORDE y BORDE
 const ATRAPA = 0.72; // distancia a la que te agarra un fantasma
+const GOLPE = 0.95; // distancia a la que un tiro le pega
+const ATURDE = 3; // segundos que queda aturdido
+const QUEJAS = ['¡Ay! 😵', '¡Eso es de Sabores! 🍕', 'Me mareé… 💫', '¡No vale!', 'Uy, mi paraguas…'];
 
 const suave = (k) => k * k * (3 - 2 * k);
 const azar = (a, b) => a + Math.random() * (b - a);
@@ -30,7 +34,8 @@ const azar = (a, b) => a + Math.random() * (b - a);
 /**
  * armarCementerio(h): h trae three.js y los ayudantes de personajes.js
  * ({ T, malla, caja, cil, esfera, rot, grupo, fantasma, animarCuerpo, capa }).
- * Devuelve { escena, obstaculos, salida, reiniciar, animar, etiquetas, decir, callar }.
+ * Devuelve { escena, obstaculos, salida, reiniciar, animar, etiquetas, decir,
+ * callar, blanco, golpear }.
  */
 export function armarCementerio(h) {
   const { T, malla, caja, cil, esfera, rot, grupo, capa } = h;
@@ -250,8 +255,71 @@ export function armarCementerio(h) {
     globo.className = 'pj-globo pj-cem-globo';
     globo.hidden = true;
     capa.appendChild(globo);
-    return { ...f, Q, el, globo, tumba: tumbas[i], x: 0, z: 0, y: -2, yaw: 0, estado: 'dormido', k: 0, despierta: 0, dash: 0, recarga: 0, hasta: 0, vx: 0, vz: 0 };
+    const mats = []; // el cuerpo es transparente: aturdido se ve más clarito
+    Q.raiz.traverse((o) => { if (o.isMesh && o.material.transparent && !mats.includes(o.material)) mats.push(o.material); });
+    return { ...f, Q, el, globo, mats, opacidad: mats.map((m) => m.opacity), tumba: tumbas[i], x: 0, z: 0, y: -2, yaw: 0, estado: 'dormido', k: 0, despierta: 0, dash: 0, recarga: 0, hasta: 0, vx: 0, vz: 0, aturdido: 0 };
   });
+  const despierto = (f) => f.estado === 'caza' || f.estado === 'aturdido';
+  function aturdir(f, on) {
+    f.mats.forEach((m, i) => { m.opacity = on ? f.opacidad[i] * 0.45 : f.opacidad[i]; });
+    f.el.classList.toggle('pj--aturdido', on);
+  }
+
+  /* ── Chispas de los tiros ── */
+  const chispas = [];
+  function salpicar(x, y, z, color) {
+    const n = 18;
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.BufferAttribute(new Float32Array(n * 3).map((_, i) => [x, y, z][i % 3]), 3));
+    const pts = new T.Points(geo, new T.PointsMaterial({ color, size: 0.14, transparent: true, depthWrite: false }));
+    escena.add(pts);
+    chispas.push({ pts, t: 0, vel: Array.from({ length: n }, () => [azar(-3, 3), azar(1, 4.5), azar(-3, 3)]) });
+  }
+  function animarChispas(dt) {
+    for (const c of [...chispas]) {
+      c.t += dt;
+      const arr = c.pts.geometry.attributes.position;
+      c.vel.forEach((v, i) => {
+        v[1] -= 9 * dt;
+        arr.setXYZ(i, arr.getX(i) + v[0] * dt, Math.max(0.05, arr.getY(i) + v[1] * dt), arr.getZ(i) + v[2] * dt);
+      });
+      arr.needsUpdate = true;
+      c.pts.material.opacity = Math.max(0, 1 - c.t / 0.8);
+      if (c.t < 0.8) continue;
+      escena.remove(c.pts);
+      c.pts.geometry.dispose();
+      c.pts.material.dispose();
+      chispas.splice(chispas.indexOf(c), 1);
+    }
+  }
+
+  // El fantasma despierto más cercano que tengas adelante (para apuntar).
+  function blanco(jugador, fx, fz) {
+    let mejor = null, dist = Infinity;
+    for (const f of fantasmas) {
+      if (!despierto(f)) continue;
+      const dx = f.x - jugador.x, dz = f.z - jugador.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.4 || d > 12 || (dx * fx + dz * fz) / d < 0.45) continue;
+      if (d < dist) { dist = d; mejor = f; }
+    }
+    return mejor;
+  }
+  // ¿El tiro en (x, z) le pegó a alguno? Lo aturde, lo empuja y se queja.
+  function golpear(x, z, vx, vz, color, t) {
+    const f = fantasmas.find((o) => despierto(o) && Math.hypot(o.x - x, o.z - z) < GOLPE);
+    if (!f) return null;
+    const l = Math.hypot(vx, vz) || 1;
+    f.estado = 'aturdido';
+    f.aturdido = ATURDE;
+    f.vx = (vx / l) * 5;
+    f.vz = (vz / l) * 5;
+    f.dash = 0;
+    aturdir(f, true);
+    salpicar(f.x, f.y + 1.1, f.z, color);
+    decir(f, QUEJAS[Math.floor(Math.random() * QUEJAS.length)], t, 1.8);
+    return f;
+  }
   let proximaFrase = 0;
 
   // Todos a su tumba; se levantan de a uno (orden al azar).
@@ -268,6 +336,8 @@ export function armarCementerio(h) {
       f.hasta = 0;
       f.vx = f.vz = 0;
       f.yaw = Math.random() * Math.PI * 2;
+      f.aturdido = 0;
+      aturdir(f, false);
       f.Q.raiz.visible = false;
       f.el.hidden = f.globo.hidden = true;
     });
@@ -296,6 +366,17 @@ export function armarCementerio(h) {
         f.k = Math.min(1, f.k + dt / 1.3);
         f.y = -2 + 2 * suave(f.k);
         if (f.k >= 1) f.estado = 'caza';
+      } else if (f.estado === 'aturdido') {
+        // Aturdido: da vueltas, se frena del empujón y no agarra a nadie.
+        f.aturdido -= dt;
+        const fr = Math.exp(-dt * 3);
+        f.vx *= fr;
+        f.vz *= fr;
+        f.x = Math.max(-BORDE - 0.5, Math.min(BORDE + 0.5, f.x + f.vx * dt));
+        f.z = Math.max(-BORDE - 0.5, Math.min(BORDE + 0.5, f.z + f.vz * dt));
+        f.yaw += dt * 9;
+        f.Q.raiz.rotation.y = f.yaw;
+        if (f.aturdido <= 0) { f.estado = 'caza'; aturdir(f, false); }
       } else if (corre) {
         // Te persiguen cada vez más rápido (siempre un poco menos que vos) y,
         // de cerca, cada tanto pegan un envión.
@@ -324,9 +405,10 @@ export function armarCementerio(h) {
       if (f.estado === 'dormido') continue;
       h.animarCuerpo(f.Q, t, dt, false);
       f.Q.raiz.position.set(f.x, f.y, f.z);
-      f.Q.raiz.rotation.y += (Math.atan2(Math.sin(f.yaw - f.Q.raiz.rotation.y), Math.cos(f.yaw - f.Q.raiz.rotation.y))) * (1 - Math.exp(-dt * 8));
+      if (f.estado !== 'aturdido') f.Q.raiz.rotation.y += (Math.atan2(Math.sin(f.yaw - f.Q.raiz.rotation.y), Math.cos(f.yaw - f.Q.raiz.rotation.y))) * (1 - Math.exp(-dt * 8));
       if (f.hasta && t > f.hasta) { f.globo.hidden = true; f.hasta = 0; }
     }
+    animarChispas(dt);
     // Frases: uno a la vez, de los que andan cerca.
     if (corre && tiempo > proximaFrase) {
       const cerca = fantasmas.filter((f) => f.estado === 'caza' && !f.hasta && Math.hypot(jugador.x - f.x, jugador.z - f.z) < 11);
@@ -365,5 +447,5 @@ export function armarCementerio(h) {
     }
   }
 
-  return { escena, obstaculos, salida, reiniciar, animar, etiquetas, decir, callar };
+  return { escena, obstaculos, salida, reiniciar, animar, etiquetas, decir, callar, blanco, golpear };
 }
