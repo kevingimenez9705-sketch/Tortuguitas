@@ -17,7 +17,7 @@
       <div>
         <span class="breadcrumb">Selección · Oficina digital</span>
         <h1>Agentes de IA del equipo</h1>
-        <p>Los 6 agentes trabajan en n8n y avisan por Telegram. Acá los ves en vivo, les preguntás por el chat y ves qué necesita al equipo hoy.</p>
+        <p>Los 6 agentes trabajan en n8n y avisan por Telegram. Acá los ves en vivo, les preguntás por el chat y ves de dónde sacan cada dato.</p>
       </div>
     </div>
   </div>
@@ -48,18 +48,6 @@
         <button class="btn-primary" id="ofiChatEnviar" type="submit">Enviar</button>
       </form>
     </div>
-  </div>
-
-  <div class="card sd-card" id="ofiError" style="display:none;">
-    <div class="sd-icon">S/D</div>
-    <h3>No se pudo leer la oficina</h3>
-    <p class="desc" id="ofiErrorMsg"></p>
-  </div>
-
-  <div id="tableroSeccion" style="display:none;">
-    <div class="section-label">Hoy en la oficina · lo que necesita al equipo</div>
-    <div class="tab-grid" id="tablero"></div>
-    <p class="footer-note" id="tableroNota"></p>
   </div>
 
   <section id="fuentesSeccion" aria-labelledby="fuentesTitulo">
@@ -105,8 +93,7 @@
 
 </div>
 <script src="supabase.js?v=20261015"></script>
-<script src="oficina-viva.js?v=20261016"></script>
-<script src="tablero.js?v=20261016"></script>
+<script src="oficina-viva.js?v=20261020"></script>
 <script src="fuentes.js?v=20261020"></script>
 <script type="module" src="oficina-3d.js?v=20261016b"></script>
 </body>
