@@ -353,7 +353,7 @@ function alCambiarSala(otros) {
 
 // Stats de la selección: 5 competencias de la evaluación real (competencias.js,
 // la misma del "Perfil de competencias" del dashboard), de 0 a 10. Sin
-// evaluación cargada (Albana, "Otros") van con "?".
+// evaluación cargada ("Otros") van con "?".
 const STATS = [['equipo', 'Trabajo en equipo'], ['liderazgo', 'Liderazgo'], ['comunicacion', 'Comunicación'], ['creatividad', 'Creatividad'], ['adaptabilidad', 'Adaptabilidad']];
 function competencias(m) {
   const c = window.COMPETENCIAS_DATA && window.COMPETENCIAS_DATA[m.key];
