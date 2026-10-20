@@ -19,6 +19,11 @@
 //    cursor del otro y los personajes que ya se están jugando no se pueden
 //    elegir. En la azotea el otro aparece con su personaje (en lugar del que
 //    esperaba), camina en vivo y se pueden mandar gestos (teclas 1 a 4).
+// 5. Tirar cosas (teclas 5 a 7, espacio = pizza): 🍕 pizza, 🍔 hamburguesa y
+//    💦 globo de agua. Apuntan solas al más cercano que tengas adelante (otro
+//    jugador o alguien que espera); al que le pega se tambalea y, si era
+//    alguien que espera, a veces te la devuelve. Entre jugadores decide el
+//    que tira: si en su pantalla le pegó, se lo avisa a la sala.
 //
 // Los números salen de data.js con los mismos criterios que app.js:
 // presentismo sin las altas sin dato de ingreso, cumplimiento = enviados /
@@ -26,7 +31,7 @@
 // todos los meses disponibles. El ranking compara presentismo y cumplimiento
 // (nunca volumen de altas), igual que el resumen del año.
 // Sin WebGL, o si three.js no carga, las paradas se muestran como tarjetas.
-import { crearSala } from './sala.js?v=20261019';
+import { crearSala } from './sala.js?v=20261020b';
 
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
 const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
@@ -75,6 +80,13 @@ const GESTOS = {
   cinco: { e: '✋', t: '¡Chocá los cinco!', corto: 'Choque', tecla: '2' },
   cafe: { e: '☕', t: '¿Vamos por un café?', corto: 'Café', tecla: '3' },
   bien: { e: '🎉', t: '¡Bien ahí!', corto: '¡Bien!', tecla: '4' },
+};
+
+// Lo que se tira en la azotea (art: para el aviso "te tiró una pizza").
+const TIROS = {
+  pizza: { e: '🍕', corto: 'Pizza', art: 'una pizza', tecla: '5', mancha: '#e8553a' },
+  burger: { e: '🍔', corto: 'Burger', art: 'una hamburguesa', tecla: '6', mancha: '#c98a3a' },
+  globo: { e: '💦', corto: 'Globo', art: 'un globo de agua', tecla: '7', mancha: '#7fd0ff' },
 };
 
 /* ───────────────────────── Utilidades ───────────────────────── */
@@ -521,9 +533,10 @@ function entrarAlMundo(m, con3d) {
     Mundo.sincronizarRemotos(enAzotea());
     pintarEtiquetas();
     $('#pjJoy').hidden = !tactil;
+    $('#pjGestos').hidden = false;
     if (!ayudaMostrada) {
       ayudaMostrada = true;
-      ayuda.textContent = tactil ? 'Mové el joystick o tocá el piso para caminar' : 'Caminá con las flechas o WASD · o hacé clic en el piso';
+      ayuda.textContent = tactil ? 'Mové el joystick o tocá el piso para caminar · tocá 🍕 para tirar' : 'Caminá con las flechas o WASD · clic en el piso · espacio para tirar 🍕';
       ayuda.classList.remove('pj--fuera');
       setTimeout(() => ayuda.classList.add('pj--fuera'), 9000);
     }
@@ -1168,6 +1181,12 @@ const Mundo = (() => {
   const chispazos = [];
   let miKey = null;
   let saludoYo = 0;
+  let tiraYo = 0; // brazo que tira
+  let golpeYo = 0; // tambaleo cuando me pegan
+  let recarga = 0;
+  const proyectiles = [];
+  let alRecibir = null; // aviso cuando me pegan
+  let alPegar = null; // le pegué a otro jugador: avisar a la sala
   let alMoverme = null;
   let enviado = { t: 0, x: 0, z: 0, c: false };
   let forzarPos = false;
@@ -1557,7 +1576,7 @@ const Mundo = (() => {
         const el = document.createElement('div');
         el.className = 'pj-remoto';
         capaEtiquetas.appendChild(el);
-        r = { id: o.id, key: m.key, m, Q, el, x: p ? p.x : 0, z: p ? p.z : 4, yaw: p ? p.yaw : 0, obj: p || null, c: false, saludo: 0, alto: Q.flota ? 2.45 : 2.05, v: new T.Vector3() };
+        r = { id: o.id, key: m.key, m, Q, el, x: p ? p.x : 0, z: p ? p.z : 4, yaw: p ? p.yaw : 0, obj: p || null, c: false, saludo: 0, tira: 0, golpe: 0, alto: Q.flota ? 2.45 : 2.05, v: new T.Vector3() };
         remotos.set(o.id, r);
         forzarPos = true; // que el nuevo me vea enseguida
       }
@@ -1567,7 +1586,7 @@ const Mundo = (() => {
       r.el.innerHTML = `<span><b class="pj-p">${tagP(o.n)}</b>${esc(r.m.label.split(' ')[0])}</span>${p ? `<small>${p.icono} ${esc(p.titulo)}</small>` : ''}`;
     }
     ajustarNpcs();
-    $('#pjGestos').hidden = remotos.size === 0;
+    $('#pjGestos').classList.toggle('pj--solo', remotos.size === 0); // los gestos, solo con alguien más
   }
   function moverRemoto(id, p) {
     const x = Number(p.x), z = Number(p.z), yawR = Number(p.yaw);
@@ -1582,6 +1601,7 @@ const Mundo = (() => {
   function animarRemotos(t, dt) {
     const f = 1 - Math.exp(-dt * 10);
     for (const r of remotos.values()) {
+      const antes = { x: r.x, z: r.z };
       let caminando = false;
       if (r.obj) {
         const dx = r.obj.x - r.x, dz = r.obj.z - r.z;
@@ -1597,7 +1617,10 @@ const Mundo = (() => {
       r.Q.raiz.position.set(r.x, r.salto > 0 ? Math.sin((1 - r.salto / 0.4) * Math.PI) * 0.45 : 0, r.z);
       r.Q.raiz.rotation.y = r.yaw;
       r.v.set(r.x, r.alto, r.z);
-      animarCuerpo(r.Q, t, dt, caminando, { saluda: r.saludo > 0 });
+      velocidad(r, antes, dt);
+      r.tira = Math.max(0, r.tira - dt);
+      r.golpe = Math.max(0, r.golpe - dt);
+      animarCuerpo(r.Q, t, dt, caminando, { saluda: r.saludo > 0, tira: r.tira, golpe: r.golpe });
     }
   }
   // Mi posición a la sala: hasta 8 veces por segundo mientras camino, una vez
@@ -1695,12 +1718,192 @@ const Mundo = (() => {
   function posicionarBurbujas(r) {
     const ahora = performance.now();
     for (const b of [...burbujas]) {
-      const quien = b.de === 'yo' ? { x: pos.x, z: pos.z, alto: P.flota ? 2.45 : 2.05 } : remotos.get(b.de);
+      const quien = b.de === 'yo' ? { x: pos.x, z: pos.z, alto: P.flota ? 2.45 : 2.05 }
+        : b.de.startsWith('npc:') ? esperando.find((n) => 'npc:' + n.m.key === b.de) : remotos.get(b.de);
       if (!quien || ahora > b.hasta) { b.el.remove(); burbujas.splice(burbujas.indexOf(b), 1); continue; }
       proy.v.copy(b.v.set(quien.x, quien.alto + 0.75, quien.z)).project(camara);
       const x = ((proy.v.x + 1) / 2) * r.width;
       const y = Math.max(b.el.offsetHeight + 4, ((1 - proy.v.y) / 2) * r.height);
       b.el.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px) translate(-50%, -100%)`;
+    }
+  }
+
+  /* ── Tirar cosas ── */
+  const G_TIRO = 9;
+  const RADIO_GOLPE = 0.75;
+  // Velocidad suavizada de cada uno, para apuntar adonde va a estar.
+  function velocidad(o, antes, dt) {
+    if (!dt) return;
+    o.vel = o.vel || { x: 0, z: 0 };
+    o.vel.x += ((o.x - antes.x) / dt - o.vel.x) * 0.3;
+    o.vel.z += ((o.z - antes.z) / dt - o.vel.z) * 0.3;
+  }
+  function modeloTiro(tipo) {
+    const g = new T.Group();
+    if (tipo === 'pizza') {
+      const porcion = cil(0.3, 0.3, 0.05, '#f2c14e', 0, 0, 0, 3);
+      porcion.scale.set(1, 1, 0.8);
+      g.add(porcion);
+      g.add(rot(cil(0.05, 0.05, 0.36, '#c98a3a', -0.15, 0.01, 0, 8), 0, 0, Math.PI / 2));
+      [[0.05, 0.06], [-0.02, -0.08], [0.12, -0.04]].forEach(([x, z]) => g.add(cil(0.045, 0.045, 0.02, '#c0392b', x, 0.035, z, 10)));
+    } else if (tipo === 'burger') {
+      g.add(esfera(0.18, '#e0a24a', 0, 0.08, 0, 14));
+      g.add(cil(0.2, 0.2, 0.07, '#5b3418', 0, -0.02, 0, 16));
+      g.add(cil(0.21, 0.21, 0.02, '#6fbf4a', 0, 0.03, 0, 16));
+      g.add(cil(0.18, 0.18, 0.06, '#d9973f', 0, -0.08, 0, 16));
+      g.children[0].scale.y = 0.6;
+    } else {
+      g.add(malla(new T.SphereGeometry(0.2, 16, 12), new T.MeshStandardMaterial({ color: '#4fb3ff', transparent: true, opacity: 0.85, roughness: 0.2 }), 0, 0, 0));
+      g.add(cil(0.03, 0.05, 0.08, '#2f7dc4', 0, 0.21, 0, 8));
+    }
+    g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+    return g;
+  }
+  function lanzar(de, tipo, p) {
+    const mesh = modeloTiro(tipo);
+    mesh.position.set(p.x, p.y, p.z);
+    escena.add(mesh);
+    proyectiles.push({ de, tipo, mesh, x: p.x, y: p.y, z: p.z, vx: p.vx, vy: p.vy, vz: p.vz, t: 0, giro: 6 + Math.random() * 6 });
+  }
+  // Velocidad para que caiga sobre (tx, tz) a la altura del pecho.
+  function apuntar(x, y, z, tx, tz) {
+    const d = Math.hypot(tx - x, tz - z);
+    const T0 = Math.max(0.3, Math.min(1.1, d / 10));
+    return { vx: (tx - x) / T0, vz: (tz - z) / T0, vy: (1.1 - y + 0.5 * G_TIRO * T0 * T0) / T0 };
+  }
+  // Tiro mío: apunta solo al más cercano que tenga adelante (otro jugador
+  // primero); si no hay nadie, derecho hacia donde miro. Devuelve el tiro
+  // para mandarlo a la sala.
+  function tirar(tipo) {
+    if (!TIROS[tipo] || !P || recarga > 0 || aparicionT >= 0) return null;
+    recarga = 0.45;
+    tiraYo = 0.35;
+    const fx = Math.sin(yaw), fz = Math.cos(yaw);
+    const candidatos = [...[...remotos.values()].map((r) => ({ o: r, peso: 0.7 })), ...esperando.map((n) => ({ o: n, peso: 1 }))].map((c) => ({ ...c, x: c.o.x, z: c.o.z }));
+    let mejor = null;
+    let puntaje = Infinity;
+    for (const c of candidatos) {
+      const dx = c.x - pos.x, dz = c.z - pos.z;
+      const d = Math.hypot(dx, dz);
+      if (d < 0.6 || d > 12 || (dx * fx + dz * fz) / d < 0.45) continue; // adelante: menos de ~63°
+      if (d * c.peso < puntaje) { puntaje = d * c.peso; mejor = c; }
+    }
+    const x = pos.x + fx * 0.5, y = 1.5, z = pos.z + fz * 0.5;
+    let v = { vx: fx * 9, vz: fz * 9, vy: 3.4 };
+    if (mejor) {
+      // Adonde va a estar cuando llegue el tiro (dos pasadas alcanzan).
+      const vel = mejor.o.vel || { x: 0, z: 0 };
+      let tx = mejor.x, tz = mejor.z;
+      for (let k = 0; k < 2; k++) {
+        const T0 = Math.max(0.3, Math.min(1.1, Math.hypot(tx - x, tz - z) / 10));
+        tx = mejor.x + vel.x * T0;
+        tz = mejor.z + vel.z * T0;
+      }
+      yawObjetivo = Math.atan2(tx - pos.x, tz - pos.z);
+      v = apuntar(x, y, z, tx, tz);
+    }
+    const tiro = { tipo, x: +x.toFixed(2), y, z: +z.toFixed(2), vx: +v.vx.toFixed(2), vy: +v.vy.toFixed(2), vz: +v.vz.toFixed(2) };
+    lanzar('yo', tipo, tiro);
+    Sonido.mover();
+    return tiro;
+  }
+  function tiroRemoto(id, p) {
+    const r = remotos.get(id);
+    const n = ['x', 'y', 'z', 'vx', 'vy', 'vz'].map((k) => Number(p[k]));
+    if (!r || !TIROS[p.tipo] || !n.every(Number.isFinite) || n.slice(3).some((v) => Math.abs(v) > 40)) return;
+    r.tira = 0.35;
+    lanzar(id, p.tipo, { x: Math.max(-12, Math.min(12, n[0])), y: Math.max(0, Math.min(4, n[1])), z: Math.max(-12, Math.min(12, n[2])), vx: n[3], vy: n[4], vz: n[5] });
+  }
+  // Mancha al pegar o al caer al piso.
+  function salpicar(x, y, z, color, cantidad = 26) {
+    const posiciones = new Float32Array(cantidad * 3);
+    const vel = [];
+    for (let i = 0; i < cantidad; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const v = 0.8 + Math.random() * 2;
+      vel.push([Math.cos(a) * v, 1 + Math.random() * 2.5, Math.sin(a) * v]);
+      posiciones.set([x, y, z], i * 3);
+    }
+    const geo = new T.BufferGeometry();
+    geo.setAttribute('position', new T.Float32BufferAttribute(posiciones, 3));
+    const puntos = new T.Points(geo, new T.PointsMaterial({ color, size: 0.13, transparent: true, depthWrite: false }));
+    escena.add(puntos);
+    chispazos.push({ puntos, vel, t: 0 });
+  }
+  const QUEJAS = ['¡Ay! 😵', '¡Ey! 😠', '¡Paf! 💥', '¡No vale! 😤', '¡Me la vas a pagar! 😈'];
+  function impacto(pr, blanco) {
+    const T0 = TIROS[pr.tipo];
+    salpicar(pr.x, pr.y, pr.z, T0.mancha);
+    if (blanco.tipo === 'yo') {
+      golpeYo = 0.7;
+      salto = 0.3;
+      Sonido.parada();
+      alRecibir?.(pr.de, pr.tipo);
+    } else if (blanco.tipo === 'remoto') {
+      blanco.r.golpe = 0.7;
+      blanco.r.salto = 0.3;
+      if (pr.de === 'yo') { burbuja(blanco.r.id, `💥 ¡Le diste! ${T0.e}`); Sonido.elegir(); alPegar?.(blanco.r.id, pr.tipo); }
+    } else {
+      const n = blanco.n;
+      n.saludo = 0;
+      n.golpe = 0.7;
+      burbuja('npc:' + n.m.key, alAzar(QUEJAS));
+      // Si se lo tiré yo, a veces me la devuelve.
+      if (pr.de === 'yo' && !reduce && Math.random() < 0.5) {
+        setTimeout(() => {
+          if (!esperando.includes(n) || !P) return;
+          n.yaw = Math.atan2(pos.x - n.x, pos.z - n.z);
+          n.tira = 0.35;
+          const x = n.x + Math.sin(n.yaw) * 0.5, z = n.z + Math.cos(n.yaw) * 0.5;
+          lanzar('npc:' + n.m.key, alAzar(Object.keys(TIROS)), { x, y: 1.5, z, ...apuntar(x, 1.5, z, pos.x, pos.z) });
+        }, 700 + Math.random() * 500);
+      }
+    }
+  }
+  // Otro jugador le pegó a alguien (lo decidió en su pantalla): a mí (a =
+  // null) o a un tercero. Se borra su tiro en vuelo y se muestra el golpe.
+  function golpeRemoto(de, a, tipo) {
+    if (!TIROS[tipo]) return;
+    const victima = a ? remotos.get(a) : null;
+    if (a && !victima) return;
+    const pr = proyectiles.find((x) => x.de === de && x.tipo === tipo);
+    if (pr) {
+      escena.remove(pr.mesh);
+      pr.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+      proyectiles.splice(proyectiles.indexOf(pr), 1);
+    }
+    const quien = victima || { x: pos.x, z: pos.z };
+    impacto({ de, tipo, x: quien.x, y: 1.3, z: quien.z }, victima ? { tipo: 'remoto', r: victima } : { tipo: 'yo' });
+  }
+  function animarProyectiles(dt) {
+    recarga = Math.max(0, recarga - dt);
+    for (const pr of [...proyectiles]) {
+      pr.t += dt;
+      pr.vy -= G_TIRO * dt;
+      pr.x += pr.vx * dt;
+      pr.y += pr.vy * dt;
+      pr.z += pr.vz * dt;
+      pr.mesh.position.set(pr.x, pr.y, pr.z);
+      pr.mesh.rotation.x += pr.giro * dt;
+      pr.mesh.rotation.y += pr.giro * 0.6 * dt;
+      // ¿Le pegó a alguien? Los míos, a los otros jugadores y a los que
+      // esperan; los de los que esperan, a mí. Los tiros de otro jugador solo
+      // a los que esperan (a los jugadores los decide él y llega por "golpe").
+      let blanco = null;
+      if (pr.y > 0.15 && pr.y < 2.2 && pr.t > 0.08) {
+        const cerca = (x, z) => Math.hypot(pr.x - x, pr.z - z) < RADIO_GOLPE;
+        const deNpc = pr.de.startsWith('npc:');
+        if (deNpc && P && cerca(pos.x, pos.z)) blanco = { tipo: 'yo' };
+        if (!blanco && pr.de === 'yo') for (const r of remotos.values()) if (cerca(r.x, r.z)) { blanco = { tipo: 'remoto', r }; break; }
+        if (!blanco && !deNpc) for (const n of esperando) if (cerca(n.x, n.z)) { blanco = { tipo: 'npc', n }; break; }
+      }
+      const fuera = pr.y < 0.05 || pr.t > 3 || Math.abs(pr.x) > 30 || Math.abs(pr.z) > 30;
+      if (!blanco && !fuera) continue;
+      if (blanco) impacto(pr, blanco);
+      else if (pr.y < 0.05) salpicar(pr.x, 0.1, pr.z, TIROS[pr.tipo].mancha, 14);
+      escena.remove(pr.mesh);
+      pr.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+      proyectiles.splice(proyectiles.indexOf(pr), 1);
     }
   }
 
@@ -1789,6 +1992,9 @@ const Mundo = (() => {
       if (e.target.closest('select, input, textarea')) return;
       const g = Object.keys(GESTOS).find((x) => `Digit${GESTOS[x].tecla}` === e.code || `Numpad${GESTOS[x].tecla}` === e.code);
       if (g && remotos.size) { e.preventDefault(); hacerGesto(g); return; }
+      const tiro = Object.keys(TIROS).find((x) => `Digit${TIROS[x].tecla}` === e.code || `Numpad${TIROS[x].tecla}` === e.code)
+        || ((e.code === 'Space' || e.code === 'KeyF') && !e.target.closest('button, a') ? 'pizza' : null);
+      if (tiro) { e.preventDefault(); hacerTiro(tiro); return; }
       const k = MAPA_TECLAS[e.code];
       if (!k) return;
       e.preventDefault();
@@ -1876,6 +2082,7 @@ const Mundo = (() => {
       let x = (i ? 1 : -1) * balanceo * 0.6;
       if (i === 0 && pose.taza) x = pose.sorbo ? -1.9 : -0.75;
       if (i === 1 && pose.gesto) x = -0.55 + Math.sin(t * 7) * 0.3;
+      if (i === 1 && pose.tira > 0) x = pose.tira > 0.2 ? -2.8 : -0.5; // levanta y suelta
       const arriba = pose.saluda && i === 1;
       if (arriba) x = -2.7;
       g.rotation.x += (x - g.rotation.x) * f;
@@ -1884,6 +2091,8 @@ const Mundo = (() => {
     let y = caminando ? Math.abs(Math.cos(Q.fase)) * 0.06 : Math.sin(t * 2.2) * 0.015;
     if (Q.flota) y = 0.22 + Math.sin(t * 2.4) * 0.09;
     Q.torso.position.y = y;
+    // Tambaleo cuando le pegan.
+    Q.torso.rotation.z = pose.golpe > 0 ? Math.sin(pose.golpe * 30) * 0.3 * pose.golpe : Q.torso.rotation.z * (1 - f);
   }
 
   // ── Actividades de los que esperan ──
@@ -2009,6 +2218,7 @@ const Mundo = (() => {
   function animarEsperando(t, dt) {
     const ahora = performance.now();
     for (const n of esperando) {
+      const antes = { x: n.x, z: n.z };
       const cerca = aparicionT < 0 && Math.hypot(pos.x - n.x, pos.z - n.z) < 2.6;
       if (cerca && !n.cerca) n.saludo = 1.8;
       n.cerca = cerca;
@@ -2031,9 +2241,14 @@ const Mundo = (() => {
       n.P.raiz.position.set(n.x, 0, n.z);
       n.P.raiz.rotation.y = n.yaw;
       n.v.set(n.x, n.alto, n.z);
+      velocidad(n, antes, dt);
       const tomando = n.estado === 'cafe' && !cerca;
       n.taza.visible = tomando;
+      n.golpe = Math.max(0, (n.golpe || 0) - dt);
+      n.tira = Math.max(0, (n.tira || 0) - dt);
       animarCuerpo(n.P, t + n.desfase, dt, caminando, {
+        golpe: n.golpe,
+        tira: n.tira,
         saluda: n.saludo > 0,
         taza: tomando,
         sorbo: (t + n.desfase) % 4 < 1.1,
@@ -2045,7 +2260,9 @@ const Mundo = (() => {
 
   function animarPersonaje(t, dt, caminando) {
     saludoYo = Math.max(0, saludoYo - dt);
-    animarCuerpo(P, t, dt, caminando, { saluda: saludoYo > 0 });
+    tiraYo = Math.max(0, tiraYo - dt);
+    golpeYo = Math.max(0, golpeYo - dt);
+    animarCuerpo(P, t, dt, caminando, { saluda: saludoYo > 0, tira: tiraYo, golpe: golpeYo });
     let sube = 0;
     if (salto > 0) { salto = Math.max(0, salto - dt); sube = Math.sin((1 - salto / 0.35) * Math.PI) * 0.35; }
     if (aparicionT >= 0) {
@@ -2175,6 +2392,7 @@ const Mundo = (() => {
     animarEsperando(t, dt);
     animarRemotos(t, dt);
     animarEfectos(dt);
+    animarProyectiles(dt);
     animarChispazos(dt);
     if (aparicionT < 0) avisarPosicion(ahora, !!caminando);
     if (aparicionT < 0) proximidad();
@@ -2218,7 +2436,9 @@ const Mundo = (() => {
   return {
     get ok() { return !!renderer; },
     set alMoverme(fn) { alMoverme = fn; },
-    armar, iniciarPersonaje, irA, pausar, puntoEnPantalla, sincronizarRemotos, moverRemoto, gesto,
+    set alRecibir(fn) { alRecibir = fn; },
+    set alPegar(fn) { alPegar = fn; },
+    armar, iniciarPersonaje, irA, pausar, puntoEnPantalla, sincronizarRemotos, moverRemoto, gesto, tirar, tiroRemoto, golpeRemoto,
   };
 })();
 
@@ -2229,17 +2449,43 @@ sala = crearSala({
   alCambiar: alCambiarSala,
   alMover: (id, p) => { if (Mundo.ok) Mundo.moverRemoto(id, p); },
   alGesto: (id, g) => { if (Mundo.ok && !mundoEl.hidden && GESTOS[g]) Mundo.gesto(id, g); },
+  alTiro: (id, t) => { if (Mundo.ok && !mundoEl.hidden) Mundo.tiroRemoto(id, t); },
+  alGolpe: (id, g) => { if (Mundo.ok && !mundoEl.hidden) Mundo.golpeRemoto(id, g.a === sala.yo.id ? null : String(g.a), g.tipo); },
 });
 sala.actualizar({ mira: EQUIPO[indice].key });
 Mundo.alMoverme = (p) => sala.mover(p);
-// Gestos (botones abajo y teclas 1 a 4): los ve el otro jugador.
+// Gestos (teclas 1 a 4, solo con otro jugador) y tiros (teclas 5 a 7 o
+// espacio): los ve el otro jugador.
 function hacerGesto(g) {
   Mundo.gesto(null, g);
   sala.gesto(g);
 }
-$('#pjGestos').innerHTML = Object.entries(GESTOS).map(([g, G]) => `
-  <button class="pj-gesto" type="button" data-g="${g}" title="${esc(G.t)} (tecla ${G.tecla})"><span aria-hidden="true">${G.e}</span><small>${esc(G.corto)}</small></button>`).join('');
-$('#pjGestos').addEventListener('click', (e) => { const b = e.target.closest('.pj-gesto'); if (b) hacerGesto(b.dataset.g); });
+function hacerTiro(tipo) {
+  const tiro = Mundo.tirar(tipo);
+  if (tiro) sala.tiro(tiro);
+}
+Mundo.alPegar = (a, tipo) => sala.golpe({ a, tipo });
+Mundo.alRecibir = (de, tipo) => {
+  const T0 = TIROS[tipo];
+  if (de.startsWith('npc:')) {
+    const key = de.slice(4);
+    aviso(`¡${key === 'otros' ? 'El fantasma' : primerNombre(key)} te devolvió ${T0.art}! ${T0.e}`);
+    return;
+  }
+  const o = jugadores.find((j) => j.id === de);
+  if (o) aviso(`¡${tagP(o.n)}${o.personaje ? ` (${primerNombre(o.personaje)})` : ''} te tiró ${T0.art}! ${T0.e}`, colorP(o.n));
+};
+const boton = (clase, dato, valor, icono, texto, titulo) =>
+  `<button class="pj-gesto ${clase}" type="button" data-${dato}="${valor}" title="${esc(titulo)}"><span aria-hidden="true">${icono}</span><small>${esc(texto)}</small></button>`;
+$('#pjGestos').innerHTML =
+  Object.entries(TIROS).map(([k, T0]) => boton('pj-gesto--tiro', 't', k, T0.e, T0.corto, `Tirar ${T0.art} (tecla ${T0.tecla}${k === 'pizza' ? ' o espacio' : ''})`)).join('') +
+  '<span class="pj-gestos-sep" aria-hidden="true"></span>' +
+  Object.entries(GESTOS).map(([g, G]) => boton('pj-gesto--saludo', 'g', g, G.e, G.corto, `${G.t} (tecla ${G.tecla})`)).join('');
+$('#pjGestos').addEventListener('click', (e) => {
+  const b = e.target.closest('.pj-gesto');
+  if (b && b.dataset.t) hacerTiro(b.dataset.t);
+  else if (b) hacerGesto(b.dataset.g);
+});
 const pedido = new URLSearchParams(location.search).get('miembro');
 const inicial = Math.max(0, EQUIPO.findIndex((m) => m.key === pedido));
 previsualizar(inicial, false);

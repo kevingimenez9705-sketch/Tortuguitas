@@ -1,62 +1,83 @@
 // sala.js — multijugador de "Elegí tu personaje" (personajes.js): quién está
 // conectado (1P, 2P…), qué personaje mira o eligió cada uno y por dónde camina
-// en la azotea, más los gestos (saludar, chocar los cinco…).
+// en la azotea, más los gestos y las cosas que se tiran.
 //
-// Usa Supabase Realtime (presencia + broadcast, sin tablas) con la clave
-// publicable de supabase.js. Solo viaja la clave del personaje, el número de
-// jugador, la posición y el gesto: ningún dato personal.
+// Usa Supabase Realtime con la clave publicable de supabase.js, sin tablas:
+// - Presencia: solo para saber quién está conectado y en qué orden llegó. Se
+//   publica UNA vez al conectar ({ id, t }). Supabase corta el canal si un
+//   cliente actualiza la presencia más de 5 veces en 30 s
+//   (ClientPresenceRateLimitReached), así que nada que cambie seguido va acá.
+// - Broadcast: todo lo demás (a quién mira, personaje, parada, posición,
+//   gestos, tiros y golpes). El estado se reenvía cada 5 s y cuando llega
+//   alguien. Los golpes los decide el que tira (lo que ve él es lo que pasa).
+// El número de jugador sale del orden de llegada (el primero es 1P), igual
+// en todas las pantallas. Solo viaja la clave del personaje, la parada, la
+// posición, el gesto y el tiro: ningún dato personal.
 // Con ?sala=local usa BroadcastChannel (pestañas del mismo navegador), para
 // probar sin red; con ?sala=no queda en un jugador. Si Supabase no conecta,
-// la página sigue igual que antes, en un jugador.
+// la página sigue igual, en un jugador.
 const CANAL = 'tortuguitas-azotea';
+const LATIDO_MS = 5000; // reenvío del estado por si alguien se perdió un mensaje
 const VIVO_MS = 7000; // modo local: sin noticias de alguien en este tiempo, se fue
 
 const nuevoId = () => (crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36));
 
 /**
- * crearSala({ alCambiar(jugadores), alMover(id, pos), alGesto(id, gesto) })
- * jugadores: Map id → { id, n, t, en, mira, personaje, parada, desde } (sin mí).
+ * crearSala({ alCambiar(otros), alMover(id, pos), alGesto(id, g), alTiro(id, tiro), alGolpe(id, golpe) })
+ * otros: Map id → { id, n, en, mira, personaje, parada, desde } (sin mí).
  */
-export function crearSala({ alCambiar = () => {}, alMover = () => {}, alGesto = () => {} } = {}) {
+export function crearSala({ alCambiar = () => {}, alMover = () => {}, alGesto = () => {}, alTiro = () => {}, alGolpe = () => {} } = {}) {
   const modo = new URLSearchParams(location.search).get('sala');
-  const yo = { id: nuevoId(), n: null, t: Date.now(), en: 'seleccion', mira: null, personaje: null, parada: null, desde: 0 };
+  const yo = { id: nuevoId(), t: Date.now(), n: 1, en: 'seleccion', mira: null, personaje: null, parada: null, desde: 0 };
+  const presentes = new Map(); // id → { id, t }: los conectados (sin mí)
+  const estados = new Map(); // id → último estado que mandó cada uno
   const otros = new Map();
   let transporte = null;
-  let conectado = false;
-  let trackPendiente = null;
+  let envioPendiente = null;
 
-  // Número de jugador: el más chico libre; si dos toman el mismo, lo conserva
-  // el que entró antes a la sala.
-  function asignar() {
-    const usados = new Set();
-    let pisado = false;
-    for (const o of otros.values()) {
-      if (!o.n) continue;
-      usados.add(o.n);
-      if (o.n === yo.n && (o.t < yo.t || (o.t === yo.t && o.id < yo.id))) pisado = true;
-    }
-    if (yo.n && !pisado) return false;
-    let n = 1;
-    while (usados.has(n)) n++;
-    if (n === yo.n) return false;
-    yo.n = n;
-    return true;
-  }
+  const estadoMio = () => ({ id: yo.id, en: yo.en, mira: yo.mira, personaje: yo.personaje, parada: yo.parada, desde: yo.desde });
 
-  function aplicar(lista) {
+  // Arma la lista de los otros con su número (orden de llegada: t y después id).
+  function recalcular() {
+    const orden = [{ id: yo.id, t: yo.t }, ...presentes.values()].sort((a, b) => a.t - b.t || (a.id < b.id ? -1 : 1));
     otros.clear();
-    for (const o of lista) if (o && o.id && o.id !== yo.id) otros.set(o.id, o);
-    if (asignar()) publicar(true);
+    orden.forEach((p, i) => {
+      if (p.id === yo.id) { yo.n = i + 1; return; }
+      const e = estados.get(p.id) || {};
+      otros.set(p.id, { en: 'seleccion', mira: null, personaje: null, parada: null, desde: 0, ...e, id: p.id, n: i + 1 });
+    });
     alCambiar(otros);
   }
 
-  // La presencia es más pesada que un broadcast: se manda solo cuando cambia
-  // algo, y los cambios rápidos (pasar el cursor por los casilleros) se juntan.
-  function publicar(ya = false) {
+  function enviarEstado(ya = false) {
     if (!transporte) return;
-    clearTimeout(trackPendiente);
-    if (ya) transporte.estado({ ...yo });
-    else trackPendiente = setTimeout(() => transporte.estado({ ...yo }), 150);
+    clearTimeout(envioPendiente);
+    if (ya) transporte.enviar('estado', estadoMio());
+    else envioPendiente = setTimeout(() => transporte.enviar('estado', estadoMio()), 120);
+  }
+
+  function recibido(evento, payload) {
+    if (!payload || !payload.id || payload.id === yo.id) return;
+    if (evento === 'estado') { estados.set(payload.id, payload); recalcular(); }
+    else if (evento === 'pos') alMover(payload.id, payload);
+    else if (evento === 'gesto') alGesto(payload.id, payload.g);
+    else if (evento === 'tiro') alTiro(payload.id, payload);
+    else if (evento === 'golpe') alGolpe(payload.id, payload);
+  }
+
+  // Cambió la lista de conectados: a los nuevos les mando mi estado.
+  function actualizarPresentes(lista) {
+    let nuevos = false;
+    const ids = new Set();
+    for (const p of lista) {
+      if (!p || !p.id || p.id === yo.id) continue;
+      ids.add(p.id);
+      if (!presentes.has(p.id)) nuevos = true;
+      presentes.set(p.id, { id: p.id, t: Number(p.t) || 0 });
+    }
+    for (const id of [...presentes.keys()]) if (!ids.has(id)) { presentes.delete(id); estados.delete(id); }
+    if (nuevos) enviarEstado(true);
+    recalcular();
   }
 
   /* ── Transporte: Supabase Realtime ── */
@@ -70,16 +91,18 @@ export function crearSala({ alCambiar = () => {}, alMover = () => {}, alGesto = 
     });
     const canal = cliente.channel(CANAL, { config: { presence: { key: yo.id }, broadcast: { self: false } } });
     canal.on('presence', { event: 'sync' }, () => {
-      const estado = canal.presenceState();
-      aplicar(Object.values(estado).map((metas) => metas[metas.length - 1]));
+      actualizarPresentes(Object.values(canal.presenceState()).map((metas) => metas[metas.length - 1]));
     });
-    canal.on('broadcast', { event: 'pos' }, ({ payload }) => payload && alMover(payload.id, payload));
-    canal.on('broadcast', { event: 'gesto' }, ({ payload }) => payload && alGesto(payload.id, payload.g));
+    for (const evento of ['estado', 'pos', 'gesto', 'tiro', 'golpe']) {
+      canal.on('broadcast', { event: evento }, ({ payload }) => recibido(evento, payload));
+    }
+    let conectado = false;
     let alguna = false; // ¿llegó a conectar alguna vez?
     canal.subscribe((status) => {
       if (status === 'SUBSCRIBED') {
         conectado = alguna = true;
-        canal.track({ ...yo });
+        canal.track({ id: yo.id, t: yo.t }); // la única vez que se toca la presencia (y al reconectar)
+        enviarEstado(true);
       } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
         conectado = false; // si ya había conectado, realtime-js reintenta solo
       }
@@ -93,7 +116,6 @@ export function crearSala({ alCambiar = () => {}, alMover = () => {}, alGesto = 
       cliente.realtime.disconnect();
     }, 20000);
     return {
-      estado: (e) => { if (conectado) canal.track(e); },
       enviar: (event, payload) => { if (conectado) canal.send({ type: 'broadcast', event, payload }); },
     };
   }
@@ -102,35 +124,29 @@ export function crearSala({ alCambiar = () => {}, alMover = () => {}, alGesto = 
   function local() {
     if (!('BroadcastChannel' in window)) return null;
     const bc = new BroadcastChannel(CANAL);
-    const vistos = new Map(); // id → { estado, visto }
-    const refrescar = () => aplicar([...vistos.values()].map((v) => v.estado));
+    const vistos = new Map(); // id → { t, visto }: presencia simulada con latidos
+    const refrescar = () => actualizarPresentes([...vistos.entries()].map(([id, v]) => ({ id, t: v.t })));
+    const hola = () => bc.postMessage({ tipo: 'hola', id: yo.id, t: yo.t });
     bc.onmessage = ({ data }) => {
       if (!data || data.id === yo.id) return;
-      if (data.tipo === 'estado') {
+      if (data.tipo === 'hola') {
         const nuevo = !vistos.has(data.id);
-        vistos.set(data.id, { estado: data.estado, visto: Date.now() });
-        if (nuevo) bc.postMessage({ tipo: 'estado', id: yo.id, estado: { ...yo } }); // que el nuevo me conozca
-        refrescar();
+        vistos.set(data.id, { t: data.t, visto: Date.now() });
+        if (nuevo) { hola(); refrescar(); }
       } else if (data.tipo === 'chau') {
         vistos.delete(data.id);
         refrescar();
-      } else if (data.tipo === 'pos') alMover(data.id, data.payload);
-      else if (data.tipo === 'gesto') alGesto(data.id, data.payload.g);
+      } else recibido(data.tipo, data.payload);
     };
     setInterval(() => {
-      bc.postMessage({ tipo: 'estado', id: yo.id, estado: { ...yo } });
+      hola();
       const antes = vistos.size;
       for (const [id, v] of vistos) if (Date.now() - v.visto > VIVO_MS) vistos.delete(id);
       if (vistos.size !== antes) refrescar();
     }, 2000);
     addEventListener('pagehide', () => bc.postMessage({ tipo: 'chau', id: yo.id }));
-    conectado = true;
-    bc.postMessage({ tipo: 'estado', id: yo.id, estado: { ...yo } });
-    setTimeout(() => { if (asignar()) publicar(true); alCambiar(otros); }, 400); // solo en la sala
-    return {
-      estado: (e) => bc.postMessage({ tipo: 'estado', id: yo.id, estado: e }),
-      enviar: (event, payload) => bc.postMessage({ tipo: event, id: yo.id, payload }),
-    };
+    hola();
+    return { enviar: (event, payload) => bc.postMessage({ tipo: event, id: yo.id, payload }) };
   }
 
   if (modo !== 'no') {
@@ -141,18 +157,22 @@ export function crearSala({ alCambiar = () => {}, alMover = () => {}, alGesto = 
       transporte = null;
     }
   }
+  if (transporte) setInterval(() => { if (presentes.size) enviarEstado(true); }, LATIDO_MS);
 
   return {
     yo,
     otros,
     get activa() { return !!transporte; },
-    /** Cambios de estado (en, mira, personaje, parada); se publican si cambió algo. */
+    /** Cambios de estado (en, mira, personaje, parada, desde): van por broadcast si cambió algo. */
     actualizar(cambios) {
       let cambio = false;
       for (const [k, v] of Object.entries(cambios)) if (yo[k] !== v) { yo[k] = v; cambio = true; }
-      if (cambio) publicar(cambios.en !== undefined || cambios.personaje !== undefined);
+      if (cambio) enviarEstado(cambios.en !== undefined || cambios.personaje !== undefined);
     },
     mover(pos) { transporte?.enviar('pos', { id: yo.id, ...pos }); },
     gesto(g) { transporte?.enviar('gesto', { id: yo.id, g }); },
+    tiro(t) { transporte?.enviar('tiro', { id: yo.id, ...t }); },
+    /** Le pegué a otro jugador: { a: id del que recibió, tipo }. */
+    golpe(g) { transporte?.enviar('golpe', { id: yo.id, ...g }); },
   };
 }
