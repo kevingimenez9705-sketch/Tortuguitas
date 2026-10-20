@@ -6,7 +6,7 @@
 //   oficina:consulta  → empezó una consulta (el Coordinador se pone a pensar)
 //   oficina:respuesta → { agentes, anoto, cambios, ok, motivo } (quiénes ayudaron)
 //   oficina:cambio    → { fase: 'hecho' | 'error' | 'cancelado', hoja, tipo } (cambio en planilla con PIN)
-// y escucha oficina:preguntar → { texto } (botones "Preguntale" de la 3D y del tablero).
+// y escucha oficina:preguntar → { texto } (botones "Preguntale" de la 3D y de las fuentes).
 (() => {
   const CHAT_URL = 'https://kevin9705.app.n8n.cloud/webhook/oficina-chat';
   // Ejecuta un cambio propuesto por el Coordinador, solo con el PIN personal de alguien del equipo.
@@ -460,7 +460,7 @@
       if (!pendientes.size) {
         const hechos = items.filter(x => x.classList.contains('hecho')).length;
         cerrar(hechos === cambios.length
-          ? (varios ? '✅ Listo, hice los cambios.' : '✅ Listo, cambio hecho.') + (cambios.some(c => c.tipo === 'borrar') ? ' Lo borrado quedó en la pestaña Papelera.' : '') + ' El tablero se actualiza en un ratito.'
+          ? (varios ? '✅ Listo, hice los cambios.' : '✅ Listo, cambio hecho.') + (cambios.some(c => c.tipo === 'borrar') ? ' Lo borrado quedó en la pestaña Papelera.' : '') + ' La copia se actualiza en un ratito.'
           : hechos ? `Hice ${hechos} de ${cambios.length}. Mirá el detalle arriba.` : 'No se hizo ningún cambio. Mirá el detalle arriba.');
       } else {
         aviso.textContent = problema || 'Quedan cambios sin confirmar.';
@@ -504,7 +504,7 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', decidir);
   else decidir();
 
-  // "Preguntale" desde la oficina 3D o el tablero: lo manda al chat.
+  // "Preguntale" desde la oficina 3D o las fuentes: lo manda al chat.
   document.addEventListener('oficina:preguntar', e => {
     const texto = e.detail && e.detail.texto;
     if (!texto || !lista) return;
