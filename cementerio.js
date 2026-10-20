@@ -29,6 +29,8 @@ const ATURDE = 3; // segundos que queda aturdido
 const QUEJAS = ['¡Ay! 😵', '¡Eso es de Sabores! 🍕', 'Me mareé… 💫', '¡No vale!', 'Uy, mi paraguas…'];
 
 const suave = (k) => k * k * (3 - 2 * k);
+// Velocidad de los fantasmas según los segundos corridos (el jugador va a 4.4).
+export const velocidad = (t) => 2 + 2.8 * Math.min(1, t / DURACION);
 const azar = (a, b) => a + Math.random() * (b - a);
 
 /**
@@ -176,29 +178,40 @@ export function armarCementerio(h) {
     obstaculos.push({ x, z, r: 0.35 * s });
   }
 
-  /* ── Tumbas: las de los fantasmas tienen su nombre ── */
-  const lapidaTex = (nombre) => {
+  /* ── Tumbas: las de los fantasmas son más grandes y tienen su nombre ── */
+  // Placa oscura con el nombre en letras claras que brillan con el color de
+  // cada fantasma; sin luz propia (MeshBasicMaterial), así se lee de noche.
+  const lapidaTex = (nombre, color) => {
     const c = document.createElement('canvas');
-    c.width = 128;
-    c.height = 160;
+    c.width = 256;
+    c.height = 320;
     const g = c.getContext('2d');
-    g.fillStyle = '#767b88';
-    g.fillRect(0, 0, 128, 160);
-    g.fillStyle = '#5f6370';
-    for (let i = 0; i < 40; i++) g.fillRect(Math.random() * 128, Math.random() * 160, 3, 3);
-    g.fillStyle = '#2d3039';
+    g.fillStyle = '#353945';
+    g.fillRect(0, 0, 256, 320);
+    g.fillStyle = '#2b2e38';
+    for (let i = 0; i < 70; i++) g.fillRect(Math.random() * 256, Math.random() * 320, 4, 4);
+    g.strokeStyle = color;
+    g.lineWidth = 6;
+    g.strokeRect(14, 14, 228, 292);
     g.textAlign = 'center';
-    g.font = '700 26px Georgia, serif';
-    g.fillText('R.I.P.', 64, 52);
+    g.textBaseline = 'middle';
+    g.fillStyle = '#aab3c4';
+    g.font = '700 40px Georgia, serif';
+    g.fillText('R.I.P.', 128, 74);
     const partes = nombre.split(' ');
-    g.font = `700 ${partes.some((p) => p.length > 7) ? 19 : 22}px Georgia, serif`;
-    partes.forEach((p, i) => g.fillText(p, 64, 92 + i * 24));
+    const tam = Math.min(58, Math.floor(210 / Math.max(...partes.map((p) => p.length)) * 1.7));
+    g.font = `900 ${tam}px Georgia, serif`;
+    g.shadowColor = color;
+    g.shadowBlur = 18;
+    g.fillStyle = '#f4fbff';
+    partes.forEach((p, i) => g.fillText(p, 128, 176 + (i - (partes.length - 1) / 2) * (tam + 6)));
     const tex = new T.CanvasTexture(c);
     tex.colorSpace = T.SRGBColorSpace;
+    tex.anisotropy = 4;
     return tex;
   };
   const gris = new T.MeshStandardMaterial({ color: '#767b88', roughness: 0.9 });
-  function lapida(x, z, tipo, nombre) {
+  function lapida(x, z, tipo, nombre, color) {
     const g = grupo(x, 0, z);
     g.rotation.y = azar(-0.12, 0.12);
     if (tipo === 'cruz') {
@@ -208,8 +221,8 @@ export function armarCementerio(h) {
       g.add(caja(0.8, 0.8, 0.2, gris, 0, 0.4, 0, 0.03));
       g.add(rot(cil(0.4, 0.4, 0.2, gris, 0, 0.8, 0, 20), Math.PI / 2));
       if (nombre) {
-        const frente = malla(new T.PlaneGeometry(0.66, 0.82), new T.MeshStandardMaterial({ map: lapidaTex(nombre), roughness: 0.9 }), 0, 0.62, 0.105, false);
-        g.add(frente);
+        g.add(malla(new T.PlaneGeometry(0.68, 0.86), new T.MeshBasicMaterial({ map: lapidaTex(nombre, color) }), 0, 0.6, 0.105, false));
+        g.scale.setScalar(1.4);
       }
     }
     g.add(caja(0.9, 0.08, 0.4, '#5d6170', 0, 0.04, 0.05, 0.02));
@@ -220,15 +233,15 @@ export function armarCementerio(h) {
     }
     g.rotation.x = tipo === 'vieja' ? -0.12 : 0;
     escena.add(g);
-    obstaculos.push({ x, z, r: 0.42 });
+    obstaculos.push({ x, z, r: nombre ? 0.58 : 0.42 });
     return g;
   }
   const tumbas = [];
   const lugaresNombre = [[-7.8, -6], [-2.6, -6], [5.2, -6], [-10.4, 0.5], [-5.2, 0.5], [7.8, 0.5], [-7.8, 5.5], [2.6, 5.5], [10.4, 5.5]];
   FANTASMAS.forEach((f, i) => {
     const [x, z] = lugaresNombre[i];
-    lapida(x, z, 'nombre', f.nombre);
-    tumbas.push({ x, z: z + 0.95 });
+    lapida(x, z, 'nombre', f.nombre, f.color);
+    tumbas.push({ x, z: z + 1.25 });
   });
   for (const z of [-6, -3, 0.5, 3, 5.5, 8.5]) {
     for (let x = -10.4; x <= 10.5; x += 2.6) {
@@ -357,7 +370,6 @@ export function armarCementerio(h) {
       if (n.position.x < -16) n.position.x = 16;
     }
     const corre = tiempo !== null;
-    const ritmo = corre ? Math.min(1, tiempo / DURACION) : 0;
     let atrapo = null;
     for (const f of fantasmas) {
       if (f.estado === 'dormido') {
@@ -378,14 +390,15 @@ export function armarCementerio(h) {
         f.Q.raiz.rotation.y = f.yaw;
         if (f.aturdido <= 0) { f.estado = 'caza'; aturdir(f, false); }
       } else if (corre) {
-        // Te persiguen cada vez más rápido (siempre un poco menos que vos) y,
-        // de cerca, cada tanto pegan un envión.
+        // Te persiguen cada vez más rápido: arrancan a menos de la mitad de tu
+        // velocidad y al final te ganan (ahí hay que aturdirlos). De cerca,
+        // cada tanto pegan un envión.
         const dx = jugador.x - f.x, dz = jugador.z - f.z;
         const d = Math.hypot(dx, dz) || 1;
         f.recarga = Math.max(0, f.recarga - dt);
         if (d < 3.2 && !f.recarga) { f.dash = 0.45; f.recarga = azar(3, 4.5); }
         f.dash = Math.max(0, f.dash - dt);
-        const vel = (1.9 + 1.9 * ritmo) * (f.dash ? 1.75 : 1);
+        const vel = velocidad(tiempo) * (f.dash ? 1.5 : 1);
         let ax = dx / d, az = dz / d;
         for (const o of fantasmas) { // que no se amontonen
           if (o === f || o.estado === 'dormido') continue;

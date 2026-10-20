@@ -39,7 +39,7 @@
 // (nunca volumen de altas), igual que el resumen del año.
 // Sin WebGL, o si three.js no carga, las paradas se muestran como tarjetas.
 import { crearSala } from './sala.js?v=20261020b';
-import { armarCementerio, DURACION as DURACION_CEM, BORDE as BORDE_CEM } from './cementerio.js?v=20261021';
+import { armarCementerio, DURACION as DURACION_CEM, BORDE as BORDE_CEM } from './cementerio.js?v=20261021b';
 
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
 const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
@@ -662,13 +662,14 @@ function pintarTerminal(dir = 0) {
   holo.classList.toggle('pj--alerta', !!sec.alerta); // la misión pinta el panel de rojo
   holoCuerpo.innerHTML = contenidoParada(sec.id);
   // Pantalla ancha: el título arriba, el número grande a la izquierda y los
-  // bloques a la derecha (en celulares queda todo en una columna).
+  // bloques a la derecha; los .pj-izq van abajo del número (en celulares
+  // queda todo en una columna y los .pj-izq al final).
   const izq = document.createElement('div');
   const der = document.createElement('div');
   izq.className = 'pj-holo-izq';
   der.className = 'pj-holo-der';
   for (const el of [...holoCuerpo.children]) {
-    if (!el.matches('h2, .pj-sub')) (el.matches('.pj-heroe, .pj-heroe-sub') ? izq : der).appendChild(el);
+    if (!el.matches('h2, .pj-sub')) (el.matches('.pj-heroe, .pj-heroe-sub, .pj-izq') ? izq : der).appendChild(el);
   }
   if (izq.children.length) holoCuerpo.append(izq);
   holoCuerpo.append(der);
@@ -857,40 +858,61 @@ function contenidoParada(id) {
     <a class="pj-boton" href="${esc(actual.dashboard)}">Bajar a la guarida →</a>`;
 }
 
-// Nueva misión: objetivos del último mes contra el anterior (superar sus
-// altas y su presentismo día 1) y cubrir las vacantes del último mes con
-// cumplimiento cargado. Siempre del mes, sin importar el período elegido.
+// Nueva misión: los objetivos del último mes contra el anterior (reducir
+// las altas, no bajar el presentismo día 1 y cubrir las vacantes del último
+// mes con cumplimiento cargado), cuáles ya superamos y los nuevos objetivos
+// para el mes que viene. Siempre del mes, sin importar el período elegido.
+const mesSiguiente = (m) => { const [y, mm] = m.split('-').map(Number); return `${mm === 12 ? y + 1 : y}-${String((mm % 12) + 1).padStart(2, '0')}`; };
 function mision() {
   const d = calcular(actual, '2');
   const [ant, act] = d.porMes.length > 1 ? d.porMes.slice(-2) : [null, d.porMes[0]];
+  if (!act) return '<p class="pj-vacio">Sin misión: todavía no hay datos de este mes.</p>';
+  const enCurso = act.mes === MES_HOY;
   const objs = [];
-  if (act && ant) {
-    const ok = act.altas > ant.altas;
-    objs.push({ titulo: `Superar las altas de ${mesLargo(ant.mes)}`, ok, t: pct(act.altas, ant.altas + 1),
-      texto: ok ? `${fmtInt(act.altas)} altas · ${fmtInt(ant.altas)} en ${mesCorto(ant.mes)}` : `${fmtInt(act.altas)} de ${fmtInt(ant.altas)} · faltan ${fmtInt(ant.altas - act.altas + 1)}` });
+  if (ant) {
+    const ok = act.altas < ant.altas;
+    objs.push({ titulo: `Reducir las altas: menos que en ${mesLargo(ant.mes)}`, ok, t: pct(act.altas, ant.altas),
+      texto: ok ? `${fmtInt(act.altas)} altas · ${fmtInt(ant.altas - act.altas)} menos que en ${mesCorto(ant.mes)}${enCurso ? ' (por ahora)' : ''}`
+        : `${fmtInt(act.altas)} altas · se pasó del tope de ${fmtInt(ant.altas - 1)} (${fmtInt(ant.altas)} en ${mesCorto(ant.mes)})` });
   }
+  let cub = null;
   if (d.semanas.length) {
     const env = d.semanas.reduce((a, x) => a + x.env, 0), tot = d.semanas.reduce((a, x) => a + x.tot, 0);
     const peor = d.semanas.reduce((a, x) => (x.tot - x.env > a.tot - a.env ? x : a));
     const ok = env >= tot;
-    objs.push({ titulo: `Cubrir las vacantes de ${mesLargo(d.ultimoCum)}`, ok, t: pct(env, tot),
+    cub = pct(env, tot);
+    objs.push({ titulo: `Cubrir las vacantes de ${mesLargo(d.ultimoCum)}`, ok, t: cub,
       texto: ok ? `${fmtInt(env)}/${fmtInt(tot)} enviados` : `${fmtInt(env)}/${fmtInt(tot)} enviados · faltan ${fmtInt(tot - env)} (la más atrasada: ${esc(peor.semana)})` });
   }
-  if (act && ant && act.noPres != null && ant.noPres != null) {
-    const pa = 1 - act.noPres, pb = 1 - ant.noPres;
+  const pa = act.noPres != null ? 1 - act.noPres : null;
+  const pb = ant && ant.noPres != null ? 1 - ant.noPres : null;
+  if (pa != null && pb != null) {
     const ok = pa >= pb;
     objs.push({ titulo: `Presentismo día 1 de al menos ${fmtPct(pb)}`, ok, t: pb ? Math.min(1, pa / pb) : 1,
       texto: `${fmtPct(pa)} este mes · ${fmtPct(pb)} en ${mesCorto(ant.mes)}` });
   }
-  if (!objs.length) return '<p class="pj-vacio">Sin misión: todavía no hay datos de este mes.</p>';
-  const hechas = objs.filter((o) => o.ok).length;
-  const curso = act.mes === MES_HOY ? ' (en curso)' : '';
-  return `<div class="pj-heroe pj-mision-heroe">${hechas}/${objs.length}</div>
-    <p class="pj-heroe-sub">objetivos cumplidos · ${mesLargo(act.mes)}${curso}</p>
-    <div class="pj-bloque"><h3>Objetivos de la misión</h3><ul class="pj-mision">${objs.map((o) => `
+  // Para el mes que viene: con el último mes completo como base.
+  const base = enCurso && ant ? ant : act;
+  const prox = mesSiguiente(act.mes);
+  const nuevos = [
+    { titulo: `Tope de ${fmtInt(Math.max(1, Math.round(base.altas * 0.9)))} altas`, texto: `10% menos que en ${mesLargo(base.mes)} (${fmtInt(base.altas)})` },
+  ];
+  if (cub != null) nuevos.push({ titulo: cub >= 1 ? 'Mantener el 100% de vacantes cubiertas' : 'Cubrir el 100% de las vacantes', texto: `en ${mesLargo(d.ultimoCum)}: ${fmtPct(cub)}` });
+  const pMeta = Math.max(pa ?? 0, pb ?? 0);
+  if (pa != null || pb != null) nuevos.push({ titulo: `Presentismo día 1 de al menos ${fmtPct(Math.min(1, pMeta + (pMeta < 1 ? 0.02 : 0)))}`, texto: pMeta >= 1 ? 'mantener el 100%' : `2 puntos más que el mejor de los últimos dos meses (${fmtPct(pMeta)})` });
+
+  const fila = (o) => `
       <li class="${o.ok ? 'pj--ok' : ''}"><span class="pj-mision-marca" aria-hidden="true">${o.ok ? '✔' : '!'}</span>
         <b>${o.titulo}</b><span>${o.texto}</span>
-        <span class="pj-medidor" aria-hidden="true"><i style="width:${(o.t * 100).toFixed(1)}%"></i></span></li>`).join('')}
+        <span class="pj-medidor" aria-hidden="true"><i style="width:${(o.t * 100).toFixed(1)}%"></i></span></li>`;
+  const hechas = objs.filter((o) => o.ok);
+  const pendientes = objs.filter((o) => !o.ok);
+  return `<div class="pj-heroe pj-mision-heroe">${hechas.length}/${objs.length}</div>
+    <p class="pj-heroe-sub">objetivos superados · ${mesLargo(act.mes)}${enCurso ? ' (en curso)' : ''}</p>
+    <div class="pj-bloque"><h3>✔ Superados en ${mesLargo(act.mes)}</h3>${hechas.length ? `<ul class="pj-mision">${hechas.map(fila).join('')}</ul>` : '<p class="pj-nota">Todavía ninguno: ¡a la carga!</p>'}</div>
+    ${pendientes.length ? `<div class="pj-bloque"><h3>Pendientes</h3><ul class="pj-mision">${pendientes.map(fila).join('')}</ul></div>` : ''}
+    <div class="pj-bloque pj-izq"><h3>🎯 Nuevos objetivos · ${mesLargo(prox)}</h3><ul class="pj-mision pj-mision--prox">${nuevos.map((o) => `
+      <li><span class="pj-mision-marca" aria-hidden="true">➜</span><b>${o.titulo}</b><span>${o.texto}</span></li>`).join('')}
     </ul></div>`;
 }
 
@@ -1597,7 +1619,7 @@ const Mundo = (() => {
   // Cementerio (cementerio.js): otra escena con el mismo personaje. estado:
   // cuenta (3, 2, 1), corre, atrapado o escapo; tiempo: segundos corridos.
   let cem = null;
-  const juego = { on: false, estado: 'cuenta', t0: 0, tiempo: 0, cuenta: 0, hundir: 0 };
+  const juego = { on: false, estado: 'cuenta', t0: 0, tiempo: 0, cuenta: 0, hundir: 0, nivel: 0 };
   let alCementerio = null; // avisos a la pantalla (cuenta, tiempo, fin, salir, otra, fuera)
 
   function armar() {
@@ -3084,7 +3106,7 @@ const Mundo = (() => {
     for (const pr of [...tirosCem]) quitarTiroCem(pr);
     juego.estado = 'cuenta';
     juego.t0 = performance.now();
-    juego.tiempo = juego.hundir = 0;
+    juego.tiempo = juego.hundir = juego.nivel = 0;
     juego.cuenta = -1;
   }
   // Sube por la fosa: aparece en la azotea unos pasos hacia el centro.
@@ -3140,6 +3162,8 @@ const Mundo = (() => {
     } else if (corre) {
       juego.tiempo += dt; // tiempo del juego (no del reloj): en una pantalla lenta los fantasmas también van lentos
       alCementerio?.({ tipo: 'tiempo', resta: Math.max(0, DURACION_CEM - juego.tiempo) });
+      const nivel = Math.floor(juego.tiempo / 15); // cada 15 s se avisa que aceleran
+      if (nivel > juego.nivel && juego.tiempo < DURACION_CEM) { juego.nivel = nivel; alCementerio?.({ tipo: 'acelera', nivel }); }
       if (juego.tiempo >= DURACION_CEM) terminarCementerio(null, t);
     }
     animarTirosCem(dt, t);
@@ -3283,6 +3307,7 @@ const cemTiempo = $('#pjCemTiempo');
 const cemRecordEl = $('#pjCemRecord');
 let cemRecord = Number(leer('pj-cementerio-record')) || 0;
 const fmtSeg = (s) => s.toFixed(1).replace('.', ',') + ' s';
+let cemCartelT = 0;
 function pintarRecord() {
   cemRecordEl.textContent = cemRecord >= DURACION_CEM ? 'Récord: ¡escapaste! 🏃' : cemRecord ? `Récord: ${fmtSeg(cemRecord)}` : 'Sin récord todavía';
 }
@@ -3316,8 +3341,13 @@ function cartelCem(html, fin = false) {
 Mundo.alCementerio = (ev) => {
   if (ev.tipo === 'cuenta') {
     if (ev.n) cartelCem(`<b class="pj-cem-num">${ev.n}</b><p>Aguantá ${DURACION_CEM} segundos sin que te alcancen los fantasmas, o te quedás con ellos. Tirales una pizza (espacio) y quedan aturdidos.</p>`);
-    else { cartelCem('<b class="pj-cem-num">¡Corré!</b>'); setTimeout(() => { if (!cemCartel.classList.contains('pj--fin')) cemCartel.hidden = true; }, 900); }
+    else { cartelCem('<b class="pj-cem-num">¡Corré!</b>'); clearTimeout(cemCartelT); cemCartelT = setTimeout(() => { if (!cemCartel.classList.contains('pj--fin')) cemCartel.hidden = true; }, 900); }
     Sonido.cuenta(!ev.n);
+  } else if (ev.tipo === 'acelera') {
+    cartelCem(`<b class="pj-cem-num pj-cem-acelera">⚡ ¡Más rápido!</b><p>Los fantasmas aceleran (nivel ${ev.nivel + 1})</p>`);
+    clearTimeout(cemCartelT);
+    cemCartelT = setTimeout(() => { if (!cemCartel.classList.contains('pj--fin')) cemCartel.hidden = true; }, 1400);
+    Sonido.cuenta(true);
   } else if (ev.tipo === 'tiempo') {
     cemTiempo.textContent = fmtSeg(ev.resta);
     cemTiempo.classList.toggle('pj--poco', ev.resta < 10);
