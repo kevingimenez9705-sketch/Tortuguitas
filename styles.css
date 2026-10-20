@@ -1207,3 +1207,5 @@ html.reveal-pending .container > *{opacity:0;}
 .fu-fila-info{flex:1 1 320px;min-width:0;}
 .fu-fila-t{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;}
 .fu-fila-d{margin-top:3px;font-size:12px;line-height:1.4;color:var(--text-muted);overflow-wrap:anywhere;}
+.fu-descartadas{margin:12px 0 0;font-size:12px;color:var(--text-muted);}
+.fu-descartadas:empty{display:none;}

@@ -89,25 +89,30 @@
     const porId = {};
     trabajos.forEach((t) => { porId[t.id] = t; });
     const lee = fuentes.filter((f) => f.estado === 'lee');
-    const resto = fuentes.filter((f) => f.estado !== 'lee');
+    const falta = fuentes.filter((f) => f.estado === 'falta');
+    // no_conviene: el equipo decidió que la Oficina no la necesita; solo se nombra al pie.
+    const descartadas = fuentes.filter((f) => f.estado === 'no_conviene');
     const atrasadas = lee.filter((f) => semaforo(f) === ' mal').length;
 
     $('fuResumen').innerHTML = [
       `<span class="tab-chip">✅ Lee <b>${fmt(lee.length)}</b></span>`,
-      `<span class="tab-chip${resto.length ? ' is-alerta' : ''}">🔌 Falta conectar <b>${fmt(resto.filter((f) => f.estado === 'falta').length)}</b></span>`,
+      `<span class="tab-chip${falta.length ? ' is-alerta' : ''}">🔌 Falta conectar <b>${fmt(falta.length)}</b></span>`,
       atrasadas ? `<span class="tab-chip is-alerta">⏱️ Atrasadas <b>${fmt(atrasadas)}</b></span>` : '',
       `<span class="tab-chip">📁 Carpetas y trabajos <b>${fmt(trabajos.length)}</b></span>`,
     ].join('');
     seccion.querySelector('[data-n="lee"]').textContent = fmt(lee.length);
-    seccion.querySelector('[data-n="falta"]').textContent = fmt(resto.length);
+    seccion.querySelector('[data-n="falta"]').textContent = fmt(falta.length);
     seccion.querySelector('[data-n="carpetas"]').textContent = fmt(trabajos.length);
 
     $('fuLee').innerHTML = lee.length
       ? lee.map((f) => tarjetaFuente(f, porId)).join('')
       : '<p class="tab-vacio">Todavía no hay fuentes cargadas.</p>';
-    $('fuFalta').innerHTML = resto.length
-      ? resto.map((f) => tarjetaFuente(f, porId)).join('')
-      : '<p class="tab-vacio">La Oficina ya lee todo lo que está cargado. 🎉</p>';
+    $('fuFalta').innerHTML = falta.length
+      ? falta.map((f) => tarjetaFuente(f, porId)).join('')
+      : '<p class="tab-vacio">La Oficina ya lee todo lo que necesita. 🎉</p>';
+    $('fuDescartadas').textContent = descartadas.length
+      ? `No hace falta que la Oficina lea: ${descartadas.map((f) => f.nombre).join(' · ')}.`
+      : '';
 
     const areas = [...new Set(trabajos.map((t) => t.area).filter(Boolean))];
     $('fuArea').innerHTML = '<option value="">Todas las áreas</option>' +
