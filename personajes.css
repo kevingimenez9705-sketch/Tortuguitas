@@ -756,3 +756,207 @@ body.pj.pj--jugando{overflow:hidden;}
   .pj-mundo.pj--con-panel .pj-gestos{display:none;}
   .pj-sala-j{font-size:12px;}
 }
+
+/* ───────────── 5. Terminal holográfica ───────────── */
+/* La pantalla de la consola: la cámara queda detrás del personaje y este
+   panel ocupa el lugar de la pantalla holográfica 3D (personajes.js la
+   ajusta a su tamaño); abajo queda libre para el personaje y la consola.
+   Vidrio oscuro, bordes cian con brillo, esquinas cortadas, líneas de
+   barrido y una franja de luz que baja. Los datos son los mismos paneles 2D
+   de siempre, retocados con el tono del holograma. Se enciende desde abajo
+   cuando la cámara ya llegó. */
+.pj-holo{
+  --holo:#5ef2ff;
+  --holo-2:#9ff7ff;
+  --holo-osc:rgba(94,242,255,.16);
+  position:absolute;
+  top:92px;left:50%;
+  bottom:clamp(140px, 27vh, 280px);
+  width:min(880px, calc(100% - 48px));
+  translate:-50% 0;
+  display:flex;flex-direction:column;
+  padding:16px 18px 12px;
+  color:#e6fbff;
+  background:
+    linear-gradient(rgba(94,242,255,.06) 1px, transparent 1px) 0 0 / 100% 22px,
+    linear-gradient(90deg, rgba(94,242,255,.05) 1px, transparent 1px) 0 0 / 22px 100%,
+    linear-gradient(160deg, rgba(10,32,58,.86), rgba(4,12,28,.92));
+  border:1px solid rgba(94,242,255,.55);
+  clip-path:polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  box-shadow:inset 0 0 30px rgba(94,242,255,.12);
+  filter:drop-shadow(0 0 18px rgba(94,242,255,.35));
+  transform-origin:50% 100%;
+  animation:pj-holo-entra .55s cubic-bezier(.2,.8,.2,1) .4s backwards;
+  overflow:hidden;
+}
+.pj-holo::before{
+  /* líneas de barrido */
+  content:"";
+  position:absolute;inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+}
+.pj-holo::after{
+  /* franja de luz que recorre el panel */
+  content:"";
+  position:absolute;left:0;right:0;top:-30%;
+  height:30%;
+  pointer-events:none;
+  background:linear-gradient(180deg, transparent, rgba(94,242,255,.08), transparent);
+  animation:pj-holo-barrido 4.5s linear infinite;
+}
+@keyframes pj-holo-entra{
+  0%{opacity:0;transform:scaleY(.04) scaleX(.6);filter:drop-shadow(0 0 30px var(--holo)) brightness(2);}
+  40%{opacity:1;transform:scaleY(.04) scaleX(1);}
+  70%{transform:scaleY(1.02);}
+  80%{opacity:.6;}
+  100%{opacity:1;transform:none;}
+}
+@keyframes pj-holo-barrido{to{top:110%;}}
+.pj-holo-top{position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.pj-holo-marca{
+  display:block;
+  font-family:"Orbitron",var(--pj-display);
+  font-weight:700;
+  font-size:12px;
+  letter-spacing:.24em;
+  text-transform:uppercase;
+  color:var(--holo);
+  text-shadow:0 0 10px var(--holo);
+}
+.pj-holo-quien{display:block;margin-top:3px;font-size:12px;color:#9fc7d6;}
+.pj-holo-salir{
+  flex:none;
+  padding:6px 12px;
+  border:1px solid rgba(94,242,255,.6);
+  border-radius:4px;
+  background:rgba(94,242,255,.08);
+  font-family:"Orbitron",sans-serif;
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--holo-2) !important;
+  cursor:pointer;
+}
+.pj-holo-salir:hover{background:rgba(94,242,255,.2);}
+.pj-holo-tabs{
+  position:relative;
+  display:flex;gap:6px;
+  margin:0 -4px 10px;
+  padding:2px 4px 6px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.pj-holo-tabs::-webkit-scrollbar{display:none;}
+.pj-holo-tab{
+  flex:none;
+  display:flex;align-items:center;gap:6px;
+  padding:7px 11px;
+  border:1px solid rgba(94,242,255,.25);
+  border-radius:3px;
+  background:rgba(94,242,255,.04);
+  font-size:12px;
+  color:#9fc7d6 !important;
+  cursor:pointer;
+  clip-path:polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+}
+.pj-holo-tab b{font-weight:600;}
+.pj-holo-tab:hover{border-color:rgba(94,242,255,.6);color:#fff !important;}
+.pj-holo-tab[aria-selected="true"]{border-color:var(--holo);background:rgba(94,242,255,.18);color:#fff !important;box-shadow:inset 0 0 12px rgba(94,242,255,.35);}
+.pj-holo-tab:focus-visible,.pj-holo-nav:focus-visible,.pj-holo-salir:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.pj-holo-cuerpo{position:relative;flex:1;overflow-y:auto;padding-right:4px;touch-action:pan-y;}
+.pj-holo-cuerpo > h2{display:none;} /* ya lo dice la pestaña */
+.pj-holo-cuerpo.pj--der{animation:pj-holo-der .32s cubic-bezier(.2,.8,.2,1);}
+.pj-holo-cuerpo.pj--izq{animation:pj-holo-izq .32s cubic-bezier(.2,.8,.2,1);}
+@keyframes pj-holo-der{from{opacity:0;transform:translateX(30px);}}
+@keyframes pj-holo-izq{from{opacity:0;transform:translateX(-30px);}}
+/* Pantalla ancha: número grande a la izquierda, bloques a la derecha. */
+@media (min-width:761px){
+  .pj-holo-cuerpo{display:grid;grid-template-columns:minmax(0, .8fr) minmax(0, 1.2fr);column-gap:30px;align-content:start;}
+  .pj-holo-cuerpo > h2,.pj-holo-cuerpo > .pj-sub{grid-column:1 / -1;}
+  .pj-holo-izq{position:sticky;top:0;}
+  .pj-holo .pj-heroe{font-size:64px;margin-top:10px;}
+  .pj-holo .pj-cols{max-height:190px;}
+  .pj-holo-der > .pj-bloque:first-child{margin-top:0;padding-top:0;border-top:0;}
+  .pj-holo-cuerpo.pj--sin-heroe .pj-holo-der{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;column-gap:30px;align-items:start;}
+  .pj-holo-cuerpo.pj--sin-heroe .pj-holo-der > .pj-bloque{margin-top:0;padding-top:0;border-top:0;}
+  .pj-holo-cuerpo.pj--sin-heroe .pj-holo-der > .pj-nota{grid-column:1 / -1;}
+}
+/* Los paneles de datos, con el tono del holograma. */
+.pj-holo .pj-tarjeta h2{font-family:"Orbitron",sans-serif;font-size:17px;letter-spacing:.04em;text-transform:uppercase;color:#fff;}
+.pj-holo .pj-sub{color:#8fb7c6;}
+.pj-holo .pj-heroe{font-family:"Orbitron",sans-serif;font-weight:900;color:var(--holo-2);text-shadow:0 0 18px rgba(94,242,255,.6);}
+.pj-holo .pj-heroe-sub{color:#b9dbe6;}
+.pj-holo .pj-bloque{border-top-color:rgba(94,242,255,.2);}
+.pj-holo .pj-bloque h3{font-family:"Orbitron",sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--holo);}
+.pj-holo .pj-bar{fill:var(--holo);filter:drop-shadow(0 0 4px rgba(94,242,255,.6));}
+.pj-holo .pj-cols .pj-eje{stroke:rgba(94,242,255,.35);}
+.pj-holo .pj-cols text{fill:#8fb7c6;}
+.pj-holo .pj-cols text.pj-val{fill:#e6fbff;}
+.pj-holo .pj-lista .pj-medidor{background:rgba(94,242,255,.1);}
+.pj-holo .pj-nota{color:#8fb7c6;}
+.pj-holo .pj-lista li.pj--yo{background:rgba(94,242,255,.12);}
+.pj-holo-pie{
+  position:relative;
+  display:flex;align-items:center;gap:10px;
+  margin-top:10px;padding-top:10px;
+  border-top:1px solid rgba(94,242,255,.2);
+}
+.pj-holo-nav{
+  width:34px;height:30px;
+  border:1px solid rgba(94,242,255,.5);
+  border-radius:3px;
+  background:rgba(94,242,255,.08);
+  color:var(--holo) !important;
+  cursor:pointer;
+}
+.pj-holo-nav:hover{background:rgba(94,242,255,.22);}
+.pj-holo-pos{font-family:"Orbitron",sans-serif;font-size:12px;letter-spacing:.1em;color:#e6fbff;min-width:44px;text-align:center;}
+.pj-holo-ayuda{margin-left:auto;font-size:11px;color:#7fa6b5;}
+/* En la terminal se esconden las paradas, los tiros, el joystick y los carteles. */
+.pj-mundo.pj--terminal .pj-paradas,
+.pj-mundo.pj--terminal .pj-gestos,
+.pj-mundo.pj--terminal .pj-joy,
+.pj-mundo.pj--terminal .pj-etiqueta,
+.pj-mundo.pj--terminal .pj-prop,
+.pj-mundo.pj--terminal .pj-npc,
+.pj-mundo.pj--terminal .pj-ayuda{display:none !important;}
+
+/* Cosas de la azotea que se pueden tocar: un emoji chiquito arriba de cada una,
+   que se enciende cuando estás cerca. */
+.pj-prop{
+  position:absolute;left:0;top:0;
+  width:30px;height:30px;
+  padding:0;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(12,16,34,.55);
+  font-size:15px;
+  line-height:1;
+  opacity:.45;
+  pointer-events:auto;
+  cursor:pointer;
+  transition:opacity .25s ease, scale .25s ease, border-color .25s ease;
+  will-change:transform;
+}
+.pj-prop.pj--cerca{opacity:1;scale:1.15;border-color:rgba(255,255,255,.55);animation:pj-prop-late 1.4s ease-in-out infinite;}
+.pj-prop:hover{opacity:1;}
+.pj-prop.pj--oculta{visibility:hidden;}
+@keyframes pj-prop-late{50%{box-shadow:0 0 0 6px rgba(255,255,255,.08);}}
+
+@media (max-width:760px){
+  .pj-holo{
+    top:68px;left:10px;right:10px;
+    bottom:clamp(150px, 30vh, 260px);
+    width:auto;
+    translate:none;
+    padding:12px 12px 10px;
+    clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  }
+  .pj-holo .pj-heroe{font-size:40px;}
+  .pj-holo-ayuda{display:none;}
+  .pj-holo-pie{justify-content:center;}
+}
+@media (prefers-reduced-motion: reduce){
+  .pj-holo,.pj-holo::after,.pj-holo-cuerpo,.pj-prop{animation:none !important;}
+}
