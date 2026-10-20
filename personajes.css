@@ -912,12 +912,20 @@ body.pj.pj--jugando{overflow:hidden;}
   .pj-holo-izq,.pj-holo-der{display:contents;}
   .pj-holo-cuerpo .pj-izq{order:10;}
 }
+/* Mapa de zonas 3D (mapa3d.js). */
+.pj-mapa3d{position:relative;height:280px;border-radius:14px;overflow:hidden;background:radial-gradient(60% 60% at 50% 55%, rgba(94,242,255,.08), transparent 75%);cursor:grab;}
+.pj-mapa3d:active{cursor:grabbing;}
+.pj-mapa3d canvas{display:block;width:100%;height:100%;}
+.pj-mapa3d > .pj-nota{position:absolute;inset:auto 0 45% 0;text-align:center;}
+.pj-holo .pj-heroe.pj-heroe--texto{font-size:34px;line-height:1.1;}
+.pj-bloque--mapa > .pj-nota{margin-top:6px;}
 /* Pantalla ancha: número grande a la izquierda, bloques a la derecha. */
 @media (min-width:761px){
   .pj-holo-cuerpo{display:grid;grid-template-columns:minmax(0, .8fr) minmax(0, 1.2fr);column-gap:30px;align-content:start;}
   .pj-holo-cuerpo > h2,.pj-holo-cuerpo > .pj-sub{grid-column:1 / -1;}
   .pj-holo-izq{position:sticky;top:0;}
   .pj-holo .pj-heroe{font-size:64px;margin-top:10px;}
+  .pj-holo .pj-heroe.pj-heroe--texto{font-size:38px;}
   .pj-holo .pj-cols{max-height:190px;}
   .pj-holo-der > .pj-bloque:first-child{margin-top:0;padding-top:0;border-top:0;}
   .pj-holo-cuerpo.pj--sin-heroe .pj-holo-der{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;column-gap:30px;align-items:start;}
@@ -996,6 +1004,7 @@ body.pj.pj--jugando{overflow:hidden;}
     clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
   }
   .pj-holo .pj-heroe{font-size:40px;}
+  .pj-mapa3d{height:240px;}
   .pj-holo-ayuda{display:none;}
   .pj-holo-pie{justify-content:center;}
 }

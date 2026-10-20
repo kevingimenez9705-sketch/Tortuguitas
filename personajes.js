@@ -40,6 +40,7 @@
 // Sin WebGL, o si three.js no carga, las paradas se muestran como tarjetas.
 import { crearSala } from './sala.js?v=20261020b';
 import { armarCementerio, DURACION as DURACION_CEM, BORDE as BORDE_CEM } from './cementerio.js?v=20261021b';
+import { crearMapa3D } from './mapa3d.js?v=20261021';
 
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
 const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
@@ -82,6 +83,7 @@ const PARADAS = [
 const SECCIONES = [
   { id: 'mision', icono: '🚨', titulo: 'Nueva misión', alerta: true },
   { id: 'altas', icono: '👥', titulo: 'Altas' },
+  { id: 'mapa', icono: '🗺️', titulo: 'Mapa de zonas' },
   { id: 'presentismo', icono: '⏰', titulo: 'Presentismo día 1' },
   { id: 'cumplimiento', icono: '🎯', titulo: 'Cumplimiento' },
   { id: 'sabores', icono: '🍽️', titulo: 'Sabores Express', marca: 'Sabores' },
@@ -209,6 +211,10 @@ function calcular(m, periodo) {
     return f.length ? { semana, env: suma(f, 'enviados'), tot: suma(f, 'total') } : null;
   }).filter(Boolean);
 
+  // Altas por zona del mapa (zonas.js: la misma clasificación del dashboard).
+  const zonas = { norte: 0, oeste: 0, sur: 0, capital: 0, otros: 0 };
+  if (window.ZONAS) for (const r of altas) zonas[window.ZONAS.zonaFor(r.local)]++;
+
   const marca = (k) => {
     const f = altas.filter((r) => r.marca === k);
     return { n: f.length, locales: top(f, 'local'), zonales: top(f, 'zonal') };
@@ -231,7 +237,7 @@ function calcular(m, periodo) {
     altas: altas.length, conDato: conDato.length, presentes, noPres: conDato.length - presentes,
     presentismo: conDato.length ? pct(presentes, conDato.length) : null,
     env, tot, cumplimiento: tot ? pct(env, tot) : null,
-    porMes, cumPorMes, ultimoCum, semanas,
+    porMes, cumPorMes, ultimoCum, semanas, zonas,
     Sabores: marca('Sabores'), Extremas: marca('Extremas'),
     rankPres, rankCum,
   };
@@ -654,6 +660,7 @@ function activarParada(id) {
 const holo = $('#pjHolo');
 const holoCuerpo = $('#pjHoloCuerpo');
 let seccion = 0;
+let mapa3d = null; // mapa de zonas 3D (se crea la primera vez que se ve)
 function pintarTerminal(dir = 0) {
   const sec = SECCIONES[seccion];
   $('#pjHoloQuien').textContent = `${quien()} · ${rango(datos.meses)}`;
@@ -674,6 +681,10 @@ function pintarTerminal(dir = 0) {
   if (izq.children.length) holoCuerpo.append(izq);
   holoCuerpo.append(der);
   holoCuerpo.classList.toggle('pj--sin-heroe', !izq.children.length);
+  // El mapa de zonas se dibuja en 3D (mapa3d.js) solo mientras se ve.
+  const lugarMapa = holoCuerpo.querySelector('[data-mapa]');
+  if (lugarMapa && T) (mapa3d = mapa3d || crearMapa3D(T)).montar(lugarMapa, datos.zonas);
+  else mapa3d?.desmontar();
   holoCuerpo.classList.remove('pj--der', 'pj--izq');
   if (dir && !reduce) { void holoCuerpo.offsetWidth; holoCuerpo.classList.add(dir > 0 ? 'pj--der' : 'pj--izq'); }
   holoCuerpo.scrollTop = 0;
@@ -691,6 +702,7 @@ function abrirTerminal() {
 }
 function cerrarTerminal() {
   if (holo.hidden) return;
+  mapa3d?.desmontar();
   holo.hidden = true;
   mundoEl.classList.remove('pj--terminal');
   Mundo.vistaFrente(false);
@@ -720,7 +732,7 @@ $('#pjHoloSalir').addEventListener('click', salirTerminal);
 holoCuerpo.addEventListener('scroll', ocultarTooltip, { passive: true });
 // En celulares: deslizar a los costados cambia de sección.
 let deslizar = null;
-holoCuerpo.addEventListener('pointerdown', (e) => { deslizar = { x: e.clientX, y: e.clientY }; });
+holoCuerpo.addEventListener('pointerdown', (e) => { deslizar = e.target.closest('[data-mapa]') ? null : { x: e.clientX, y: e.clientY }; }); // en el mapa se arrastra para girarlo
 holoCuerpo.addEventListener('pointerup', (e) => {
   if (!deslizar) return;
   const dx = e.clientX - deslizar.x, dy = e.clientY - deslizar.y;
@@ -810,6 +822,20 @@ function contenidoParada(id) {
   const d = datos;
   const head = cabecera(p);
   if (id === 'mision') return head + mision();
+  if (id === 'mapa') {
+    const z = d.zonas;
+    if (!d.altas || !window.ZONAS) return `${head}<p class="pj-vacio">Sin datos en el período.</p>`;
+    const { NOMBRES, ORDEN } = window.ZONAS;
+    const orden = [...ORDEN].sort((a, b) => z[b] - z[a]);
+    const max = Math.max(...ORDEN.map((k) => z[k]), 1);
+    const filas = [...orden, 'otros'].map((k) => ({ nombre: esc(NOMBRES[k]), valor: `${fmtInt(z[k])} · ${fmtPct(pct(z[k], d.altas))}`, t: z[k] / max, color: k === 'otros' ? '#94a3b8' : '#ff6b5b' }));
+    return `${head}
+      <div class="pj-heroe pj-heroe--texto">${esc(NOMBRES[orden[0]])}</div>
+      <p class="pj-heroe-sub">la zona más caótica 🔥 · ${fmtInt(z[orden[0]])} altas (${fmtPct(pct(z[orden[0]], d.altas))})</p>
+      <div class="pj-bloque pj-izq"><h3>Altas por zona</h3>${lista(filas)}</div>
+      <div class="pj-bloque pj-bloque--mapa"><div class="pj-mapa3d" data-mapa><p class="pj-nota">El mapa 3D no se puede mostrar en este navegador.</p></div>
+        <p class="pj-nota">Más altas = más alta, más roja y más caos. Arrastrá para girarlo.</p></div>`;
+  }
   if (id === 'altas') {
     let mejor = '';
     if (d.porMes.length > 1) {
