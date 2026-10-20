@@ -1158,3 +1158,52 @@ html.reveal-pending .container > *{opacity:0;}
 .tab-btn{margin-top:auto;align-self:flex-start;cursor:pointer;padding:7px 13px;border-radius:999px;border:1px solid var(--navy);background:#fff;color:var(--navy);font:inherit;font-size:12.5px;font-weight:700;}
 .tab-btn:hover{background:var(--navy);color:#fff;}
 .tab-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+
+/* ---------- De dónde lee la Oficina (fuentes.js) ---------- */
+#fuentesSeccion{scroll-margin-top:16px;}
+.fu-card{display:flex;flex-direction:column;gap:12px;}
+.fu-top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;}
+.fu-acciones{display:flex;align-items:center;gap:10px;}
+.fu-acciones .tab-btn{margin-top:0;}
+.fu-acciones .tab-btn:disabled{opacity:.55;cursor:wait;}
+.fu-cuando{font-size:11.5px;color:var(--text-muted);}
+.fu-tabs{display:flex;flex-wrap:wrap;gap:6px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.fu-tab{cursor:pointer;padding:7px 13px;border-radius:999px;border:1px solid var(--border);background:#fff;color:var(--text);font:inherit;font-size:12.5px;font-weight:700;}
+.fu-tab span{margin-left:3px;font-variant-numeric:tabular-nums;color:var(--text-muted);}
+.fu-tab:hover{border-color:var(--navy);}
+.fu-tab[aria-selected="true"],.fu-tab[aria-pressed="true"]{background:var(--navy);border-color:var(--navy);color:#fff;}
+.fu-tab[aria-selected="true"] span{color:var(--blue-light);}
+.fu-tab:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+.fu-card [role="tabpanel"] .desc{margin:0 0 12px;}
+.fu-item{display:flex;flex-direction:column;gap:9px;min-width:0;padding:14px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px var(--border);border-top:3px solid var(--green);}
+.fu-item.is-falta{border-top-color:var(--orange);}
+.fu-item.is-no_conviene{border-top-color:var(--text-muted);}
+.fu-item .tab-head h3{font-size:14px;}
+.fu-item .tab-head>div{min-width:0;}
+.fu-item .tab-btn{margin-top:auto;}
+.fu-donde{margin:0;font-size:11.5px;color:var(--text-muted);line-height:1.35;}
+.fu-como{margin:0;font-size:12.5px;line-height:1.45;color:var(--text);}
+.fu-nota{margin:0;padding:7px 10px;border-radius:9px;background:#fff6e8;color:#7a4d0b;font-size:12px;line-height:1.4;}
+.fu-fresco{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--text-muted);}
+.fu-dot{width:8px;height:8px;flex-shrink:0;border-radius:50%;background:var(--green);}
+.fu-dot.ojo{background:var(--orange);}
+.fu-dot.mal{background:var(--red);}
+.fu-links{display:flex;flex-wrap:wrap;gap:6px;}
+.fu-link{padding:5px 10px;border-radius:999px;background:#eef1f6;color:var(--navy);font-size:12px;font-weight:700;text-decoration:none;}
+.fu-link:hover{background:#e1e6f0;}
+.fu-link:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+.fu-link.sd{color:var(--text-muted);font-weight:600;}
+.fu-badge{align-self:flex-start;padding:2px 8px;border-radius:999px;background:#eef1f6;color:var(--text-muted);font-size:10.5px;font-weight:700;white-space:nowrap;}
+.fu-badge.lee{background:#e3f6ec;color:#1f7a4c;}
+.fu-badge.falta{background:#fdf1df;color:#8a5a12;}
+.fu-filtros{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:12px;}
+.fu-filtros input,.fu-filtros select{padding:9px 12px;border-radius:10px;border:1px solid var(--border);background:#fff;color:var(--text);font:inherit;font-size:13px;}
+.fu-filtros input{flex:1 1 240px;min-width:0;}
+.fu-filtro-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.fu-carpetas{display:flex;flex-direction:column;gap:16px;}
+.fu-grupo{display:flex;flex-direction:column;gap:6px;}
+.fu-grupo h4{margin:0;font-size:11.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);}
+.fu-fila{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 14px;padding:10px 12px;border-radius:10px;background:#fff;box-shadow:0 0 0 1px var(--border);}
+.fu-fila-info{flex:1 1 320px;min-width:0;}
+.fu-fila-t{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:13px;}
+.fu-fila-d{margin-top:3px;font-size:12px;line-height:1.4;color:var(--text-muted);overflow-wrap:anywhere;}
