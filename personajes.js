@@ -39,7 +39,7 @@
 // (nunca volumen de altas), igual que el resumen del año.
 // Sin WebGL, o si three.js no carga, las paradas se muestran como tarjetas.
 import { crearSala } from './sala.js?v=20261020b';
-import { armarCementerio, DURACION as DURACION_CEM, BORDE as BORDE_CEM } from './cementerio.js?v=20261020';
+import { armarCementerio, DURACION as DURACION_CEM, BORDE as BORDE_CEM } from './cementerio.js?v=20261021';
 
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
 const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
@@ -69,14 +69,18 @@ const EX_EQUIPO = new Set(EQUIPO.find((m) => m.key === 'otros').selectores);
 
 // Paradas de la azotea: `pos` es el círculo que hay que pisar; el objeto queda
 // detrás, del lado del borde. `lejos`: distancia del objeto al círculo. Son
-// dos: la terminal (consola con la pantalla holográfica de todos los
-// resultados) y la guarida (dashboard completo).
+// tres, juntas al fondo: la guarida (dashboard completo), la terminal
+// (consola con la pantalla holográfica de todos los resultados) y la fosa
+// que baja al cementerio.
 const PARADAS = [
+  { id: 'guarida', icono: '🕳️', titulo: 'Dashboard completo', pos: [-5.2, -5], objeto: 'alcantarilla', lejos: 0 },
   { id: 'resultados', icono: '📊', titulo: 'Resultados', pos: [0, -5], objeto: 'terminal', lejos: 1.45 },
-  { id: 'guarida', icono: '🕳️', titulo: 'Dashboard completo', pos: [3.6, 5.8], objeto: 'alcantarilla', lejos: 0 },
+  { id: 'cementerio', icono: '🪦', titulo: 'Cementerio', pos: [5.2, -5], objeto: 'fosa', lejos: 0 },
 ];
-// Secciones del panel de la terminal (se navegan con ← →).
+// Secciones del panel de la terminal (se navegan con ← →). La primera, la
+// misión del mes, va en rojo alerta.
 const SECCIONES = [
+  { id: 'mision', icono: '🚨', titulo: 'Nueva misión', alerta: true },
   { id: 'altas', icono: '👥', titulo: 'Altas' },
   { id: 'presentismo', icono: '⏰', titulo: 'Presentismo día 1' },
   { id: 'cumplimiento', icono: '🎯', titulo: 'Cumplimiento' },
@@ -89,9 +93,9 @@ const SECCIONES = [
 // El tanque, los aires, la antena, la puerta y la barra de café se arman en la
 // escena y se suman con la misma lógica.
 const PROPS = [
-  { id: 'pizzas', objeto: 'pizzas', en: [-6.56, -5.3], emoji: '🍕', anim: 'rebota', alto: 1.9, r: 0.9 },
+  { id: 'pizzas', objeto: 'pizzas', en: [3.6, 6.2], emoji: '🍕', anim: 'rebota', alto: 1.9, r: 0.9 },
   { id: 'reloj', objeto: 'reloj', en: [-3.2, -7.0], emoji: '⏰', anim: 'reloj', alto: 2.4, r: 0.6 },
-  { id: 'diana', objeto: 'diana', en: [6.56, -5.3], emoji: '🎯', anim: 'gira', alto: 2.4, r: 0.8 },
+  { id: 'diana', objeto: 'diana', en: [-1.8, 7.6], emoji: '🎯', anim: 'gira', alto: 2.4, r: 0.8 },
   { id: 'carrito', objeto: 'carrito', en: [-8.1, 2.02], emoji: '🍽️', anim: 'tiembla', alto: 2.8, r: 1.05 },
   { id: 'hamburguesa', objeto: 'hamburguesa', en: [8.1, 2.02], emoji: '🍔', anim: 'rebota', alto: 2.0, r: 0.8 },
   { id: 'podio', objeto: 'podio', en: [-4.52, 7.29], emoji: '🏆', anim: 'copa', alto: 1.9, r: 1.3 },
@@ -610,15 +614,13 @@ $('#pjPeriodo').addEventListener('change', (e) => {
 
 function pintarNav() {
   navParadas.innerHTML = PARADAS.map((p) => `
-    <button class="pj-parada-btn" type="button" data-id="${p.id}"><span aria-hidden="true">${p.icono}</span>${esc(p.titulo)}</button>`).join('') +
-    '<button class="pj-parada-btn pj-cem-btn" type="button" data-cementerio><span aria-hidden="true">🪦</span>Bajar al cementerio</button>';
-  navParadas.querySelectorAll('button[data-id]').forEach((b) => b.addEventListener('click', () => Mundo.irA(b.dataset.id)));
-  navParadas.querySelector('[data-cementerio]').addEventListener('click', bajarAlCementerio);
+    <button class="pj-parada-btn${p.id === 'cementerio' ? ' pj-cem-btn' : ''}" type="button" data-id="${p.id}"><span aria-hidden="true">${p.icono}</span>${esc(p.titulo)}</button>`).join('');
+  navParadas.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => Mundo.irA(b.dataset.id)));
 }
 
 // Dato corto que se ve en el cartel flotante de cada parada.
 function titular(id) {
-  return id === 'resultados' ? `${fmtInt(datos.altas)} altas · entrar` : 'Ver todo';
+  return id === 'resultados' ? `${fmtInt(datos.altas)} altas · entrar` : id === 'cementerio' ? '¿Te animás? 👻' : 'Ver todo';
 }
 
 function pintarEtiquetas() {
@@ -638,6 +640,7 @@ function activarParada(id) {
   if (id) {
     Sonido.parada();
     if (id === 'resultados') abrirTerminal();
+    else if (id === 'cementerio') bajarAlCementerio();
     else if (cerradaAMano !== id) abrirPanel(id);
   } else {
     cerradaAMano = null;
@@ -655,7 +658,8 @@ function pintarTerminal(dir = 0) {
   const sec = SECCIONES[seccion];
   $('#pjHoloQuien').textContent = `${quien()} · ${rango(datos.meses)}`;
   $('#pjHoloTabs').innerHTML = SECCIONES.map((x, i) => `
-    <button class="pj-holo-tab" type="button" role="tab" data-i="${i}" aria-selected="${i === seccion}"><span aria-hidden="true">${x.icono}</span><b>${esc(x.titulo)}</b></button>`).join('');
+    <button class="pj-holo-tab${x.alerta ? ' pj-holo-tab--alerta' : ''}" type="button" role="tab" data-i="${i}" aria-selected="${i === seccion}"><span aria-hidden="true">${x.icono}</span><b>${esc(x.titulo)}</b></button>`).join('');
+  holo.classList.toggle('pj--alerta', !!sec.alerta); // la misión pinta el panel de rojo
   holoCuerpo.innerHTML = contenidoParada(sec.id);
   // Pantalla ancha: el título arriba, el número grande a la izquierda y los
   // bloques a la derecha (en celulares queda todo en una columna).
@@ -804,6 +808,7 @@ function contenidoParada(id) {
   const p = SECCIONES.find((x) => x.id === id) || PARADAS.find((x) => x.id === id);
   const d = datos;
   const head = cabecera(p);
+  if (id === 'mision') return head + mision();
   if (id === 'altas') {
     let mejor = '';
     if (d.porMes.length > 1) {
@@ -850,6 +855,43 @@ function contenidoParada(id) {
   return `${head}
     <p>Bajá a la guarida: el dashboard completo de ${esc(quien() === 'Todo el equipo' ? 'todo el equipo' : actual.label)} con todos los gráficos, los rankings${actual.selectores ? '' : ', el mapa de zonas'} y el resumen del año.</p>
     <a class="pj-boton" href="${esc(actual.dashboard)}">Bajar a la guarida →</a>`;
+}
+
+// Nueva misión: objetivos del último mes contra el anterior (superar sus
+// altas y su presentismo día 1) y cubrir las vacantes del último mes con
+// cumplimiento cargado. Siempre del mes, sin importar el período elegido.
+function mision() {
+  const d = calcular(actual, '2');
+  const [ant, act] = d.porMes.length > 1 ? d.porMes.slice(-2) : [null, d.porMes[0]];
+  const objs = [];
+  if (act && ant) {
+    const ok = act.altas > ant.altas;
+    objs.push({ titulo: `Superar las altas de ${mesLargo(ant.mes)}`, ok, t: pct(act.altas, ant.altas + 1),
+      texto: ok ? `${fmtInt(act.altas)} altas · ${fmtInt(ant.altas)} en ${mesCorto(ant.mes)}` : `${fmtInt(act.altas)} de ${fmtInt(ant.altas)} · faltan ${fmtInt(ant.altas - act.altas + 1)}` });
+  }
+  if (d.semanas.length) {
+    const env = d.semanas.reduce((a, x) => a + x.env, 0), tot = d.semanas.reduce((a, x) => a + x.tot, 0);
+    const peor = d.semanas.reduce((a, x) => (x.tot - x.env > a.tot - a.env ? x : a));
+    const ok = env >= tot;
+    objs.push({ titulo: `Cubrir las vacantes de ${mesLargo(d.ultimoCum)}`, ok, t: pct(env, tot),
+      texto: ok ? `${fmtInt(env)}/${fmtInt(tot)} enviados` : `${fmtInt(env)}/${fmtInt(tot)} enviados · faltan ${fmtInt(tot - env)} (la más atrasada: ${esc(peor.semana)})` });
+  }
+  if (act && ant && act.noPres != null && ant.noPres != null) {
+    const pa = 1 - act.noPres, pb = 1 - ant.noPres;
+    const ok = pa >= pb;
+    objs.push({ titulo: `Presentismo día 1 de al menos ${fmtPct(pb)}`, ok, t: pb ? Math.min(1, pa / pb) : 1,
+      texto: `${fmtPct(pa)} este mes · ${fmtPct(pb)} en ${mesCorto(ant.mes)}` });
+  }
+  if (!objs.length) return '<p class="pj-vacio">Sin misión: todavía no hay datos de este mes.</p>';
+  const hechas = objs.filter((o) => o.ok).length;
+  const curso = act.mes === MES_HOY ? ' (en curso)' : '';
+  return `<div class="pj-heroe pj-mision-heroe">${hechas}/${objs.length}</div>
+    <p class="pj-heroe-sub">objetivos cumplidos · ${mesLargo(act.mes)}${curso}</p>
+    <div class="pj-bloque"><h3>Objetivos de la misión</h3><ul class="pj-mision">${objs.map((o) => `
+      <li class="${o.ok ? 'pj--ok' : ''}"><span class="pj-mision-marca" aria-hidden="true">${o.ok ? '✔' : '!'}</span>
+        <b>${o.titulo}</b><span>${o.texto}</span>
+        <span class="pj-medidor" aria-hidden="true"><i style="width:${(o.t * 100).toFixed(1)}%"></i></span></li>`).join('')}
+    </ul></div>`;
 }
 
 // Tooltip de las columnas (mouse y toque).
@@ -1430,6 +1472,41 @@ function objeto(tipo) {
       linea.position.y = -0.54 + ((t * 0.35) % 1) * 1.08;
       holo.opacity = (0.5 + Math.sin(t * 9) * 0.04 + (Math.sin(t * 2.3) > 0.97 ? -0.25 : 0)) * (1 - s * 0.45);
     };
+  } else if (tipo === 'fosa') {
+    // Bajada al cementerio: una fosa abierta con escalones que se pierden en
+    // la niebla verde, una lápida atrás y un fantasmita que flota encima.
+    g.add(caja(1.5, 0.1, 1.75, '#5d6170', 0, 0.05, 0, 0.03));
+    g.add(rot(malla(new T.PlaneGeometry(1.2, 1.45), new T.MeshBasicMaterial({ color: '#04060a' }), 0, 0.105, 0, false), -Math.PI / 2));
+    ['#3d424e', '#2c3039', '#1d2027', '#111318'].forEach((c, i) => g.add(caja(1.1, 0.03, 0.26, c, 0, 0.12, 0.52 - i * 0.3, 0.01)));
+    const humo = document.createElement('canvas');
+    humo.width = humo.height = 64;
+    const hc = humo.getContext('2d');
+    const gr = hc.createRadialGradient(32, 32, 2, 32, 32, 31);
+    gr.addColorStop(0, 'rgba(93,255,154,.75)');
+    gr.addColorStop(1, 'rgba(93,255,154,0)');
+    hc.fillStyle = gr;
+    hc.fillRect(0, 0, 64, 64);
+    const niebla = new T.Sprite(new T.SpriteMaterial({ map: new T.CanvasTexture(humo), transparent: true, depthWrite: false }));
+    niebla.position.set(0, 0.45, 0);
+    niebla.scale.set(2.2, 1.1, 1);
+    g.add(niebla);
+    const lapida = grupo(0, 0, -1.25);
+    lapida.add(caja(0.8, 0.85, 0.18, '#767b88', 0, 0.42, 0, 0.03));
+    lapida.add(rot(cil(0.4, 0.4, 0.18, '#767b88', 0, 0.85, 0, 20), Math.PI / 2));
+    lapida.add(caja(0.08, 0.42, 0.04, '#4b4f5c', 0, 0.62, 0.1, 0.01));
+    lapida.add(caja(0.26, 0.08, 0.04, '#4b4f5c', 0, 0.7, 0.1, 0.01));
+    g.add(lapida);
+    const fantasmita = PERSONAJES.fantasma({ color: '#5dff9a' });
+    fantasmita.raiz.scale.setScalar(0.5);
+    g.add(fantasmita.raiz);
+    const verde = new T.PointLight('#5dff9a', 6, 4.5, 2);
+    verde.position.set(0, 0.7, 0);
+    g.add(verde);
+    g.userData.anim = (t) => {
+      fantasmita.raiz.position.set(Math.sin(t * 0.8) * 0.35, 0.75 + Math.sin(t * 2.1) * 0.14, -0.2);
+      fantasmita.raiz.rotation.y = Math.sin(t * 0.6) * 0.7;
+      niebla.material.opacity = 0.55 + Math.sin(t * 1.7) * 0.15;
+    };
   } else if (tipo === 'alcantarilla') {
     g.add(cil(0.98, 0.98, 0.08, '#4a5163', 0, 0.04, 0, 32));
     const luz = new T.MeshBasicMaterial({ color: '#39ff8f' });
@@ -1817,7 +1894,7 @@ const Mundo = (() => {
     el.dataset.id = p.id;
     el.addEventListener('click', () => irA(p.id));
     capaEtiquetas.appendChild(el);
-    const altura = { terminal: 3.1, alcantarilla: 1.3 }[p.objeto];
+    const altura = { terminal: 3.1, alcantarilla: 1.3, fosa: 2.3 }[p.objeto];
     anclas.push({ el, v: new T.Vector3(ox, altura, oz) });
   }
 
@@ -2277,6 +2354,7 @@ const Mundo = (() => {
   // primero); si no hay nadie, derecho hacia donde miro. Devuelve el tiro
   // para mandarlo a la sala.
   function tirar(tipo) {
+    if (juego.on) { tirarCementerio(tipo); return null; } // en el cementerio, a los fantasmas (no va a la sala)
     if (!TIROS[tipo] || !P || recarga > 0 || aparicionT >= 0) return null;
     recarga = 0.45;
     tiraYo = 0.35;
@@ -2508,8 +2586,8 @@ const Mundo = (() => {
       }
       const g = !juego.on && Object.keys(GESTOS).find((x) => `Digit${GESTOS[x].tecla}` === e.code || `Numpad${GESTOS[x].tecla}` === e.code);
       if (g && remotos.size) { e.preventDefault(); hacerGesto(g); return; }
-      const tiro = !juego.on && (Object.keys(TIROS).find((x) => `Digit${TIROS[x].tecla}` === e.code || `Numpad${TIROS[x].tecla}` === e.code)
-        || ((e.code === 'Space' || e.code === 'KeyF') && !e.target.closest('button, a') ? 'pizza' : null));
+      const tiro = Object.keys(TIROS).find((x) => `Digit${TIROS[x].tecla}` === e.code || `Numpad${TIROS[x].tecla}` === e.code)
+        || ((e.code === 'Space' || e.code === 'KeyF') && !e.target.closest('button, a') ? 'pizza' : null);
       if (tiro) { e.preventDefault(); hacerTiro(tiro); return; }
       if (e.code === 'KeyE' && !juego.on) { e.preventDefault(); tocarCerca(); return; }
       const k = MAPA_TECLAS[e.code];
@@ -2929,6 +3007,55 @@ const Mundo = (() => {
   }
 
   /* ── Cementerio ── */
+  // Tiros en el cementerio: apuntan solos al fantasma más cercano que
+  // tengas adelante y, si le pegan, lo aturden unos segundos.
+  const tirosCem = [];
+  function tirarCementerio(tipo) {
+    if (!TIROS[tipo] || juego.estado !== 'corre' || recarga > 0) return;
+    recarga = 0.45;
+    tiraYo = 0.35;
+    const fx = Math.sin(yaw), fz = Math.cos(yaw);
+    const x = pos.x + fx * 0.5, y = 1.5, z = pos.z + fz * 0.5;
+    let v = { vx: fx * 9, vz: fz * 9, vy: 3.4 };
+    const f = cem.blanco(pos, fx, fz);
+    if (f) {
+      let tx = f.x, tz = f.z;
+      for (let k = 0; k < 2; k++) {
+        const T0 = Math.max(0.3, Math.min(1.1, Math.hypot(tx - x, tz - z) / 10));
+        tx = f.x + f.vx * T0;
+        tz = f.z + f.vz * T0;
+      }
+      yawObjetivo = Math.atan2(tx - pos.x, tz - pos.z);
+      v = apuntar(x, y, z, tx, tz);
+    }
+    const mesh = modeloTiro(tipo);
+    mesh.position.set(x, y, z);
+    cem.escena.add(mesh);
+    tirosCem.push({ tipo, mesh, x, y, z, ...v, t: 0, giro: 6 + Math.random() * 6 });
+    Sonido.mover();
+  }
+  function quitarTiroCem(pr) {
+    cem.escena.remove(pr.mesh);
+    pr.mesh.traverse((o) => { if (o.geometry) o.geometry.dispose(); });
+    tirosCem.splice(tirosCem.indexOf(pr), 1);
+  }
+  function animarTirosCem(dt, t) {
+    recarga = Math.max(0, recarga - dt);
+    for (const pr of [...tirosCem]) {
+      pr.t += dt;
+      pr.vy -= G_TIRO * dt;
+      pr.x += pr.vx * dt;
+      pr.y += pr.vy * dt;
+      pr.z += pr.vz * dt;
+      pr.mesh.position.set(pr.x, pr.y, pr.z);
+      pr.mesh.rotation.x += pr.giro * dt;
+      pr.mesh.rotation.y += pr.giro * 0.6 * dt;
+      const pego = pr.y > 0.1 && pr.y < 2.6 && pr.t > 0.08 && cem.golpear(pr.x, pr.z, pr.vx, pr.vz, TIROS[pr.tipo].mancha, t);
+      if (pego) Sonido.parada();
+      if (pego || pr.y < 0.05 || pr.t > 3) quitarTiroCem(pr);
+    }
+  }
+
   function entrarCementerio() {
     if (!P || juego.on || aparicionT >= 0) return false;
     if (!cem) cem = armarCementerio({ T, malla, caja, cil, esfera, rot, grupo, fantasma: PERSONAJES.fantasma, animarCuerpo, capa: $('#pjCemCapa') });
@@ -2954,20 +3081,24 @@ const Mundo = (() => {
     camMira.z = pos.z - 1.8;
     introT = performance.now();
     cem.reiniciar();
+    for (const pr of [...tirosCem]) quitarTiroCem(pr);
     juego.estado = 'cuenta';
     juego.t0 = performance.now();
     juego.tiempo = juego.hundir = 0;
     juego.cuenta = -1;
   }
-  // Sube por la escalera: aparece en la azotea al lado de la puerta.
+  // Sube por la fosa: aparece en la azotea unos pasos hacia el centro.
   function salirCementerio() {
     if (!juego.on) return;
     juego.on = false;
     cem.callar();
+    for (const pr of [...tirosCem]) quitarTiroCem(pr);
     escena.add(P.raiz);
-    pos.x = 0;
-    pos.z = 8.4;
-    yaw = yawObjetivo = Math.PI;
+    const [px, pz] = PARADAS.find((x) => x.id === 'cementerio').pos;
+    const l = Math.hypot(px, pz) || 1;
+    pos.x = px - (px / l) * 2.4;
+    pos.z = pz - (pz / l) * 2.4;
+    yaw = yawObjetivo = 0;
     destino = paradaDestino = null;
     teclas.clear();
     camMira.x = pos.x;
@@ -3011,6 +3142,7 @@ const Mundo = (() => {
       alCementerio?.({ tipo: 'tiempo', resta: Math.max(0, DURACION_CEM - juego.tiempo) });
       if (juego.tiempo >= DURACION_CEM) terminarCementerio(null, t);
     }
+    animarTirosCem(dt, t);
     const quien = cem.animar(t, dt, pos, juego.estado === 'corre' ? juego.tiempo : null);
     if (quien && juego.estado === 'corre') terminarCementerio(quien, t);
     if (juego.estado === 'atrapado') { // te quedás con ellos: te hundís en la tierra
@@ -3130,6 +3262,21 @@ Mundo.alPegar = (a, tipo) => sala.golpe({ a, tipo });
 /* ───────────── Cementerio (cementerio.js) ───────────── */
 // Botón "Bajar al cementerio": se corre de los fantasmas DURACION_CEM
 // segundos. El récord (lo más que aguantó) queda en este navegador.
+// La pantalla del cementerio se arma acá (no depende de que el HTML esté al día).
+$('#pjGestos').insertAdjacentHTML('beforebegin', `
+  <section class="pj-cem" id="pjCem" hidden aria-label="Cementerio">
+    <div class="pj-cem-capa" id="pjCemCapa"></div>
+    <header class="pj-cem-hud">
+      <button class="pj-cem-subir pj-glass" id="pjCemSalir" type="button">↑ Azotea</button>
+      <div class="pj-cem-reloj pj-glass">
+        <span class="pj-cem-marca">🪦 Cementerio</span>
+        <strong id="pjCemTiempo" aria-live="off"></strong>
+        <small id="pjCemRecord"></small>
+      </div>
+    </header>
+    <div class="pj-cem-cartel" id="pjCemCartel" hidden role="status"></div>
+    <p class="pj-cem-ayuda">Flechas/WASD, clic o joystick para correr · Espacio tira y los aturde · Esc sube</p>
+  </section>`);
 const cemEl = $('#pjCem');
 const cemCartel = $('#pjCemCartel');
 const cemTiempo = $('#pjCemTiempo');
@@ -3141,8 +3288,15 @@ function pintarRecord() {
 }
 function bajarAlCementerio() {
   if (!Mundo.ok || mundoEl.hidden || Mundo.enCementerio) return;
-  activarParada(null);
-  if (!Mundo.entrarCementerio()) return;
+  cerrarTerminal();
+  cerrarPanel();
+  try {
+    if (!Mundo.entrarCementerio()) return;
+  } catch (e) {
+    console.error('No se pudo abrir el cementerio', e);
+    aviso(`No se pudo abrir el cementerio 😕 (${e.message})`, '#ff8f8f');
+    return;
+  }
   cemEl.hidden = false;
   mundoEl.classList.add('pj--cementerio');
   cemTiempo.textContent = fmtSeg(DURACION_CEM);
@@ -3161,7 +3315,7 @@ function cartelCem(html, fin = false) {
 }
 Mundo.alCementerio = (ev) => {
   if (ev.tipo === 'cuenta') {
-    if (ev.n) cartelCem(`<b class="pj-cem-num">${ev.n}</b><p>Aguantá ${DURACION_CEM} segundos sin que te alcancen los fantasmas, o te quedás con ellos.</p>`);
+    if (ev.n) cartelCem(`<b class="pj-cem-num">${ev.n}</b><p>Aguantá ${DURACION_CEM} segundos sin que te alcancen los fantasmas, o te quedás con ellos. Tirales una pizza (espacio) y quedan aturdidos.</p>`);
     else { cartelCem('<b class="pj-cem-num">¡Corré!</b>'); setTimeout(() => { if (!cemCartel.classList.contains('pj--fin')) cemCartel.hidden = true; }, 900); }
     Sonido.cuenta(!ev.n);
   } else if (ev.tipo === 'tiempo') {

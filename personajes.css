@@ -870,6 +870,39 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-holo-cuerpo.pj--izq{animation:pj-holo-izq .32s cubic-bezier(.2,.8,.2,1);}
 @keyframes pj-holo-der{from{opacity:0;transform:translateX(30px);}}
 @keyframes pj-holo-izq{from{opacity:0;transform:translateX(-30px);}}
+/* Nueva misión: pestaña en rojo alerta que titila y, elegida, todo el panel
+   se pone rojo. */
+.pj-holo-tab--alerta{border-color:rgba(255,77,94,.6);background:rgba(255,77,94,.12);color:#ffd2d6 !important;animation:pj-alerta 1.1s ease-in-out infinite;}
+.pj-holo-tab--alerta b{font-family:"Orbitron",sans-serif;font-weight:700;letter-spacing:.06em;text-transform:uppercase;font-size:11px;}
+.pj-holo-tab--alerta:hover{border-color:#ff4d5e;color:#fff !important;}
+.pj-holo-tab--alerta[aria-selected="true"]{border-color:#ff4d5e;background:rgba(255,77,94,.28);box-shadow:inset 0 0 14px rgba(255,77,94,.5);color:#fff !important;}
+@keyframes pj-alerta{50%{box-shadow:0 0 14px rgba(255,77,94,.75), inset 0 0 10px rgba(255,77,94,.4);}}
+.pj-holo.pj--alerta{
+  --holo:#ff4d5e;
+  --holo-2:#ff9aa4;
+  border-color:rgba(255,77,94,.7);
+  background:
+    linear-gradient(rgba(255,77,94,.07) 1px, transparent 1px) 0 0 / 100% 22px,
+    linear-gradient(90deg, rgba(255,77,94,.06) 1px, transparent 1px) 0 0 / 22px 100%,
+    linear-gradient(160deg, rgba(48,8,16,.88), rgba(20,4,10,.93));
+  box-shadow:inset 0 0 40px rgba(255,77,94,.18);
+  filter:drop-shadow(0 0 20px rgba(255,77,94,.45));
+}
+.pj-holo.pj--alerta .pj-holo-salir,.pj-holo.pj--alerta .pj-holo-nav{border-color:rgba(255,77,94,.6);background:rgba(255,77,94,.1);}
+.pj-holo.pj--alerta .pj-holo-pie,.pj-holo.pj--alerta .pj-bloque{border-top-color:rgba(255,77,94,.25);}
+.pj-holo.pj--alerta .pj-holo-quien,.pj-holo.pj--alerta .pj-sub,.pj-holo.pj--alerta .pj-heroe-sub{color:#e9b3b9;}
+.pj-mision-heroe::before{content:"🚨 ";font-size:.6em;vertical-align:.25em;}
+.pj-holo.pj--alerta .pj-mision-heroe{animation:pj-alerta-txt 1.1s steps(2, jump-none) infinite;}
+@keyframes pj-alerta-txt{50%{opacity:.55;}}
+.pj-mision{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px;}
+.pj-mision li{position:relative;display:grid;grid-template-columns:auto 1fr;column-gap:10px;row-gap:3px;align-items:center;}
+.pj-mision-marca{grid-row:span 3;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:1px solid #ff4d5e;color:#ff4d5e;font-weight:900;font-family:"Orbitron",sans-serif;font-size:13px;}
+.pj-mision li.pj--ok .pj-mision-marca{border-color:#5dff9a;color:#5dff9a;}
+.pj-mision b{font-size:13.5px;color:#fff;}
+.pj-mision span:not(.pj-mision-marca):not(.pj-medidor){font-size:12px;color:#e9b3b9;}
+.pj-mision .pj-medidor{display:block;height:6px;border-radius:3px;background:rgba(255,77,94,.15);overflow:hidden;}
+.pj-mision .pj-medidor i{display:block;height:100%;border-radius:3px;background:#ff4d5e;box-shadow:0 0 8px rgba(255,77,94,.7);}
+.pj-mision li.pj--ok .pj-medidor i{background:#5dff9a;box-shadow:0 0 8px rgba(93,255,154,.6);}
 /* Pantalla ancha: número grande a la izquierda, bloques a la derecha. */
 @media (min-width:761px){
   .pj-holo-cuerpo{display:grid;grid-template-columns:minmax(0, .8fr) minmax(0, 1.2fr);column-gap:30px;align-content:start;}
@@ -958,7 +991,7 @@ body.pj.pj--jugando{overflow:hidden;}
   .pj-holo-pie{justify-content:center;}
 }
 @media (prefers-reduced-motion: reduce){
-  .pj-holo,.pj-holo::after,.pj-holo-cuerpo,.pj-prop{animation:none !important;}
+  .pj-holo,.pj-holo::after,.pj-holo-cuerpo,.pj-prop,.pj-holo-tab--alerta,.pj-mision-heroe{animation:none !important;}
 }
 
 /* ───────────── 6. Cementerio ───────────── */
@@ -966,9 +999,11 @@ body.pj.pj--jugando{overflow:hidden;}
    fantasmas sobre la escena y un cartel para la cuenta y el final. */
 .pj-cem-btn{border-color:rgba(160,255,190,.25) !important;color:#bfffd4 !important;}
 .pj-cem-btn:hover{background:rgba(93,255,154,.12) !important;}
+/* En el cementerio quedan solo los tiros (para aturdir fantasmas). */
+.pj-mundo.pj--cementerio .pj-gesto--saludo,
+.pj-mundo.pj--cementerio .pj-gestos-sep,
 .pj-mundo.pj--cementerio .pj-hud,
 .pj-mundo.pj--cementerio .pj-paradas,
-.pj-mundo.pj--cementerio .pj-gestos,
 .pj-mundo.pj--cementerio .pj-capa,
 .pj-mundo.pj--cementerio .pj-panel,
 .pj-mundo.pj--cementerio .pj-holo,
@@ -987,6 +1022,8 @@ body.pj.pj--jugando{overflow:hidden;}
   will-change:transform;
 }
 .pj-cem-nombre i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+.pj-cem-nombre.pj--aturdido{opacity:.75;}
+.pj-cem-nombre.pj--aturdido::after{content:" 💫";}
 .pj-cem-globo{background:#eef3ff;font-style:italic;}
 .pj-cem-hud{
   position:absolute;top:12px;left:12px;right:12px;
