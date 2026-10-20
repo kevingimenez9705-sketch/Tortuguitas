@@ -743,10 +743,14 @@ body.pj.pj--jugando{overflow:hidden;}
 .pj-gesto span{font-size:22px;line-height:1;}
 .pj-gesto small{font-size:10px;color:var(--pj-texto-2);white-space:nowrap;max-width:76px;overflow:hidden;text-overflow:ellipsis;}
 .pj-gesto:hover{background:rgba(255,255,255,.06);border-color:var(--pj-linea);}
+.pj-gestos-sep{width:1px;margin:4px 2px;background:var(--pj-linea);}
+/* Sin otro jugador quedan solo los tiros (a los que esperan también se les tira). */
+.pj-gestos.pj--solo .pj-gesto--saludo,.pj-gestos.pj--solo .pj-gestos-sep{display:none;}
 .pj-gesto:active{scale:.94;}
 .pj-gesto:focus-visible{outline:2px solid #fff;outline-offset:1px;}
 @media (max-width:760px){
-  .pj-gestos{right:8px;bottom:calc(150px + env(safe-area-inset-bottom));flex-direction:column;}
+  .pj-gestos{right:8px;bottom:calc(150px + env(safe-area-inset-bottom));flex-direction:column;max-height:calc(100dvh - 300px);overflow-y:auto;}
+  .pj-gestos-sep{width:auto;height:1px;margin:2px 4px;}
   .pj-gesto{min-width:0;padding:6px;}
   .pj-gesto small{display:none;}
   .pj-mundo.pj--con-panel .pj-gestos{display:none;}
