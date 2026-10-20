@@ -756,3 +756,309 @@ body.pj.pj--jugando{overflow:hidden;}
   .pj-mundo.pj--con-panel .pj-gestos{display:none;}
   .pj-sala-j{font-size:12px;}
 }
+
+/* ───────────── 5. Terminal holográfica ───────────── */
+/* La pantalla de la consola: la cámara queda detrás del personaje y este
+   panel ocupa el lugar de la pantalla holográfica 3D (personajes.js la
+   ajusta a su tamaño); abajo queda libre para el personaje y la consola.
+   Vidrio oscuro, bordes cian con brillo, esquinas cortadas, líneas de
+   barrido y una franja de luz que baja. Los datos son los mismos paneles 2D
+   de siempre, retocados con el tono del holograma. Se enciende desde abajo
+   cuando la cámara ya llegó. */
+.pj-holo{
+  --holo:#5ef2ff;
+  --holo-2:#9ff7ff;
+  --holo-osc:rgba(94,242,255,.16);
+  position:absolute;
+  top:92px;left:50%;
+  bottom:clamp(140px, 27vh, 280px);
+  width:min(880px, calc(100% - 48px));
+  translate:-50% 0;
+  display:flex;flex-direction:column;
+  padding:16px 18px 12px;
+  color:#e6fbff;
+  background:
+    linear-gradient(rgba(94,242,255,.06) 1px, transparent 1px) 0 0 / 100% 22px,
+    linear-gradient(90deg, rgba(94,242,255,.05) 1px, transparent 1px) 0 0 / 22px 100%,
+    linear-gradient(160deg, rgba(10,32,58,.86), rgba(4,12,28,.92));
+  border:1px solid rgba(94,242,255,.55);
+  clip-path:polygon(18px 0, 100% 0, 100% calc(100% - 18px), calc(100% - 18px) 100%, 0 100%, 0 18px);
+  box-shadow:inset 0 0 30px rgba(94,242,255,.12);
+  filter:drop-shadow(0 0 18px rgba(94,242,255,.35));
+  transform-origin:50% 100%;
+  animation:pj-holo-entra .55s cubic-bezier(.2,.8,.2,1) .4s backwards;
+  overflow:hidden;
+}
+.pj-holo::before{
+  /* líneas de barrido */
+  content:"";
+  position:absolute;inset:0;
+  pointer-events:none;
+  background:repeating-linear-gradient(0deg, rgba(255,255,255,.035) 0 1px, transparent 1px 3px);
+}
+.pj-holo::after{
+  /* franja de luz que recorre el panel */
+  content:"";
+  position:absolute;left:0;right:0;top:-30%;
+  height:30%;
+  pointer-events:none;
+  background:linear-gradient(180deg, transparent, rgba(94,242,255,.08), transparent);
+  animation:pj-holo-barrido 4.5s linear infinite;
+}
+@keyframes pj-holo-entra{
+  0%{opacity:0;transform:scaleY(.04) scaleX(.6);filter:drop-shadow(0 0 30px var(--holo)) brightness(2);}
+  40%{opacity:1;transform:scaleY(.04) scaleX(1);}
+  70%{transform:scaleY(1.02);}
+  80%{opacity:.6;}
+  100%{opacity:1;transform:none;}
+}
+@keyframes pj-holo-barrido{to{top:110%;}}
+.pj-holo-top{position:relative;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px;}
+.pj-holo-marca{
+  display:block;
+  font-family:"Orbitron",var(--pj-display);
+  font-weight:700;
+  font-size:12px;
+  letter-spacing:.24em;
+  text-transform:uppercase;
+  color:var(--holo);
+  text-shadow:0 0 10px var(--holo);
+}
+.pj-holo-quien{display:block;margin-top:3px;font-size:12px;color:#9fc7d6;}
+.pj-holo-salir{
+  flex:none;
+  padding:6px 12px;
+  border:1px solid rgba(94,242,255,.6);
+  border-radius:4px;
+  background:rgba(94,242,255,.08);
+  font-family:"Orbitron",sans-serif;
+  font-size:11px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--holo-2) !important;
+  cursor:pointer;
+}
+.pj-holo-salir:hover{background:rgba(94,242,255,.2);}
+.pj-holo-tabs{
+  position:relative;
+  display:flex;gap:6px;
+  margin:0 -4px 10px;
+  padding:2px 4px 6px;
+  overflow-x:auto;
+  scrollbar-width:none;
+}
+.pj-holo-tabs::-webkit-scrollbar{display:none;}
+.pj-holo-tab{
+  flex:none;
+  display:flex;align-items:center;gap:6px;
+  padding:7px 11px;
+  border:1px solid rgba(94,242,255,.25);
+  border-radius:3px;
+  background:rgba(94,242,255,.04);
+  font-size:12px;
+  color:#9fc7d6 !important;
+  cursor:pointer;
+  clip-path:polygon(7px 0, 100% 0, 100% calc(100% - 7px), calc(100% - 7px) 100%, 0 100%, 0 7px);
+}
+.pj-holo-tab b{font-weight:600;}
+.pj-holo-tab:hover{border-color:rgba(94,242,255,.6);color:#fff !important;}
+.pj-holo-tab[aria-selected="true"]{border-color:var(--holo);background:rgba(94,242,255,.18);color:#fff !important;box-shadow:inset 0 0 12px rgba(94,242,255,.35);}
+.pj-holo-tab:focus-visible,.pj-holo-nav:focus-visible,.pj-holo-salir:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.pj-holo-cuerpo{position:relative;flex:1;overflow-y:auto;padding-right:4px;touch-action:pan-y;}
+.pj-holo-cuerpo > h2{display:none;} /* ya lo dice la pestaña */
+.pj-holo-cuerpo.pj--der{animation:pj-holo-der .32s cubic-bezier(.2,.8,.2,1);}
+.pj-holo-cuerpo.pj--izq{animation:pj-holo-izq .32s cubic-bezier(.2,.8,.2,1);}
+@keyframes pj-holo-der{from{opacity:0;transform:translateX(30px);}}
+@keyframes pj-holo-izq{from{opacity:0;transform:translateX(-30px);}}
+/* Pantalla ancha: número grande a la izquierda, bloques a la derecha. */
+@media (min-width:761px){
+  .pj-holo-cuerpo{display:grid;grid-template-columns:minmax(0, .8fr) minmax(0, 1.2fr);column-gap:30px;align-content:start;}
+  .pj-holo-cuerpo > h2,.pj-holo-cuerpo > .pj-sub{grid-column:1 / -1;}
+  .pj-holo-izq{position:sticky;top:0;}
+  .pj-holo .pj-heroe{font-size:64px;margin-top:10px;}
+  .pj-holo .pj-cols{max-height:190px;}
+  .pj-holo-der > .pj-bloque:first-child{margin-top:0;padding-top:0;border-top:0;}
+  .pj-holo-cuerpo.pj--sin-heroe .pj-holo-der{grid-column:1 / -1;display:grid;grid-template-columns:1fr 1fr;column-gap:30px;align-items:start;}
+  .pj-holo-cuerpo.pj--sin-heroe .pj-holo-der > .pj-bloque{margin-top:0;padding-top:0;border-top:0;}
+  .pj-holo-cuerpo.pj--sin-heroe .pj-holo-der > .pj-nota{grid-column:1 / -1;}
+}
+/* Los paneles de datos, con el tono del holograma. */
+.pj-holo .pj-tarjeta h2{font-family:"Orbitron",sans-serif;font-size:17px;letter-spacing:.04em;text-transform:uppercase;color:#fff;}
+.pj-holo .pj-sub{color:#8fb7c6;}
+.pj-holo .pj-heroe{font-family:"Orbitron",sans-serif;font-weight:900;color:var(--holo-2);text-shadow:0 0 18px rgba(94,242,255,.6);}
+.pj-holo .pj-heroe-sub{color:#b9dbe6;}
+.pj-holo .pj-bloque{border-top-color:rgba(94,242,255,.2);}
+.pj-holo .pj-bloque h3{font-family:"Orbitron",sans-serif;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--holo);}
+.pj-holo .pj-bar{fill:var(--holo);filter:drop-shadow(0 0 4px rgba(94,242,255,.6));}
+.pj-holo .pj-cols .pj-eje{stroke:rgba(94,242,255,.35);}
+.pj-holo .pj-cols text{fill:#8fb7c6;}
+.pj-holo .pj-cols text.pj-val{fill:#e6fbff;}
+.pj-holo .pj-lista .pj-medidor{background:rgba(94,242,255,.1);}
+.pj-holo .pj-nota{color:#8fb7c6;}
+.pj-holo .pj-lista li.pj--yo{background:rgba(94,242,255,.12);}
+.pj-holo-pie{
+  position:relative;
+  display:flex;align-items:center;gap:10px;
+  margin-top:10px;padding-top:10px;
+  border-top:1px solid rgba(94,242,255,.2);
+}
+.pj-holo-nav{
+  width:34px;height:30px;
+  border:1px solid rgba(94,242,255,.5);
+  border-radius:3px;
+  background:rgba(94,242,255,.08);
+  color:var(--holo) !important;
+  cursor:pointer;
+}
+.pj-holo-nav:hover{background:rgba(94,242,255,.22);}
+.pj-holo-pos{font-family:"Orbitron",sans-serif;font-size:12px;letter-spacing:.1em;color:#e6fbff;min-width:44px;text-align:center;}
+.pj-holo-ayuda{margin-left:auto;font-size:11px;color:#7fa6b5;}
+/* En la terminal se esconden las paradas, los tiros, el joystick y los carteles. */
+.pj-mundo.pj--terminal .pj-paradas,
+.pj-mundo.pj--terminal .pj-gestos,
+.pj-mundo.pj--terminal .pj-joy,
+.pj-mundo.pj--terminal .pj-etiqueta,
+.pj-mundo.pj--terminal .pj-prop,
+.pj-mundo.pj--terminal .pj-npc,
+.pj-mundo.pj--terminal .pj-ayuda{display:none !important;}
+
+/* Cosas de la azotea que se pueden tocar: un emoji chiquito arriba de cada una,
+   que se enciende cuando estás cerca. */
+.pj-prop{
+  position:absolute;left:0;top:0;
+  width:30px;height:30px;
+  padding:0;
+  border-radius:50%;
+  border:1px solid rgba(255,255,255,.18);
+  background:rgba(12,16,34,.55);
+  font-size:15px;
+  line-height:1;
+  opacity:.45;
+  pointer-events:auto;
+  cursor:pointer;
+  transition:opacity .25s ease, scale .25s ease, border-color .25s ease;
+  will-change:transform;
+}
+.pj-prop.pj--cerca{opacity:1;scale:1.15;border-color:rgba(255,255,255,.55);animation:pj-prop-late 1.4s ease-in-out infinite;}
+.pj-prop:hover{opacity:1;}
+.pj-prop.pj--oculta{visibility:hidden;}
+@keyframes pj-prop-late{50%{box-shadow:0 0 0 6px rgba(255,255,255,.08);}}
+
+@media (max-width:760px){
+  .pj-holo{
+    top:68px;left:10px;right:10px;
+    bottom:clamp(150px, 30vh, 260px);
+    width:auto;
+    translate:none;
+    padding:12px 12px 10px;
+    clip-path:polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+  }
+  .pj-holo .pj-heroe{font-size:40px;}
+  .pj-holo-ayuda{display:none;}
+  .pj-holo-pie{justify-content:center;}
+}
+@media (prefers-reduced-motion: reduce){
+  .pj-holo,.pj-holo::after,.pj-holo-cuerpo,.pj-prop{animation:none !important;}
+}
+
+/* ───────────── 6. Cementerio ───────────── */
+/* Minijuego (cementerio.js): reloj arriba, nombres y frases de los
+   fantasmas sobre la escena y un cartel para la cuenta y el final. */
+.pj-cem-btn{border-color:rgba(160,255,190,.25) !important;color:#bfffd4 !important;}
+.pj-cem-btn:hover{background:rgba(93,255,154,.12) !important;}
+.pj-mundo.pj--cementerio .pj-hud,
+.pj-mundo.pj--cementerio .pj-paradas,
+.pj-mundo.pj--cementerio .pj-gestos,
+.pj-mundo.pj--cementerio .pj-capa,
+.pj-mundo.pj--cementerio .pj-panel,
+.pj-mundo.pj--cementerio .pj-holo,
+.pj-mundo.pj--cementerio .pj-ayuda{display:none !important;}
+.pj-cem{position:absolute;inset:0;pointer-events:none;font-family:inherit;}
+.pj-cem-capa{position:absolute;inset:0;overflow:hidden;}
+.pj-cem-nombre{
+  position:absolute;left:0;top:0;
+  padding:3px 9px;
+  border-radius:999px;
+  border:1px solid rgba(190,215,255,.25);
+  background:rgba(8,12,26,.72);
+  font-size:11px;font-weight:700;
+  color:#dfe8ff;
+  white-space:nowrap;
+  will-change:transform;
+}
+.pj-cem-nombre i{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px;}
+.pj-cem-globo{background:#eef3ff;font-style:italic;}
+.pj-cem-hud{
+  position:absolute;top:12px;left:12px;right:12px;
+  display:flex;justify-content:center;align-items:flex-start;
+}
+.pj-cem-subir{
+  position:absolute;left:0;top:0;
+  pointer-events:auto;
+  padding:10px 14px;
+  font-weight:700;font-size:13px;
+  color:#fff !important;
+  cursor:pointer;
+}
+.pj-cem-reloj{
+  display:flex;flex-direction:column;align-items:center;
+  padding:8px 18px 9px;
+  min-width:170px;
+}
+.pj-cem-marca{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#a9f5c4;}
+.pj-cem-reloj strong{font-family:var(--pj-display);font-weight:400;font-size:30px;line-height:1.1;color:#fff;font-variant-numeric:tabular-nums;}
+.pj-cem-reloj strong.pj--poco{color:#ff8f8f;animation:pj-cem-late 1s ease-in-out infinite;}
+.pj-cem-reloj small{font-size:11px;color:var(--pj-texto-3);}
+@keyframes pj-cem-late{50%{transform:scale(1.08);}}
+.pj-cem-cartel{
+  position:absolute;left:50%;top:42%;
+  translate:-50% -50%;
+  width:min(440px, calc(100% - 32px));
+  padding:20px 22px;
+  border-radius:24px;
+  text-align:center;
+  background:rgba(7,11,22,.8);
+  border:1px solid rgba(160,255,190,.25);
+  box-shadow:0 20px 60px -20px rgba(93,255,154,.45);
+  color:#eef1f8;
+  animation:pj-cem-cartel .35s cubic-bezier(.3,1.5,.5,1);
+}
+.pj-cem-cartel:not(.pj--fin){background:transparent;border:0;box-shadow:none;}
+.pj-cem-cartel p{margin:8px 0 0;color:#c6d0e6;font-size:14px;line-height:1.45;text-shadow:0 2px 8px #000;}
+.pj-cem-num{display:block;font-family:var(--pj-display);font-weight:400;font-size:84px;line-height:1;color:#bfffd4;text-shadow:0 0 30px rgba(93,255,154,.7), 0 4px 0 #0b1a12;}
+.pj-cem-fin{display:block;font-family:var(--pj-display);font-weight:400;font-size:26px;line-height:1.2;}
+.pj-cem-botones{display:flex;justify-content:center;flex-wrap:wrap;gap:10px;margin-top:16px;pointer-events:auto;}
+.pj-cem-botones button{
+  padding:10px 18px;
+  border-radius:999px;
+  border:1px solid rgba(255,255,255,.2);
+  background:rgba(255,255,255,.08);
+  font-weight:700;
+  color:#fff !important;
+  cursor:pointer;
+}
+.pj-cem-botones button:first-child{background:#5dff9a;border-color:#5dff9a;color:#08140d !important;}
+.pj-cem-botones button:focus-visible,.pj-cem-subir:focus-visible{outline:3px solid #fff;outline-offset:2px;}
+@keyframes pj-cem-cartel{from{opacity:0;scale:.7;}}
+.pj-cem-ayuda{
+  position:absolute;left:50%;bottom:18px;
+  translate:-50% 0;
+  margin:0;
+  padding:6px 14px;
+  border-radius:999px;
+  background:rgba(7,11,22,.6);
+  font-size:12px;
+  color:#aab4cc;
+  white-space:nowrap;
+}
+@media (max-width:760px){
+  .pj-cem-hud{top:8px;left:8px;right:8px;}
+  .pj-cem-reloj{min-width:0;padding:6px 14px;}
+  .pj-cem-reloj strong{font-size:24px;}
+  .pj-cem-subir{padding:8px 11px;font-size:12px;}
+  .pj-cem-ayuda{display:none;}
+  .pj-cem-num{font-size:68px;}
+}
+@media (prefers-reduced-motion: reduce){
+  .pj-cem-cartel,.pj-cem-reloj strong.pj--poco{animation:none !important;}
+}
