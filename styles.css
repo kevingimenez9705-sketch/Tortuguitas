@@ -186,6 +186,21 @@ body{
 /* Mismo fondo gris que los chart-wrap, para que el ranking se lea como un
    panel propio y no como texto suelto sobre la tarjeta blanca. */
 .rank-list{list-style:none;margin:0;padding:14px 16px;background:#e4e9f2;border-radius:12px;}
+
+/* Totales por año (Comparación por año): mismo panel gris que el ranking.
+   min-width:0 deja que la tarjeta se achique en celular y la tabla se
+   desplace adentro, en vez de ensanchar toda la página. */
+.year-card{min-width:0;}
+.year-table-wrap{background:#e4e9f2;border-radius:12px;padding:8px 12px;overflow-x:auto;}
+.year-table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;}
+.year-table th{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.03em;text-transform:uppercase;text-align:right;padding:8px 6px;white-space:nowrap;}
+.year-table td{text-align:right;padding:9px 6px;border-top:1px solid rgba(15,28,63,.08);white-space:nowrap;}
+.year-table th:first-child, .year-table td:first-child{text-align:left;}
+.year-table .anio{font-weight:800;}
+.year-table .anio small{display:block;font-weight:500;font-size:11px;color:var(--text-muted);}
+.year-table .total{font-weight:800;color:var(--theme, var(--blue));}
+.year-table .var{font-weight:700;}
+.year-table .var small{display:block;font-weight:500;font-size:11px;color:var(--text-muted);}
 .rank-list li{display:flex;align-items:center;gap:10px;margin:0 -8px 4px;padding:4px 8px;border-radius:8px;font-size:13px;transition:background .2s ease;}
 .rank-list li:hover{background:rgba(255,255,255,.6);}
 .rank-list li:last-child{margin-bottom:0;}

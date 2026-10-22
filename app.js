@@ -425,6 +425,7 @@
   function activeMonths() {
     if (periodType === 'historico') return ALL_MONTHS;
     if (periodType === 'custom') return ALL_MONTHS.filter(m => customSelected.has(m)).sort();
+    if (periodType.startsWith('anio:')) return ALL_MONTHS.filter(m => m.startsWith(periodType.slice(5) + '-'));
     const n = parseInt(periodType, 10);
     return ALL_MONTHS.slice(-n);
   }
@@ -663,6 +664,70 @@
     Charts.horizontalBar('chartTopLocalExtremas', tl2.map(x => x[0]), tl2.map(x => x[1]), col('blueLight'));
   }
 
+  // ---------- Comparación por año ----------
+  // Años completos (no depende del período): una línea por año en Ene–Dic y
+  // una tabla de totales. La variación compara solo los mismos meses del año
+  // anterior, para que un año en curso (p. ej. 2026 hasta octubre) no se
+  // compare contra 12 meses. Sin color de "bien/mal": más altas no es mejor.
+  const YEARS = [...new Set(ALL_MONTHS.map(m => m.slice(0, 4)))];
+  function renderAnios() {
+    const tabla = document.getElementById('aniosTabla');
+    if (!tabla) return;
+    const porAnio = new Map(YEARS.map(y => [y, ALTAS.filter(r => r.mes.startsWith(y + '-'))]));
+    const mesesDe = (y) => [...new Set(porAnio.get(y).map(r => r.mes.slice(5)))].sort();
+    const rangoMeses = (mm) => mm.length === 12 ? '12 meses'
+      : `${MES_ABBR[+mm[0] - 1]}–${MES_ABBR[+mm[mm.length - 1] - 1]}`;
+
+    // Gráfico: el año más nuevo con el color de la persona, los anteriores
+    // más claros y el más viejo punteado.
+    const n = YEARS.length;
+    const datasets = YEARS.map((y, i) => {
+      const counts = groupCount(porAnio.get(y), r => r.mes.slice(5));
+      const back = n - 1 - i; // 0 = año más nuevo
+      return {
+        label: y,
+        data: MES_ABBR.map((_, k) => counts.get(String(k + 1).padStart(2, '0')) ?? null),
+        color: back === 0 ? THEME.base : tint(member ? member.color : KEVIN_COLOR, Math.min(0.7, 0.4 * back)),
+        dashed: back >= 2,
+      };
+    });
+    Charts.multiLine('chartAnios', MES_ABBR, datasets);
+
+    tabla.innerHTML = `<thead><tr><th>Año</th><th>Altas</th><th>Sabores</th><th>Extremas</th><th>Prom./mes</th><th>vs. año ant.</th></tr></thead><tbody>` +
+      YEARS.slice().reverse().map(y => {
+        const rows = porAnio.get(y);
+        const mm = mesesDe(y);
+        const prev = String(+y - 1);
+        let varTxt = '—', varSub = '';
+        if (porAnio.has(prev)) {
+          const prevMeses = new Set(mesesDe(prev));
+          if (mm.every(m => prevMeses.has(m))) {
+            const mismos = new Set(mm);
+            const base = porAnio.get(prev).filter(r => mismos.has(r.mes.slice(5))).length;
+            const v = base ? rows.length / base - 1 : null;
+            if (v != null) {
+              varTxt = `${v >= 0 ? '▲ +' : '▼ '}${(v * 100).toFixed(1)}%`;
+              varSub = mm.length === 12 ? `vs. ${prev}` : `vs. ${rangoMeses(mm)} ${prev}`;
+            }
+          } else {
+            varSub = 'sin los mismos meses';
+          }
+        }
+        return `<tr>
+          <td class="anio">${y}<small>${rangoMeses(mm)}</small></td>
+          <td class="total">${fmtInt(rows.length)}</td>
+          <td>${fmtInt(rows.filter(r => r.marca === 'Sabores').length)}</td>
+          <td>${fmtInt(rows.filter(r => r.marca === 'Extremas').length)}</td>
+          <td>${fmtInt(Math.round(rows.length / Math.max(1, mm.length)))}</td>
+          <td class="var">${varTxt}${varSub ? `<small>${varSub}</small>` : ''}</td>
+        </tr>`;
+      }).join('') + '</tbody>';
+
+    const desc = document.getElementById('aniosDesc');
+    if (desc) desc.textContent = 'La variación compara los mismos meses del año anterior.' +
+      (YEARS.includes('2024') ? ' 2024 y Ene–Abr 2025 salen de la planilla de rotación.' : '');
+  }
+
   // ---------- Piccola (apartado, solo panel general) ----------
   // Marca aparte: viene como totales mensuales (crew + gerenciales) de la hoja
   // "Rotacion" de Rotacion_mensual_Anual.xlsx, sin local ni selector, así que
@@ -777,6 +842,18 @@
     });
   }
 
+  // Un botón por año con datos ("Todo 2025"), antes de "Meses específicos...".
+  function buildYearChips() {
+    const custom = document.querySelector('#toolbar .chip[data-period="custom"]');
+    for (const y of YEARS) {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.dataset.period = 'anio:' + y;
+      b.textContent = 'Todo ' + y;
+      custom.before(b);
+    }
+  }
+
   function initToolbar() {
     const chips = document.querySelectorAll('#toolbar .chip[data-period]');
     chips.forEach(chip => {
@@ -814,8 +891,10 @@
   }
 
   buildMonthsPicker();
+  buildYearChips();
   initToolbar();
   render();
+  renderAnios();
   initScrollReveal();
 
   // Botón "Resumen de tu año" (resumen.js): solo lee los mismos datos.

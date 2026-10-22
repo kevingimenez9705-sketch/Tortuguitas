@@ -268,6 +268,41 @@ const Charts = (() => {
     });
   }
 
+  // Varias líneas sobre el mismo eje (un año por línea, Ene–Dic) para
+  // compararlas. datasets: [{ label, data, color, dashed }]; null deja hueco.
+  function multiLine(id, labels, datasets) {
+    const base = baseOptions({ legend: true });
+    return mount(id, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: datasets.map(d => ({
+          label: d.label,
+          data: d.data,
+          borderColor: d.color,
+          backgroundColor: d.color,
+          borderDash: d.dashed ? [6, 4] : [],
+          tension: 0.38,
+          borderWidth: 2.5,
+          pointRadius: 3,
+          pointHoverRadius: 6,
+          pointBackgroundColor: '#fff',
+          pointBorderColor: d.color,
+          pointBorderWidth: 2,
+        })),
+      },
+      options: {
+        ...base,
+        interaction: { mode: 'index', intersect: false },
+        animation: stagger(60),
+        plugins: {
+          ...base.plugins,
+          tooltip: { callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ${fmtNum(ctx.parsed.y)}` } },
+        },
+      },
+    });
+  }
+
   function horizontalBar(id, labels, data, color = COLORS.blue, opts = {}) {
     return mount(id, {
       type: 'bar',
@@ -363,5 +398,5 @@ const Charts = (() => {
     };
   }
 
-  return { line, horizontalBar, radar, COLORS };
+  return { line, multiLine, horizontalBar, radar, COLORS };
 })();
