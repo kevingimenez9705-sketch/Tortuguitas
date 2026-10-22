@@ -280,6 +280,11 @@
     const zonaCard = document.getElementById('zonaMapCard');
     if (zonaLabel) zonaLabel.style.display = 'none';
     if (zonaCard) zonaCard.style.display = 'none';
+    // Piccola tampoco: no tiene selector, así que no es de nadie del equipo.
+    for (const id of ['piccolaSectionLabel', 'piccolaCard']) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    }
   }
 
   if (member) {
@@ -375,8 +380,9 @@
     const legend = document.getElementById('zonaLegend');
     if (!legend) return;
     const counts = { norte: 0, oeste: 0, sur: 0, capital: 0, otros: 0 };
-    for (const r of altasF) counts[zonaFor(r.local)]++;
-    const total = altasF.length;
+    const conLocal = altasF.filter(r => r.local); // ene/feb 2024 vienen sin local
+    for (const r of conLocal) counts[zonaFor(r.local)]++;
+    const total = conLocal.length;
 
     const zonaKeys = ['norte', 'oeste', 'sur', 'capital'];
     const zonaVals = zonaKeys.map(z => counts[z]);
@@ -457,6 +463,7 @@
     renderAltasMes(months, altasF);
     renderNoPresentados(months, altasF);
     renderTops(altasF);
+    renderPiccola(months);
     const { rankVolumen, rankPresentismo } = renderPorSelector(months, altasF, allAltasF);
     const rankCumplimiento = renderCumplimiento(months);
     renderHeroBadges(rankVolumen, rankPresentismo, rankCumplimiento);
@@ -619,8 +626,9 @@
   function renderNoPresentados(months, altasF) {
     const data = months.map(m => {
       const rows = altasF.filter(r => r.mes === m && r.presente !== null);
-      const val = rows.length ? (100 - pct(rows.filter(r => r.presente).length, rows.length) * 100) : 0;
-      return round1(val);
+      // Mes sin dato de presentismo (2024): null deja el hueco en la línea en vez de un 0% falso.
+      if (!rows.length) return null;
+      return round1(100 - pct(rows.filter(r => r.presente).length, rows.length) * 100);
     });
     // col('blue') en vez de col('grey'): en el dashboard de un integrante
     // esto resuelve al color de esa persona (THEME.base) — igual que el
@@ -636,6 +644,7 @@
 
   function topN(rows, keyFn, n = 5) {
     const map = groupCount(rows, keyFn);
+    map.delete(''); // altas sin zonal/local asignado (2024 y ene-abr 2025) no cuentan como uno más
     return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
   }
 
@@ -654,10 +663,38 @@
     Charts.horizontalBar('chartTopLocalExtremas', tl2.map(x => x[0]), tl2.map(x => x[1]), col('blueLight'));
   }
 
+  // ---------- Piccola (apartado, solo panel general) ----------
+  // Marca aparte: viene como totales mensuales (crew + gerenciales) de la hoja
+  // "Rotacion" de Rotacion_mensual_Anual.xlsx, sin local ni selector, así que
+  // no suma en los KPIs ni en los gráficos de altas. Cerró en noviembre 2024.
+  const PICCOLA = DATA.piccola || [];
+  const PICCOLA_CIERRE = 'cerró en Nov 24';
+  function renderPiccola(months) {
+    if (member) return; // sección oculta para vistas por integrante
+    const desc = document.getElementById('piccolaDesc');
+    const wrap = document.getElementById('piccolaChartWrap');
+    if (!desc || !wrap) return;
+    const monthSet = new Set(months);
+    const rows = PICCOLA.filter(r => monthSet.has(r.mes));
+    const rango = PICCOLA.length
+      ? `${monthLabel(PICCOLA[0].mes)} a ${monthLabel(PICCOLA[PICCOLA.length - 1].mes)}`
+      : 'sin datos';
+    wrap.style.display = rows.length ? '' : 'none';
+    if (!rows.length) {
+      desc.textContent = `Sin datos en este período · Piccola solo tiene datos de ${rango} (${PICCOLA_CIERRE}; elegí Histórico o esos meses).`;
+      return;
+    }
+    const total = rows.reduce((a, r) => a + r.altas, 0);
+    desc.textContent = `${fmtInt(total)} altas en el período (crew + gerenciales) · no suman en Altas totales · sin desglose por local ni selector · datos de ${rango} · ${PICCOLA_CIERRE}`;
+    Charts.line('chartPiccola', rows.map(r => monthLabel(r.mes)), rows.map(r => r.altas), { color: col('blue') });
+  }
+
   function renderPorSelector(months, altasF, allAltasF) {
     // Ranking por volumen (todo el equipo): ya no se muestra como tarjeta,
     // pero se usa para la insignia del hero y el orden de presentismo.
+    // .filter(Boolean): las altas de 2024 no tienen selector asignado.
     const rankOrder = [...new Set(allAltasF.map(r => r.selector))]
+      .filter(Boolean)
       .map(s => [s, allAltasF.filter(r => r.selector === s).length])
       .sort((a, b) => b[1] - a[1]);
     const rankNames = rankOrder.map(x => x[0]);
