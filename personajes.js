@@ -171,6 +171,7 @@ const nombreSel = (s) => (EX_EQUIPO.has(s) ? '🪦 ' : '') + esc(NOMBRE_SELECTOR
 function top(filas, clave, n = 5) {
   const mapa = new Map();
   for (const r of filas) mapa.set(r[clave], (mapa.get(r[clave]) || 0) + 1);
+  mapa.delete(''); // altas sin zonal asignado (2024)
   return [...mapa].sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 

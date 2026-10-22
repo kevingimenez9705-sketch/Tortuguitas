@@ -619,8 +619,9 @@
   function renderNoPresentados(months, altasF) {
     const data = months.map(m => {
       const rows = altasF.filter(r => r.mes === m && r.presente !== null);
-      const val = rows.length ? (100 - pct(rows.filter(r => r.presente).length, rows.length) * 100) : 0;
-      return round1(val);
+      // Mes sin dato de presentismo (2024): null deja el hueco en la línea en vez de un 0% falso.
+      if (!rows.length) return null;
+      return round1(100 - pct(rows.filter(r => r.presente).length, rows.length) * 100);
     });
     // col('blue') en vez de col('grey'): en el dashboard de un integrante
     // esto resuelve al color de esa persona (THEME.base) — igual que el
@@ -636,6 +637,7 @@
 
   function topN(rows, keyFn, n = 5) {
     const map = groupCount(rows, keyFn);
+    map.delete(''); // altas sin zonal asignado (2024) no cuentan como un zonal más
     return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
   }
 
@@ -657,7 +659,9 @@
   function renderPorSelector(months, altasF, allAltasF) {
     // Ranking por volumen (todo el equipo): ya no se muestra como tarjeta,
     // pero se usa para la insignia del hero y el orden de presentismo.
+    // .filter(Boolean): las altas de 2024 no tienen selector asignado.
     const rankOrder = [...new Set(allAltasF.map(r => r.selector))]
+      .filter(Boolean)
       .map(s => [s, allAltasF.filter(r => r.selector === s).length])
       .sort((a, b) => b[1] - a[1]);
     const rankNames = rankOrder.map(x => x[0]);

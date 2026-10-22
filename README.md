@@ -57,3 +57,5 @@ Proyecto 100% estático → deploy directo en Vercel (Framework Preset: "Other")
 ## Fuente de datos
 
 Excel `informe_anual` (hoja "informe anual" para altas, hoja "cumplimiento" para envíos/vacantes).
+
+**2024 (marzo a diciembre)**: sale de `Rotacion_mensual_Anual.xlsx` (cuadros de altas crew + gerenciales por local de Sabores y Extremas; Piccola no se carga). Esa planilla trae cantidades por local y mes, así que cada alta es un registro con `selector`, `regional`, `zonal` y `fecha` vacíos (`""`) y `presente: null` (sin dato de presentismo). Los nombres de local se pasaron al formato de `data.js` (p. ej. "Lomas 1" → `LOMAS DE ZAMORA 1`, "Caseros" → `CASEROS 1`). Los rankings por selector y los top de zonales ignoran los valores vacíos, y la tasa de no presentados deja esos meses sin punto. Si se regenera `data.js` desde `informe_anual`, hay que volver a sumar estas filas.
