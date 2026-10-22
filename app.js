@@ -666,8 +666,9 @@
   // ---------- Piccola (apartado, solo panel general) ----------
   // Marca aparte: viene como totales mensuales (crew + gerenciales) de la hoja
   // "Rotacion" de Rotacion_mensual_Anual.xlsx, sin local ni selector, así que
-  // no suma en los KPIs ni en los gráficos de altas.
+  // no suma en los KPIs ni en los gráficos de altas. Cerró en noviembre 2024.
   const PICCOLA = DATA.piccola || [];
+  const PICCOLA_CIERRE = 'cerró en Nov 24';
   function renderPiccola(months) {
     if (member) return; // sección oculta para vistas por integrante
     const desc = document.getElementById('piccolaDesc');
@@ -680,11 +681,11 @@
       : 'sin datos';
     wrap.style.display = rows.length ? '' : 'none';
     if (!rows.length) {
-      desc.textContent = `Sin datos en este período · Piccola solo tiene datos de ${rango} (elegí Histórico o esos meses).`;
+      desc.textContent = `Sin datos en este período · Piccola solo tiene datos de ${rango} (${PICCOLA_CIERRE}; elegí Histórico o esos meses).`;
       return;
     }
     const total = rows.reduce((a, r) => a + r.altas, 0);
-    desc.textContent = `${fmtInt(total)} altas en el período (crew + gerenciales) · no suman en Altas totales · sin desglose por local ni selector · datos de ${rango}`;
+    desc.textContent = `${fmtInt(total)} altas en el período (crew + gerenciales) · no suman en Altas totales · sin desglose por local ni selector · datos de ${rango} · ${PICCOLA_CIERRE}`;
     Charts.line('chartPiccola', rows.map(r => monthLabel(r.mes)), rows.map(r => r.altas), { color: col('blue') });
   }
 

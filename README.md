@@ -59,8 +59,8 @@ Proyecto 100% estático → deploy directo en Vercel (Framework Preset: "Other")
 Excel `informe_anual` (hoja "informe anual" para altas, hoja "cumplimiento" para envíos/vacantes).
 
 **Enero 2024 a abril 2025** (los meses anteriores al `informe_anual`): salen de `Rotacion_mensual_Anual.xlsx`, altas crew + gerenciales juntas de Sabores y Extremas. Lo que ya estaba cargado desde mayo 2025 no se tocó.
-- Marzo 2024 a abril 2025: detalle por local (cuadros "crew" y "gerenciales" de cada marca). Los nombres de local se pasaron al formato de `data.js` (p. ej. "Lomas 1" → `LOMAS DE ZAMORA 1`, "Caseros" → `CASEROS 1`).
+- Marzo 2024 a abril 2025: detalle por local (cuadros "crew" y "gerenciales" de cada marca). Los nombres de local se pasaron al formato de `data.js` (p. ej. "Lomas 1" → `LOMAS DE ZAMORA 1`, "Caseros" → `CASEROS 1`, "Lanus 1" → `LANUS 3`, "City bell" → `LA PLATA 3`). Los totales por mes y marca cuadran con la hoja "Rotacion" (la referencia): por eso no se carga la fila "Tortuguitas" de Extremas crew de enero a marzo 2025, que es justo la diferencia.
 - Enero y febrero 2024: solo hay totales por marca (hoja "Rotacion"), así que esas altas van con `local` vacío y no entran en el mapa de zonas ni en los top de locales.
 - Cada alta es un registro con `selector`, `regional`, `zonal` y `fecha` vacíos (`""`) y `presente: null` (sin dato de presentismo). Los rankings por selector y los top de zonales/locales ignoran los vacíos, y la tasa de no presentados deja esos meses sin punto.
-- **Piccola** va aparte en `piccola` (`{ mes, altas }`, totales mensuales de 2024 de la hoja "Rotacion"): tiene su propia sección en el dashboard general y no suma en los KPIs.
+- **Piccola** va aparte en `piccola` (`{ mes, altas }`, totales mensuales de enero a octubre 2024 de la hoja "Rotacion"; cerró en noviembre 2024): tiene su propia sección en el dashboard general y no suma en los KPIs.
 - Si se regenera `data.js` desde `informe_anual`, hay que volver a sumar estas filas y `piccola`.
