@@ -280,6 +280,11 @@
     const zonaCard = document.getElementById('zonaMapCard');
     if (zonaLabel) zonaLabel.style.display = 'none';
     if (zonaCard) zonaCard.style.display = 'none';
+    // Piccola tampoco: no tiene selector, así que no es de nadie del equipo.
+    for (const id of ['piccolaSectionLabel', 'piccolaCard']) {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    }
   }
 
   if (member) {
@@ -375,8 +380,9 @@
     const legend = document.getElementById('zonaLegend');
     if (!legend) return;
     const counts = { norte: 0, oeste: 0, sur: 0, capital: 0, otros: 0 };
-    for (const r of altasF) counts[zonaFor(r.local)]++;
-    const total = altasF.length;
+    const conLocal = altasF.filter(r => r.local); // ene/feb 2024 vienen sin local
+    for (const r of conLocal) counts[zonaFor(r.local)]++;
+    const total = conLocal.length;
 
     const zonaKeys = ['norte', 'oeste', 'sur', 'capital'];
     const zonaVals = zonaKeys.map(z => counts[z]);
@@ -457,6 +463,7 @@
     renderAltasMes(months, altasF);
     renderNoPresentados(months, altasF);
     renderTops(altasF);
+    renderPiccola(months);
     const { rankVolumen, rankPresentismo } = renderPorSelector(months, altasF, allAltasF);
     const rankCumplimiento = renderCumplimiento(months);
     renderHeroBadges(rankVolumen, rankPresentismo, rankCumplimiento);
@@ -637,7 +644,7 @@
 
   function topN(rows, keyFn, n = 5) {
     const map = groupCount(rows, keyFn);
-    map.delete(''); // altas sin zonal asignado (2024) no cuentan como un zonal más
+    map.delete(''); // altas sin zonal/local asignado (2024 y ene-abr 2025) no cuentan como uno más
     return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, n);
   }
 
@@ -654,6 +661,31 @@
     Charts.horizontalBar('chartTopZonalExtremas', tz2.map(x => x[0]), tz2.map(x => x[1]), col('blueLight'));
     Charts.horizontalBar('chartTopLocalSabores', tl1.map(x => x[0]), tl1.map(x => x[1]), col('blue'));
     Charts.horizontalBar('chartTopLocalExtremas', tl2.map(x => x[0]), tl2.map(x => x[1]), col('blueLight'));
+  }
+
+  // ---------- Piccola (apartado, solo panel general) ----------
+  // Marca aparte: viene como totales mensuales (crew + gerenciales) de la hoja
+  // "Rotacion" de Rotacion_mensual_Anual.xlsx, sin local ni selector, así que
+  // no suma en los KPIs ni en los gráficos de altas.
+  const PICCOLA = DATA.piccola || [];
+  function renderPiccola(months) {
+    if (member) return; // sección oculta para vistas por integrante
+    const desc = document.getElementById('piccolaDesc');
+    const wrap = document.getElementById('piccolaChartWrap');
+    if (!desc || !wrap) return;
+    const monthSet = new Set(months);
+    const rows = PICCOLA.filter(r => monthSet.has(r.mes));
+    const rango = PICCOLA.length
+      ? `${monthLabel(PICCOLA[0].mes)} a ${monthLabel(PICCOLA[PICCOLA.length - 1].mes)}`
+      : 'sin datos';
+    wrap.style.display = rows.length ? '' : 'none';
+    if (!rows.length) {
+      desc.textContent = `Sin datos en este período · Piccola solo tiene datos de ${rango} (elegí Histórico o esos meses).`;
+      return;
+    }
+    const total = rows.reduce((a, r) => a + r.altas, 0);
+    desc.textContent = `${fmtInt(total)} altas en el período (crew + gerenciales) · no suman en Altas totales · sin desglose por local ni selector · datos de ${rango}`;
+    Charts.line('chartPiccola', rows.map(r => monthLabel(r.mes)), rows.map(r => r.altas), { color: col('blue') });
   }
 
   function renderPorSelector(months, altasF, allAltasF) {

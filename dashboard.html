@@ -61,7 +61,7 @@
   <div class="section-label" id="zonaSectionLabel" style="margin-top:0;">Cobertura geográfica</div>
   <div class="card zona-card" id="zonaMapCard" style="margin-bottom:20px;">
     <h3>Mapa de zonas</h3>
-    <p class="desc">Altas por zona geográfica del local · Zona Norte, Zona Oeste, Zona Sur y Capital Federal. "Otros" agrupa localidades fuera de esas 4 zonas (La Plata, Mar del Plata, Rosario, Zárate, etc.), según el período elegido arriba.</p>
+    <p class="desc">Altas por zona geográfica del local · Zona Norte, Zona Oeste, Zona Sur y Capital Federal. "Otros" agrupa localidades fuera de esas 4 zonas (La Plata, Mar del Plata, Rosario, Zárate, etc.), según el período elegido arriba. Las altas sin local (ene–feb 2024) no entran en el mapa.</p>
     <div class="zona-map-wrap">
       <svg class="zona-map" viewBox="0 0 500 480" role="img" aria-label="Mapa de zonas: Norte, Oeste, Sur y Capital Federal">
         <g stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round">
@@ -118,6 +118,13 @@
       <div class="chart-wrap small"><canvas id="chartTopLocalExtremas"></canvas></div></div>
   </div>
 
+  <div class="section-label" id="piccolaSectionLabel">Piccola (aparte)</div>
+  <div class="card" id="piccolaCard" style="margin-bottom:16px;">
+    <h3>Altas Piccola por mes</h3>
+    <p class="desc" id="piccolaDesc"></p>
+    <div class="chart-wrap small" id="piccolaChartWrap"><canvas id="chartPiccola"></canvas></div>
+  </div>
+
   <div class="section-label">Por selector</div>
   <div class="card" style="margin-bottom:16px;">
     <h3>Presentismo por selector</h3>
@@ -144,11 +151,11 @@
   </div>
 </div>
 
-<script src="data.js?v=20261020"></script>
+<script src="data.js?v=20261022"></script>
 <script src="competencias.js?v=20261020"></script>
 <script src="charts.js?v=20261003"></script>
 <script src="resumen.js?v=20261003f"></script>
 <script src="zonas.js?v=20261021"></script>
-<script src="app.js?v=20261021"></script>
+<script src="app.js?v=20261022"></script>
 </body>
 </html>

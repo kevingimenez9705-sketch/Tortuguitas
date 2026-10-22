@@ -48,7 +48,7 @@ Cada integrante (Kevin García, Agustín Márquez, Agustina Castillo, Rafael Bar
 
 ## Cómo actualizar los datos
 
-Los datos NO están pre-agregados: `data.js` guarda cada registro individual (`altas`: selector, regional, zonal, local, fecha, mes, presente, marca; `cumplimiento`: mes, semana, selector, cumplimiento, enviados, restantes, total). Todas las agregaciones (por mes, por selector, top zonales/locales, etc.) se calculan en `app.js` en tiempo real según el período elegido. Esto lo hace escalable: para actualizar, solo hay que regenerar `data.js` desde el Excel fuente (misma estructura de columnas) y no tocar el resto del código.
+Los datos NO están pre-agregados: `data.js` guarda cada registro individual (`altas`: selector, regional, zonal, local, fecha, mes, presente, marca; `cumplimiento`: mes, semana, selector, cumplimiento, enviados, restantes, total; `piccola`: mes, altas). Todas las agregaciones (por mes, por selector, top zonales/locales, etc.) se calculan en `app.js` en tiempo real según el período elegido. Esto lo hace escalable: para actualizar, solo hay que regenerar `data.js` desde el Excel fuente (misma estructura de columnas) y no tocar el resto del código.
 
 ## Deploy
 
@@ -58,4 +58,9 @@ Proyecto 100% estático → deploy directo en Vercel (Framework Preset: "Other")
 
 Excel `informe_anual` (hoja "informe anual" para altas, hoja "cumplimiento" para envíos/vacantes).
 
-**2024 (marzo a diciembre)**: sale de `Rotacion_mensual_Anual.xlsx` (cuadros de altas crew + gerenciales por local de Sabores y Extremas; Piccola no se carga). Esa planilla trae cantidades por local y mes, así que cada alta es un registro con `selector`, `regional`, `zonal` y `fecha` vacíos (`""`) y `presente: null` (sin dato de presentismo). Los nombres de local se pasaron al formato de `data.js` (p. ej. "Lomas 1" → `LOMAS DE ZAMORA 1`, "Caseros" → `CASEROS 1`). Los rankings por selector y los top de zonales ignoran los valores vacíos, y la tasa de no presentados deja esos meses sin punto. Si se regenera `data.js` desde `informe_anual`, hay que volver a sumar estas filas.
+**Enero 2024 a abril 2025** (los meses anteriores al `informe_anual`): salen de `Rotacion_mensual_Anual.xlsx`, altas crew + gerenciales juntas de Sabores y Extremas. Lo que ya estaba cargado desde mayo 2025 no se tocó.
+- Marzo 2024 a abril 2025: detalle por local (cuadros "crew" y "gerenciales" de cada marca). Los nombres de local se pasaron al formato de `data.js` (p. ej. "Lomas 1" → `LOMAS DE ZAMORA 1`, "Caseros" → `CASEROS 1`).
+- Enero y febrero 2024: solo hay totales por marca (hoja "Rotacion"), así que esas altas van con `local` vacío y no entran en el mapa de zonas ni en los top de locales.
+- Cada alta es un registro con `selector`, `regional`, `zonal` y `fecha` vacíos (`""`) y `presente: null` (sin dato de presentismo). Los rankings por selector y los top de zonales/locales ignoran los vacíos, y la tasa de no presentados deja esos meses sin punto.
+- **Piccola** va aparte en `piccola` (`{ mes, altas }`, totales mensuales de 2024 de la hoja "Rotacion"): tiene su propia sección en el dashboard general y no suma en los KPIs.
+- Si se regenera `data.js` desde `informe_anual`, hay que volver a sumar estas filas y `piccola`.

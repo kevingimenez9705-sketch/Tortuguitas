@@ -171,7 +171,7 @@ const nombreSel = (s) => (EX_EQUIPO.has(s) ? '🪦 ' : '') + esc(NOMBRE_SELECTOR
 function top(filas, clave, n = 5) {
   const mapa = new Map();
   for (const r of filas) mapa.set(r[clave], (mapa.get(r[clave]) || 0) + 1);
-  mapa.delete(''); // altas sin zonal asignado (2024)
+  mapa.delete(''); // altas sin zonal/local asignado (2024 y ene-abr 2025)
   return [...mapa].sort((a, b) => b[1] - a[1]).slice(0, n);
 }
 
@@ -214,7 +214,7 @@ function calcular(m, periodo) {
 
   // Altas por zona del mapa (zonas.js: la misma clasificación del dashboard).
   const zonas = { norte: 0, oeste: 0, sur: 0, capital: 0, otros: 0 };
-  if (window.ZONAS) for (const r of altas) zonas[window.ZONAS.zonaFor(r.local)]++;
+  if (window.ZONAS) for (const r of altas) if (r.local) zonas[window.ZONAS.zonaFor(r.local)]++; // ene/feb 2024 sin local
 
   const marca = (k) => {
     const f = altas.filter((r) => r.marca === k);
