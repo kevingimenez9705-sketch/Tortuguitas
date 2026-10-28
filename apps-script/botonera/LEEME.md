@@ -5,6 +5,8 @@ Pone las funciones del menú de la planilla Citaciones Tortus como botones dentr
 - **Citados** → 📞 Citar por zona (CABA y Norte → Florida, Sur → Adrogué, Oeste → Merlo, o todas), con vista previa antes de mandar, y 🗑️ Eliminar filas ENVIADO.
 - **Confirmaron** → 📋 Recopilar confirmados y 📩 Organizar confirmaciones en Gmail.
 
+Publicada en `https://script.google.com/macros/s/AKfycbxmAC7noYVX2JHpuYNLJUoTQ9H1PkF_Dpye-vAfoPMcbXDQRfLPL3t-uladyd8DKnm5mg/exec` (proyecto "Botonera Citaciones" en el Drive de kevingimenez9705@gmail.com).
+
 Usa el mismo código de la planilla (`Codigo.gs` y `Citacion.html`) en un **proyecto aparte**: el de la planilla no se toca. Corre con la cuenta de quien la usa, así que la citación sale de su Gmail y la recopilación lee su casilla, igual que con el menú. La recopilación automática se sigue activando desde el menú de la planilla.
 
 ## Cómo publicarla (una sola vez)
@@ -15,7 +17,7 @@ Usa el mismo código de la planilla (`Codigo.gs` y `Citacion.html`) en un **proy
    - Renombrá `Código.gs` a `Codigo` y pegá **el mismo** `Codigo.gs` del proyecto Citaciones-Gustavo.
    - **+ → HTML** → `Citacion` → pegá el mismo `Citacion.html`.
    - **+ → Secuencia de comandos** → `Botonera` → pegá [`Botonera.gs`](Botonera.gs).
-   - **+ → HTML** → `Botonera` → pegá [`Botonera.html`](Botonera.html).
+   - **+ → HTML** → `Pantalla` → pegá [`Pantalla.html`](Pantalla.html) (no puede llamarse igual que `Botonera.gs`).
    - No copies `PanelB.gs` ni `Panel.html`: tienen su propio `doGet`.
 4. **Implementar → Nueva implementación** → tipo **Aplicación web**:
    - Ejecutar como: **Usuario que accede a la aplicación web**
