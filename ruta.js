@@ -522,7 +522,7 @@ window.RUTA = (() => {
   // el mismo código de Citaciones Tortus sin tocar el original. Corre con la
   // cuenta de quien la usa: la citación sale de su Gmail, igual que con el menú.
   // Cada vista queda cargada (un iframe que se mueve en la página se recarga).
-  const BOTONERA_URL = '';
+  const BOTONERA_URL = 'https://script.google.com/macros/s/AKfycbxmAC7noYVX2JHpuYNLJUoTQ9H1PkF_Dpye-vAfoPMcbXDQRfLPL3t-uladyd8DKnm5mg/exec';
   const VISTAS = {
     citar: { titulo: '📞 Citar por zona', alto: 470 },
     confirmados: { titulo: '📋 Confirmados', alto: 330 },
