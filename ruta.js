@@ -225,11 +225,45 @@ window.RUTA = (() => {
     }).join('');
   }
 
+  /* ── Por citar: lo que espera el menú 📞 Citar de Citaciones Tortus ── */
+  // Las citaciones se siguen mandando desde la planilla (cada uno desde su Gmail).
+  // n8n cuenta cada 30 min, con la misma regla del script, las filas sin ENVIADO
+  // con email, fecha y hora, por pestaña y zona. Solo totales.
+  const vacio = (txt) => `<p class="ru-nota">${esc(txt)}</p>`;
+  const barra = (n, total) => `<span class="ru-or-bar"><i style="width:${Math.min(100, Math.max(3, pct(n, total)))}%"></i></span>`;
+  const ZONAS_CITAR = ['CABA', 'Norte', 'Sur', 'Oeste'];
+  function porCitar() {
+    const filas = vivo.citaciones || [];
+    if (!filas.length) return '';
+    const pestanas = filas.filter((f) => f.tipo === 'pestana');
+    const zonas = filas.filter((f) => f.tipo === 'zona');
+    const resumen = filas.find((f) => f.tipo === 'resumen') || {};
+    const suma = (arr, k) => arr.reduce((s, x) => s + (Number(x[k]) || 0), 0);
+    const total = suma(zonas, 'pendientes');
+    const porZona = ZONAS_CITAR.map((z) => {
+      const deZona = zonas.filter((x) => x.zona === z);
+      const proxima = deZona.map((x) => x.proxima).filter(Boolean).sort()[0];
+      return { z, sede: (deZona[0] || {}).sede || '', n: suma(deZona, 'pendientes'), vencidas: suma(deZona, 'vencidas'), quienes: deZona, proxima };
+    }).filter((x) => x.n);
+    const avisos = [
+      [suma(pestanas, 'enviados'), '✉️', 'ya enviadas', ''],
+      [suma(pestanas, 'sin_zona'), '⚠️', 'sin zona (no se mandan)', ' is-alerta'],
+      [suma(pestanas, 'errores'), '⚠️', 'con ERROR', ' is-alerta'],
+      [suma(pestanas, 'sin_datos'), '📝', 'sin mail, fecha u hora', ''],
+    ].filter(([n]) => n).map(([n, ico, txt, cls]) => `<span class="tab-chip${cls}">${ico} <b>${fmt(n)}</b> ${txt}</span>`).join('');
+    const rotas = pestanas.filter((p) => p.faltan).map((p) => `<p class="ru-nota">⚠️ ${esc(p.pestana)}: faltan las columnas ${esc(p.faltan)}.</p>`).join('');
+    return `<p class="ru-sub">Por citar · menú 📞 Citar${resumen.generado ? ` · ${esc(SB.hace(resumen.generado))}` : ''}</p>`
+      + (porZona.length
+        ? `<ul class="ru-vivo">${porZona.map((x) => `<li${x.vencidas ? ' class="is-lleno"' : ''}><span>${esc(x.z)} → ${esc(x.sede)}</span>${barra(x.n, total)}<b>${fmt(x.n)}</b><small>${x.quienes.map((q) => `${esc(q.selector)} ${fmt(q.pendientes)}`).join(' · ')}${x.proxima ? ` · próxima ${esc(dia(x.proxima))}` : ''}${x.vencidas ? ` · ⚠️ ${fmt(x.vencidas)} con fecha pasada` : ''}</small></li>`).join('')}</ul>`
+        : vacio('No hay citaciones pendientes: todas las filas con fecha y hora ya dicen ENVIADO.'))
+      + (avisos ? `<div class="tab-chips">${avisos}</div>` : '')
+      + rotas
+      + '<p class="ru-nota">Se citan desde la planilla: abrí tu pestaña Citaciones-… y usá 📞 Citar → la zona.</p>';
+  }
+
   /* ── Datos en vivo de cada oficina (replican el Panel de Sala y el Contador de Vacantes) ── */
   function widget(tipo) {
     if (!vivo) return '<p class="ru-nota">Cargando datos en vivo…</p>';
-    const vacio = (txt) => `<p class="ru-nota">${esc(txt)}</p>`;
-    const barra = (n, total) => `<span class="ru-or-bar"><i style="width:${Math.min(100, Math.max(3, pct(n, total)))}%"></i></span>`;
     if (tipo === 'sala') {
       const turnos = vivo.sala_turnos || [];
       if (!turnos.length) return vacio('No hay turnos confirmados para hoy ni mañana.');
@@ -255,7 +289,7 @@ window.RUTA = (() => {
         : vacio('Sin confirmados para los próximos 7 días.');
       if (tipo === 'confirmados') return lista;
       const salas = (vivo.agenda || []).slice(0, 5);
-      return lista + (salas.length ? `<p class="ru-sub">Salas reservadas</p><ul class="ru-vivo">${salas.map((a) => `<li><span>${esc(dia(a.fecha))} · ${esc(a.horario)}</span><b>${esc(a.sala || 'Sala')}</b>${a.reunion === 'Sí' ? '<small>reunión</small>' : ''}</li>`).join('')}</ul>` : '');
+      return porCitar() + '<p class="ru-sub">Confirmados por día</p>' + lista + (salas.length ? `<p class="ru-sub">Salas reservadas</p><ul class="ru-vivo">${salas.map((a) => `<li><span>${esc(dia(a.fecha))} · ${esc(a.horario)}</span><b>${esc(a.sala || 'Sala')}</b>${a.reunion === 'Sí' ? '<small>reunión</small>' : ''}</li>`).join('')}</ul>` : '');
     }
     if (tipo === 'vacantes') {
       const sol = vivo.solicitudes || [];
