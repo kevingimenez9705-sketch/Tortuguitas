@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Ruta del ingresante · Oficina digital · Equipo Tortuguitas</title>
-<link rel="stylesheet" href="styles.css?v=20261028d" />
+<link rel="stylesheet" href="styles.css?v=20261028e" />
 </head>
 <body>
 <script src="transition.js?v=20261019"></script>
@@ -17,7 +17,7 @@
       <div>
         <span class="breadcrumb">Selección · Oficina digital</span>
         <h1>Ruta del ingresante</h1>
-        <p>Todo el proceso, del formulario QR a iCheck, como una fila de oficinas: una por paso, con su gente esperando, sus funciones y su planilla real adentro. Junta Citaciones Tortus, TAREAS GRUPALES y Tareas grupales/zonas: se trabaja igual que en Drive, pero paso por paso.</p>
+        <p>Todo el proceso, del formulario QR a iCheck, como una fila de oficinas: una por paso, con sus números, sus botones y su planilla real adentro. Junta Citaciones Tortus, TAREAS GRUPALES y Tareas grupales/zonas: se trabaja igual que en Drive, pero paso por paso.</p>
       </div>
     </div>
   </div>
@@ -37,81 +37,36 @@
     <div class="ru-escena" id="rutaEscena"></div>
     <div class="ru-trabajo">
       <aside class="card ru-panel" id="rutaPanel" aria-live="polite"></aside>
-      <div class="card ru-hoja" id="rutaHoja" hidden>
-        <div class="ru-hoja-head">
-          <div>
-            <h3>📄 La planilla de esta oficina</h3>
-            <p class="desc">Es la hoja real de Drive: lo que cambies acá queda en la planilla y siguen andando sus menús y Apps Script (📞 Citar incluido). Abajo de la hoja están todas sus pestañas.</p>
+      <div class="ru-der">
+        <div class="card ru-botonera" id="rutaBotonera" hidden>
+          <div class="ru-hoja-head">
+            <h3 id="rutaBotoneraTitulo">Funciones</h3>
+            <a class="tab-btn" id="rutaBotoneraAbrir" href="#" target="_blank" rel="noopener" hidden>Abrir en otra pestaña ↗</a>
           </div>
-          <a class="tab-btn" id="rutaHojaAbrir" href="#" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a>
+          <p class="ru-nota" id="rutaBotoneraFalta">Los botones de esta oficina se activan cuando se publique la Botonera de Apps Script. Mientras tanto, usá el menú de la planilla de abajo.</p>
+          <div id="rutaBotoneraMarcos"></div>
+          <p class="ru-nota">Corre con tu cuenta de Google: la citación sale de tu Gmail, igual que con el menú. La primera vez abrila en otra pestaña para darle permiso.</p>
         </div>
-        <div class="ru-hoja-tabs" id="rutaHojaTabs" role="group" aria-label="Planillas de esta oficina"></div>
-        <div class="ru-hoja-marcos" id="rutaHojaMarcos"></div>
-        <p class="ru-nota">¿No carga? Entrá a Google con la cuenta que tiene acceso a la planilla, o abrila en otra pestaña.</p>
-      </div>
-    </div>
-    <div class="ru-abajo">
-      <div class="card">
-        <h3>Paso por paso</h3>
-        <p class="desc">Cuánta gente pasó por cada paso en el período. Tocá uno para ir a su oficina.</p>
-        <ol class="ru-linea" id="rutaLinea"></ol>
-        <p class="ru-nota ru-identidad" id="rutaIdentidad"></p>
-      </div>
-      <div class="card">
-        <h3>Últimos movimientos</h3>
-        <p class="desc">Sin nombres: solo la estación, el lugar y quién la movió.</p>
-        <ul class="ru-movs" id="rutaMovs"></ul>
-      </div>
-    </div>
-    <p class="footer-note">Supabase (tabla seguimiento, función ruta_estaciones) · se renueva cada minuto · sin datos personales.</p>
-  </section>
-
-  <section id="fuentesSeccion" aria-labelledby="fuentesTitulo">
-    <div class="section-label" id="fuentesTitulo">De dónde lee la Oficina · fuentes y carpetas</div>
-    <div class="card fu-card">
-      <div class="fu-top">
-        <div class="tab-chips" id="fuResumen"></div>
-        <div class="fu-acciones">
-          <span class="fu-cuando" id="fuCuando" aria-live="polite">Cargando…</span>
-          <button class="tab-btn" id="fuRecargar" type="button">Actualizar</button>
-        </div>
-      </div>
-      <div class="fu-tabs" role="tablist" aria-label="Fuentes de la Oficina">
-        <button class="fu-tab" role="tab" id="fuT-lee" aria-controls="fuP-lee" aria-selected="true" type="button">✅ Lo que lee <span data-n="lee">–</span></button>
-        <button class="fu-tab" role="tab" id="fuT-falta" aria-controls="fuP-falta" aria-selected="false" tabindex="-1" type="button">🔌 Lo que falta <span data-n="falta">–</span></button>
-        <button class="fu-tab" role="tab" id="fuT-carpetas" aria-controls="fuP-carpetas" aria-selected="false" tabindex="-1" type="button">📁 Todas las carpetas <span data-n="carpetas">–</span></button>
-      </div>
-      <div id="fuP-lee" role="tabpanel" aria-labelledby="fuT-lee">
-        <p class="desc">Cada fuente con los agentes que la usan y cuándo se actualizó la copia. Verde: al día · naranja: atrasada · rojo: hace mucho que no llega.</p>
-        <div class="tab-grid" id="fuLee"></div>
-      </div>
-      <div id="fuP-falta" role="tabpanel" aria-labelledby="fuT-falta" hidden>
-        <p class="desc">Fuentes que la Oficina todavía no lee y por qué. Si dice «compartir», hay que compartir la planilla con la cuenta de n8n.</p>
-        <div class="tab-grid" id="fuFalta"></div>
-        <p class="fu-descartadas" id="fuDescartadas"></p>
-      </div>
-      <div id="fuP-carpetas" role="tabpanel" aria-labelledby="fuT-carpetas" hidden>
-        <div class="fu-filtros">
-          <label class="ov-sr" for="fuBuscar">Buscar carpeta</label>
-          <input id="fuBuscar" type="search" placeholder="Buscar planilla, sitio, flujo o herramienta…" autocomplete="off" />
-          <label class="ov-sr" for="fuArea">Área</label>
-          <select id="fuArea"><option value="">Todas las áreas</option></select>
-          <div class="fu-filtro-chips" role="group" aria-label="Filtrar por estado">
-            <button class="fu-tab" type="button" data-f="" aria-pressed="true">Todas</button>
-            <button class="fu-tab" type="button" data-f="lee" aria-pressed="false">La Oficina las lee</button>
-            <button class="fu-tab" type="button" data-f="no" aria-pressed="false">Sin conectar</button>
+        <div class="card ru-hoja" id="rutaHoja" hidden>
+          <div class="ru-hoja-head">
+            <div>
+              <h3>📄 La planilla de esta oficina</h3>
+              <p class="desc">Es la hoja real de Drive: lo que cambies acá queda en la planilla y siguen andando sus menús y Apps Script (📞 Citar incluido). Abajo de la hoja están todas sus pestañas.</p>
+            </div>
+            <a class="tab-btn" id="rutaHojaAbrir" href="#" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a>
           </div>
+          <div class="ru-hoja-tabs" id="rutaHojaTabs" role="group" aria-label="Planillas de esta oficina"></div>
+          <div class="ru-hoja-marcos" id="rutaHojaMarcos"></div>
+          <p class="ru-nota">¿No carga? Entrá a Google con la cuenta que tiene acceso a la planilla, o abrila en otra pestaña.</p>
         </div>
-        <div class="fu-carpetas" id="fuCarpetas"></div>
       </div>
     </div>
-    <p class="footer-note">Mapa en Supabase (tablas oficina_fuentes y trabajos) · se renueva cada 5 min · sin datos personales.</p>
+    <p class="footer-note">Números: Supabase (función ruta_estaciones), se renuevan cada minuto, sin datos personales · Planillas y botones: Google, con tu cuenta.</p>
   </section>
 
 </div>
 <script src="supabase.js?v=20261015"></script>
-<script src="ruta.js?v=20261028d"></script>
-<script src="fuentes.js?v=20261028"></script>
-<script type="module" src="ruta-3d.js?v=20261028b"></script>
+<script src="ruta.js?v=20261028e"></script>
+<script type="module" src="ruta-3d.js?v=20261028c"></script>
 </body>
 </html>

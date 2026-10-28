@@ -1415,3 +1415,10 @@ html.reveal-pending .container > *{opacity:0;}
 .ru-hoja-marcos{position:relative;height:max(560px,75vh);overflow:hidden;border-radius:12px;background:#f6f8fb;box-shadow:0 0 0 1px var(--border);}
 .ru-hoja-marco{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;}
 .ru-hoja-marco[hidden]{display:none;}
+
+/* Ruta · columna de trabajo: botones de Apps Script (Botonera) y la planilla */
+.ru-der{display:flex;flex-direction:column;gap:16px;min-width:0;}
+.ru-botonera{display:flex;flex-direction:column;gap:8px;}
+.ru-botonera[hidden],.ru-botonera [hidden]{display:none;}
+.ru-botonera h3{margin:0;font-size:15px;}
+.ru-botonera-marco{display:block;width:100%;border:0;border-radius:10px;background:#fff;box-shadow:0 0 0 1px var(--border);}
