@@ -5,7 +5,7 @@ Pone las funciones del menú de la planilla Citaciones Tortus como botones dentr
 - **Citados** → 📞 Citar por zona (CABA y Norte → Florida, Sur → Adrogué, Oeste → Merlo, o todas), con vista previa antes de mandar, y 🗑️ Eliminar filas ENVIADO.
 - **Confirmaron** → 📋 Recopilar confirmados y 📩 Organizar confirmaciones en Gmail.
 
-Publicada en `https://script.google.com/macros/s/AKfycbzxs6r4Gt7tBRg1KjaltsDWeBLRxGPkByTbcNaWlWpyQHoXLNbZ019WtKRvYjGg4WMghA/exec` (proyecto "Botonera Citaciones" en el Drive de kevingimenez9705@gmail.com).
+Publicada en `https://script.google.com/macros/s/AKfycbzxs6r4Gt7tBRg1KjaltsDWeBLRxGPkByTbcNaWlWpyQHoXLNbZ019WtKRvYjGg4WMghA/exec` (proyecto "Botonera Citaciones" en el Drive de kevingimenez9705@gmail.com). Como es de una cuenta personal, las cuentas corporativas (gastrobsas.com.ar) no la pueden usar: el equipo cita desde el menú 📞 Citar de la planilla, que se ve dentro de cada oficina. Para que la usen las cuentas corporativas, hay que publicar una copia desde una cuenta corporativa con acceso "Cualquier usuario de gastrobsas.com.ar".
 
 Usa el mismo código de la planilla (`Codigo.gs` y `Citacion.html`) en un **proyecto aparte**: el de la planilla no se toca. Corre con la cuenta de quien la usa, así que la citación sale de su Gmail y la recopilación lee su casilla, igual que con el menú. La recopilación automática se sigue activando desde el menú de la planilla.
 
