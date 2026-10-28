@@ -1235,9 +1235,9 @@ html.reveal-pending .container > *{opacity:0;}
 .ru-leyenda li::before{content:"";width:18px;height:5px;border-radius:3px;background:var(--c);}
 .ru-cuando{margin-left:auto;font-size:12px;color:var(--text-muted);}
 .ru.is-error .ru-cuando{color:var(--red);font-weight:700;}
-.ru-escena{position:relative;overflow:hidden;border-radius:var(--radius);aspect-ratio:2.5/1;margin-bottom:16px;background:#eef2f6;box-shadow:inset 0 0 0 1px var(--border);isolation:isolate;}
+.ru-escena{position:relative;overflow:hidden;border-radius:var(--radius);aspect-ratio:2.4/1;min-height:300px;margin-bottom:16px;background:#eef2f6;box-shadow:inset 0 0 0 1px var(--border);isolation:isolate;}
 .ru-escena.sin-3d{display:none;}
-@media(max-width:600px){.ru-escena{aspect-ratio:2.2/1;}}
+@media(max-width:600px){.ru-escena{aspect-ratio:1.1/1;}}
 
 .ru-panel{display:flex;flex-direction:column;gap:12px;}
 .ru-panel-head{display:flex;align-items:center;gap:10px;}
@@ -1299,20 +1299,72 @@ html.reveal-pending .container > *{opacity:0;}
 .ru-movs time{font-size:11.5px;color:var(--text-muted);white-space:nowrap;}
 .ru-mov-vacio{color:var(--text-muted);font-size:13px;}
 
-/* Carteles de la maqueta 3D (en el piso, delante de cada andén) */
-.ru3-cartel{display:flex;flex-direction:column;align-items:center;min-width:62px;padding:4px 9px 4px;border-radius:9px;background:rgba(255,255,255,.95);box-shadow:inset 0 3px 0 var(--c),0 1px 4px rgba(15,28,63,.14);font-size:10.5px;line-height:1.15;color:var(--text);text-align:center;white-space:nowrap;}
-.ru3-cartel b{font-weight:700;color:var(--text-muted);}
-.ru3-cartel span{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
-.ru3-cartel em{font-style:normal;font-size:10px;font-weight:700;color:#16805e;}
-.ru3-cartel.is-vacia span{font-size:11px;color:var(--red);}
-.ru3-cartel.is-elegida{background:#fff;box-shadow:inset 0 3px 0 var(--c),0 0 0 2px var(--c),0 6px 16px rgba(15,28,63,.2);}
-.ru3-cartel.is-pulso{animation:ru3-pulso 1.2s ease;}
-@keyframes ru3-pulso{30%{background:#fff3c4;}100%{background:rgba(255,255,255,.95);}}
-.ru3-hito{padding:3px 9px;border-radius:999px;background:var(--navy);color:#fff;font-size:11px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(15,28,63,.25);}
-.ru3-hito.is-meta{background:#2c9356;}
-.o3d.is-chica .ru3-cartel b,.o3d.is-chica .ru3-cartel em{display:none;}
-.o3d.is-chica .ru3-cartel{min-width:0;padding:2px 6px;}
-.o3d.is-chica .ru3-cartel span{font-size:11px;}
-.o3d.is-chica .ru3-hito{font-size:9.5px;padding:2px 6px;}
+/* Panel: funciones de la oficina */
+.ru-funciones{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:12px;background:#fff;box-shadow:0 0 0 1px var(--border);}
+.ru-funciones h4{margin:0;font-size:13px;letter-spacing:.02em;}
+.ru-herr{display:grid;gap:6px;}
+.ru-herr-btn{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border-radius:10px;background:var(--card);color:var(--text);text-decoration:none;box-shadow:0 0 0 1px var(--border);font-size:12.5px;}
+.ru-herr-btn:hover{box-shadow:0 0 0 1px var(--navy);}
+.ru-herr-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+.ru-herr-btn small{flex-shrink:0;color:var(--text-muted);font-size:11px;}
+.ru-box.is-vivo{background:#f6f8fb;}
+.ru-funciones .tab-btn{align-self:flex-start;}
+.ru-vivo{list-style:none;margin:2px 0 0;padding:0;display:grid;gap:5px;}
+.ru-vivo li{display:grid;grid-template-columns:minmax(0,1fr) 64px auto;gap:8px;align-items:center;font-size:12px;}
+.ru-vivo li>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ru-vivo li b{font-variant-numeric:tabular-nums;text-align:right;}
+.ru-vivo li small{grid-column:1 / -1;margin-top:-3px;font-size:10.5px;color:var(--text-muted);}
+.ru-vivo li.is-lleno .ru-or-bar i{background:var(--red);}
+.ru-sub{margin:8px 0 2px;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#94a3b8;}
+.ru-sub:first-child{margin-top:2px;}
+.ru-scripts{margin:2px 0 0;padding-left:16px;display:grid;gap:2px;font-size:12px;}
+.ru-mas summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--text-muted);padding:2px 0;}
+.ru-mas[open]{display:grid;gap:8px;}
+.ru-nav{display:flex;justify-content:space-between;gap:8px;}
+.ru-nav-btn,.ru-chip-btn{cursor:pointer;border:0;background:#fff;box-shadow:0 0 0 1px var(--border);border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;color:var(--text);}
+.ru-nav-btn:hover,.ru-chip-btn:hover{box-shadow:0 0 0 1px var(--navy);}
+.ru-chip-btn[aria-pressed="true"]{background:var(--navy);color:#fff;box-shadow:none;}
+.ru-nav-btn:focus-visible,.ru-chip-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+.ru-identidad{margin-top:14px;}
+
+/* Oficinas 3D: barra de pasos, flechas y carteles */
+.ru-escena:focus-visible{outline:3px solid var(--blue);outline-offset:2px;}
+.ru3-pasos{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:4;display:flex;gap:4px;align-items:center;max-width:calc(100% - 20px);padding:5px;border-radius:999px;background:rgba(255,255,255,.92);box-shadow:0 2px 10px rgba(15,28,63,.12);}
+.ru3-paso{display:flex;align-items:center;gap:6px;border:0;cursor:pointer;background:transparent;padding:3px;border-radius:999px;font:inherit;font-size:11.5px;font-weight:700;color:var(--text);}
+.ru3-paso i{width:12px;height:12px;flex-shrink:0;border-radius:50%;box-sizing:border-box;border:3px solid var(--c);background:#fff;}
+.ru3-paso.is-hecho i{background:var(--c);}
+.ru3-paso span{display:none;white-space:nowrap;}
+.ru3-paso.is-actual{background:var(--c);color:#fff;padding:3px 10px 3px 4px;}
+.ru3-paso.is-actual i{border-color:#fff;background:var(--c);}
+.ru3-paso.is-actual span{display:inline;}
+.ru3-paso:focus-visible{outline:2px solid var(--blue);outline-offset:1px;}
+.ru3-flecha{position:absolute;top:50%;z-index:4;transform:translateY(-50%);display:flex;align-items:center;gap:8px;border:0;cursor:pointer;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.95);box-shadow:0 0 0 2px var(--c),0 6px 18px rgba(15,28,63,.18);font:inherit;color:var(--text);}
+.ru3-flecha.is-ant{left:12px;}
+.ru3-flecha.is-sig{right:12px;}
+.ru3-flecha[hidden]{display:none;}
+.ru3-flecha:hover{background:#fff;}
+.ru3-flecha:focus-visible{outline:3px solid var(--blue);outline-offset:2px;}
+.ru3-flecha-ico{width:30px;height:30px;display:grid;place-items:center;border-radius:50%;background:var(--c);color:#fff;font-size:22px;line-height:1;font-weight:700;}
+.ru3-flecha-txt{display:flex;flex-direction:column;font-size:12.5px;font-weight:700;text-align:left;}
+.ru3-flecha.is-sig .ru3-flecha-txt{text-align:right;}
+.ru3-flecha-txt small{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);}
+.ru3-sala{display:flex;flex-direction:column;align-items:center;padding:5px 14px 6px;border-radius:12px;background:#fff;box-shadow:inset 0 4px 0 var(--c),0 4px 14px rgba(15,28,63,.16);white-space:nowrap;text-align:center;transition:opacity .3s ease;}
+.ru3-sala small{font-size:10.5px;font-weight:700;color:var(--text-muted);}
+.ru3-sala b{font-size:16px;}
+.ru3-sala[hidden],.ru3-pantalla[hidden],.o3d-tag[hidden],.o3d-zzz[hidden],.o3d-globo[hidden]{display:none;}
+.ru3-pantalla{display:flex;flex-direction:column;align-items:center;min-width:120px;color:#fff;text-align:center;line-height:1.15;pointer-events:none;}
+.ru3-pantalla b{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;color:#fff;}
+.ru3-pantalla span{font-size:10.5px;color:#c9d2e3;}
+.ru3-pantalla em{margin-top:2px;font-style:normal;font-size:10.5px;font-weight:700;color:#7ef0c4;}
+.ru3-pantalla.is-vacia b{font-size:15px;color:#ffb4a2;}
+.o3d.is-chica .ru3-flecha-txt{display:none;}
+.o3d.is-chica .ru3-flecha{padding:4px;}
+.o3d.is-chica .ru3-flecha-ico{width:26px;height:26px;font-size:18px;}
+.o3d.is-chica .ru3-pasos{gap:2px;padding:4px;}
+.o3d.is-chica .ru3-paso.is-actual{padding:3px;}
+.o3d.is-chica .ru3-paso.is-actual span{display:none;}
+.o3d.is-chica .ru3-paso i{width:11px;height:11px;}
+.o3d.is-chica .ru3-sala b{font-size:13px;}
+.o3d.is-chica .ru3-pantalla b{font-size:17px;}
+.o3d.is-chica .ru3-pantalla span{display:none;}
 .o3d.is-chica .o3d-tag span{display:none;}
-@media(prefers-reduced-motion:reduce){.ru3-cartel.is-pulso{animation:none;}}

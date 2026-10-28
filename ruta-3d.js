@@ -1,18 +1,25 @@
-// ruta-3d.js — la Ruta del ingresante en 3D (three.js, sin build): maqueta
-// isométrica low-poly con el mismo estilo que la Oficina. Una línea de subte con
-// los 4 tramos de colores y 13 andenes, del totem del QR al local de bienvenida.
+// ruta-3d.js — la Ruta del ingresante en 3D (three.js, sin build): una oficina
+// por paso del proceso, con el mismo estilo low-poly de la Oficina digital.
+// Las oficinas están una al lado de la otra, unidas por un pasillo; se recorren
+// con las flechas de los costados (o ← → del teclado), con la barra de pasos de
+// arriba o tocando la oficina de al lado.
 //
-// - Cada andén muestra cuánta gente pasó por la estación en el período (cartel)
-//   y la gente que está esperando ahí ahora (muñequitos: más muñequitos, más gente;
-//   crecen en escala logarítmica para que entren de 1 a 10.000).
-// - Los trencitos repiten los últimos movimientos reales (de una estación a la siguiente).
-// - Los 6 agentes cuidan su tramo: cuentan números reales de la ruta, lo último
-//   que hicieron (bitácora) y de vez en cuando visitan sus estaciones.
-// - Clic en un andén: lo elige en el panel (evento ruta:elegir). Clic en un
-//   agente: ficha con lo último que hizo y botón para preguntarle por el chat.
+// Cada oficina tiene:
+// - la pantalla con cuánta gente pasó por el paso en el período, cuántos esperan
+//   ahí y cuántos llegaron hoy (rpc/ruta_estaciones, vía ruta.js);
+// - la sala de espera con muñequitos (más muñequitos, más gente esperando;
+//   escala logarítmica para que entren de 1 a 10.000) y alguien que entra por la
+//   puerta cuando hubo movimiento hoy;
+// - el agente que cuida ese paso en su escritorio (cuenta los números reales y lo
+//   último que hizo según la bitácora; duerme fuera de horario);
+// - un objeto propio del paso (totem del QR, calendario, mesa de entrevista,
+//   buzón al zonal, lector de huella, servidores de iCheck, globos de bienvenida…).
+// Las funciones de cada oficina (planillas, herramientas, datos en vivo) están en
+// el panel de ruta.js, debajo de la maqueta.
 //
-// Datos: escucha "ruta:datos" (ruta.js) y lee la bitácora de los agentes cada 30 s.
-// Sin WebGL o si three.js no carga, la maqueta se oculta y queda la línea 2D.
+// Eventos: escucha "ruta:datos" y "ruta:elegida"; pide "ruta:elegir" al navegar.
+// Sin WebGL o si three.js no carga, la maqueta se oculta y queda el panel con la
+// línea estación por estación.
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
 const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
 
@@ -44,20 +51,23 @@ if (escena && window.RUTA) {
 const PALETA = {
   fondo: '#eef2f6',
   base: '#e3e8ef',
-  grilla: '#cdd5e0',
   blanco: '#ffffff',
+  pared: '#fbfcfd',
   patas: '#d5dbe4',
+  silla: '#c6cfdb',
   oscuro: '#3b4352',
+  rack: '#7f8a9c',
+  rackPanel: '#939dae',
   gris: '#b8c1ce',
   grisSuave: '#e6e9ee',
+  pasillo: '#dfe5ec',
   menta: '#5ee0b5',
   cian: '#45d3ec',
   ambar: '#f5b748',
-  hoja: '#7fd3a8',
-  hojaOscura: '#45b386',
-  terracota: '#e9a07a',
   amarilloSuave: '#ffe7a3',
   coral: '#ffb4a2',
+  corcho: '#d8b48a',
+  madera: '#c99a6b',
 };
 const ESTADOS = {
   trabajando: { label: 'Trabajando', color: PALETA.cian },
@@ -68,27 +78,29 @@ const ESTADOS = {
 const ROPA = ['#f4a261', '#e9c46a', '#8ecae6', '#cdb4db', '#ffafcc', '#a3c4bc', '#f6bd60', '#90be6d', '#bde0fe'];
 const PIEL = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac'];
 
-// Plano de la maqueta (u: hacia la derecha de la pantalla, v: hacia abajo).
-// Tres filas en zigzag: tramos 1-2 arriba, 3 al medio (vuelve), 4 abajo.
-const POS = {
-  POSTULADO: [-14, -8], CITADO_ENTREVISTA: [-7, -8], CONFIRMO_ENTREVISTA: [0, -8], ASISTIO_ENTREVISTA: [7, -8], APROBADO: [14, -8],
-  COMPARTIDO_ZONAL: [14, 0], VACANTE_ASIGNADA: [0, 0], APROBADO_ZONAL: [-14, 0],
-  CITADO_ONB: [-14, 8], CONFIRMA_ONB: [-7, 8], HIZO_ONB: [0, 8], ALTA_ICHECK: [7, 8], INGRESO: [14, 8],
-};
-const ORDEN = Object.keys(POS);
-const SALIDAS = [-19.6, 10.3]; // andén de salidas, en la esquina de abajo a la izquierda
-const TORRE = [20.3, -10.2]; // torre de control (Coordinador y Analista), arriba a la derecha
-const ANDEN_V = -1.75; // el andén queda detrás de la vía
-const MEDIDA = { u: 46, v: 23.5 };
+// Las oficinas, en orden: los 13 pasos y al final la de salidas.
+const PASOS = ['POSTULADO', 'CITADO_ENTREVISTA', 'CONFIRMO_ENTREVISTA', 'ASISTIO_ENTREVISTA', 'APROBADO',
+  'COMPARTIDO_ZONAL', 'VACANTE_ASIGNADA', 'APROBADO_ZONAL', 'CITADO_ONB', 'CONFIRMA_ONB', 'HIZO_ONB', 'ALTA_ICHECK', 'INGRESO'];
+const SALAS = [...PASOS, 'SALIDAS'];
+const SALIDAS = ['NO_AVANZA', 'NO_SE_PRESENTO', 'DESISTIO', 'RECHAZADO_ZONAL'];
 
-// Dónde vive cada agente ([u, v, altura]), sus estaciones, forma y horario (como en la Oficina).
-const PUESTOS = {
-  screening: { casa: [-19.5, -8, 2.6], forma: 'esfera', color: '#9b87f5', dias: [1, 2, 3, 4, 5, 6], estaciones: ['POSTULADO', 'APROBADO'] },
-  agenda: { casa: [-3.5, -11.2, 2.4], forma: 'cubo', color: '#f5c842', dias: [1, 2, 3, 4, 5], estaciones: ['CITADO_ENTREVISTA', 'CONFIRMO_ENTREVISTA', 'ASISTIO_ENTREVISTA'] },
-  vacantes: { casa: [20.5, -4, 2.4], forma: 'cubo', color: '#e85a5a', dias: [1, 2, 3, 4, 5], estaciones: ['COMPARTIDO_ZONAL', 'VACANTE_ASIGNADA', 'APROBADO_ZONAL'] },
-  onboarding: { casa: [-20.5, 4, 2.4], forma: 'capsula', color: '#8a3b45', dias: [1, 2, 3, 4, 5], estaciones: ['CITADO_ONB', 'CONFIRMA_ONB', 'HIZO_ONB', 'ALTA_ICHECK', 'INGRESO'] },
-  coordinador: { casa: [TORRE[0], TORRE[1], 4.3], forma: 'capsula', color: PALETA.blanco, dias: [1, 2, 3, 4, 5], estaciones: [] },
-  analista: { casa: [TORRE[0] - 2.7, TORRE[1] - 1.0, 2.4], forma: 'esfera', color: '#5b8def', dias: [1, 2, 3, 4, 5], estaciones: [] },
+// Medidas (u: a lo largo del pasillo, v: hacia la cámara).
+const PASO = 14; // distancia entre oficinas
+const ANCHO = 10;
+const FONDO = 8;
+const PISO_Y = 0.14;
+const PARED_H = 1.7;
+const PARED_T = 0.22;
+const PUERTA = 2.2;
+
+// Robot de cada agente: forma, color y días de trabajo (los mismos de la Oficina).
+const ROBOTS = {
+  screening: { forma: 'esfera', color: '#9b87f5', dias: [1, 2, 3, 4, 5, 6] },
+  agenda: { forma: 'cubo', color: '#f5c842', dias: [1, 2, 3, 4, 5] },
+  vacantes: { forma: 'cubo', color: '#e85a5a', dias: [1, 2, 3, 4, 5] },
+  onboarding: { forma: 'capsula', color: '#8a3b45', dias: [1, 2, 3, 4, 5] },
+  coordinador: { forma: 'capsula', color: PALETA.blanco, dias: [1, 2, 3, 4, 5] },
+  analista: { forma: 'esfera', color: '#5b8def', dias: [1, 2, 3, 4, 5] },
 };
 const DESPIERTOS = [8, 18];
 const ACCION_EMOJI = { ok: '✅', error: '⚠️', pendiente: '⏳', resuelto: '✅' };
@@ -99,7 +111,6 @@ let T;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = (n) => Number(n || 0).toLocaleString('es-AR');
 const azar = (lista) => lista[Math.floor(Math.random() * lista.length)];
-const espera = (ms) => new Promise((r) => setTimeout(r, ms));
 const suave = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
 
 function horaBA() {
@@ -107,12 +118,12 @@ function horaBA() {
     .formatToParts(new Date()).map((x) => [x.type, x.value]));
   return { dia: { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[p.weekday], hora: Number(p.hour) };
 }
-const despierto = (p) => {
+const despierto = (r) => {
   const t = horaBA();
-  return p.dias.includes(t.dia) && t.hora >= DESPIERTOS[0] && t.hora < DESPIERTOS[1];
+  return r.dias.includes(t.dia) && t.hora >= DESPIERTOS[0] && t.hora < DESPIERTOS[1];
 };
-// Muñequitos en el andén: 0 → 0, 1 → 1, 10 → 4, 100 → 7, 1.000 → 10, 10.000 → 14.
-const munecos = (n) => (n > 0 ? Math.min(15, Math.max(1, Math.round(Math.log10(n + 1) * 3.3))) : 0);
+// Muñequitos en la sala de espera: 0 → 0, 1 → 1, 10 → 3, 100 → 6, 1.000 → 9, 10.000 → 12.
+const munecos = (n) => (n > 0 ? Math.min(12, Math.max(1, Math.round(Math.log10(n + 1) * 3))) : 0);
 
 /* ───────────────────────── Geometría low-poly ───────────────────────── */
 
@@ -122,6 +133,9 @@ function mate(color, plano = false) {
   const clave = color + (plano ? ':plano' : '');
   if (!materiales.has(clave)) materiales.set(clave, new T.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0, flatShading: plano }));
   return materiales.get(clave);
+}
+function brilla(color, intensidad = 0.8) {
+  return new T.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: intensidad, roughness: 0.5 });
 }
 function malla(geo, mat, { sombra = true, recibe = true } = {}) {
   const m = new T.Mesh(geo, mat);
@@ -142,6 +156,44 @@ function cilindro(rt, rb, h, seg, color, opciones) {
   return malla(new T.CylinderGeometry(rt, rb, h, seg), typeof color === 'string' ? mate(color) : color, opciones);
 }
 
+function pared(largo, acento, conPuerta) {
+  const g = new T.Group();
+  const tramos = conPuerta
+    ? [{ l: (largo - PUERTA) / 2, x: -(largo + PUERTA) / 4 }, { l: (largo - PUERTA) / 2, x: (largo + PUERTA) / 4 }]
+    : [{ l: largo, x: 0 }];
+  tramos.forEach((t) => {
+    g.add(en(caja(t.l, PARED_H, PARED_T, PALETA.pared, { r: 0.06 }), t.x, PARED_H / 2, 0));
+    g.add(en(caja(t.l, 0.07, PARED_T + 0.02, acento, { r: 0.025, sombra: false }), t.x, PARED_H + 0.01, 0));
+  });
+  return g;
+}
+function silla(color = PALETA.silla) {
+  const g = new T.Group();
+  g.add(en(cilindro(0.3, 0.34, 0.08, 10, PALETA.patas), 0, 0.05, 0));
+  g.add(en(cilindro(0.05, 0.05, 0.44, 8, PALETA.patas, { recibe: false }), 0, 0.3, 0));
+  g.add(en(caja(0.7, 0.12, 0.66, color), 0, 0.55, 0));
+  g.add(en(caja(0.66, 0.6, 0.12, color), 0, 0.92, 0.3));
+  return g;
+}
+/** Escritorio con monitor (de frente a la cámara) y silla. */
+function escritorio(colorSilla, colorPantalla) {
+  const g = new T.Group();
+  g.add(en(caja(2.4, 0.12, 1.1, PALETA.blanco), 0, 0.9, 0));
+  [-1, 1].forEach((s) => g.add(en(caja(0.1, 0.84, 1, PALETA.patas, { r: 0.04 }), s * 1.08, 0.42, 0)));
+  g.add(en(cilindro(0.05, 0.09, 0.2, 8, PALETA.patas), 0.45, 1.06, -0.3));
+  g.add(en(caja(0.95, 0.6, 0.07, PALETA.oscuro, { r: 0.03 }), 0.45, 1.44, -0.32));
+  g.add(en(new T.Mesh(new T.PlaneGeometry(0.84, 0.48), brilla(colorPantalla, 0.45)), 0.45, 1.44, -0.28));
+  g.add(en(caja(0.6, 0.04, 0.22, PALETA.patas, { r: 0.015, sombra: false }), 0.42, 0.98, 0.15));
+  g.add(en(silla(colorSilla), 0.3, 0, 0.95));
+  return g;
+}
+function sillon(color) {
+  const g = new T.Group();
+  g.add(en(caja(2.1, 0.42, 0.9, color, { r: 0.1 }), 0, 0.3, 0));
+  g.add(en(caja(2.1, 0.6, 0.25, color, { r: 0.1 }), 0, 0.68, -0.34));
+  [-1, 1].forEach((sx) => g.add(en(caja(0.22, 0.55, 0.9, color, { r: 0.08 }), sx * 1.0, 0.5, 0)));
+  return g;
+}
 function planta(escala = 1) {
   const g = new T.Group();
   g.add(en(cilindro(0.3, 0.24, 0.6, 10, PALETA.blanco), 0, 0.3, 0));
@@ -150,16 +202,14 @@ function planta(escala = 1) {
   g.scale.setScalar(escala);
   return g;
 }
-function arbol(escala = 1) {
+function muneco(i) {
   const g = new T.Group();
-  g.add(en(cilindro(0.08, 0.11, 0.9, 6, '#8d6e4f'), 0, 0.45, 0));
-  [[0, 1.25, 0, 0.55, PALETA.hojaOscura], [0.25, 1.0, 0.1, 0.4, PALETA.hoja], [-0.2, 1.55, -0.05, 0.36, PALETA.hoja]]
-    .forEach(([x, y, z, r, c]) => g.add(en(malla(new T.IcosahedronGeometry(r, 0), mate(c, true)), x, y, z)));
-  g.scale.setScalar(escala);
+  g.add(en(malla(new T.CapsuleGeometry(0.17, 0.26, 4, 10), mate(ROPA[i % ROPA.length]), { recibe: false }), 0, 0.33, 0));
+  g.add(en(malla(new T.SphereGeometry(0.14, 12, 10), mate(PIEL[(i * 3) % PIEL.length]), { recibe: false }), 0, 0.76, 0));
   return g;
 }
 
-/** Totem del QR donde empieza la ruta. */
+/* ── Objetos propios de cada paso (miran hacia la cámara, +v) ── */
 function totemQR() {
   const g = new T.Group();
   g.add(en(caja(0.9, 0.12, 0.7, PALETA.patas, { r: 0.04 }), 0, 0.06, 0));
@@ -170,51 +220,114 @@ function totemQR() {
   });
   return g;
 }
-
-/** Local de bienvenida al final de la línea (toldo verde y bandera). */
-function local() {
+function calendario(color) {
   const g = new T.Group();
-  g.add(en(caja(3, 2, 2.4, PALETA.blanco, { r: 0.08 }), 0, 1, 0));
-  g.add(en(caja(3.2, 0.18, 2.6, '#d5dbe4', { r: 0.05 }), 0, 2.08, 0));
-  const toldo = en(caja(3.1, 0.12, 0.9, '#2c9356', { r: 0.04 }), 0, 1.55, 1.45);
-  toldo.rotation.x = 0.35;
-  g.add(toldo);
-  g.add(en(caja(1.0, 1.1, 0.06, '#9fd8b8', { r: 0.03, sombra: false }), -0.7, 0.75, 1.21));
-  g.add(en(caja(0.7, 1.3, 0.06, PALETA.oscuro, { r: 0.03, sombra: false }), 0.75, 0.65, 1.21));
-  g.add(en(cilindro(0.04, 0.04, 1.4, 6, PALETA.oscuro), 1.2, 2.85, -0.8));
-  const bandera = en(caja(0.7, 0.42, 0.03, '#2c9356', { r: 0.02, sombra: false }), 1.57, 3.3, -0.8);
-  g.add(bandera);
-  return { grupo: g, bandera };
-}
-
-/** Torre de control (Coordinador y Analista). */
-function torre() {
-  const g = new T.Group();
-  g.add(en(cilindro(1.1, 1.3, 0.3, 20, PALETA.patas), 0, 0.15, 0));
-  g.add(en(cilindro(0.55, 0.7, 2.4, 16, PALETA.blanco), 0, 1.5, 0));
-  g.add(en(cilindro(1.05, 0.9, 0.7, 20, PALETA.blanco), 0, 3.0, 0));
-  const vidrio = new T.MeshStandardMaterial({ color: '#bfe9f5', emissive: PALETA.cian, emissiveIntensity: 0.35, roughness: 0.3 });
-  g.add(en(malla(new T.CylinderGeometry(1.0, 1.0, 0.36, 20), vidrio), 0, 3.0, 0));
-  g.add(en(cilindro(1.15, 1.15, 0.1, 20, PALETA.oscuro), 0, 3.4, 0));
-  return { grupo: g, vidrio };
-}
-
-/** Un muñequito que espera en el andén. */
-function muneco(i) {
-  const g = new T.Group();
-  g.add(en(malla(new T.CapsuleGeometry(0.17, 0.26, 4, 10), mate(ROPA[i % ROPA.length]), { recibe: false }), 0, 0.33, 0));
-  g.add(en(malla(new T.SphereGeometry(0.14, 12, 10), mate(PIEL[(i * 3) % PIEL.length]), { recibe: false }), 0, 0.76, 0));
+  g.add(caja(1.2, 1.0, 0.06, PALETA.blanco, { r: 0.03, sombra: false }));
+  g.add(en(caja(1.2, 0.22, 0.07, color, { r: 0.03, sombra: false }), 0, 0.39, 0.01));
+  for (let f = 0; f < 3; f++) {
+    for (let c = 0; c < 4; c++) {
+      const marcado = (f * 4 + c) % 5 === 2;
+      g.add(en(caja(0.18, 0.14, 0.02, marcado ? color : PALETA.grisSuave, { r: 0.01, sombra: false }), -0.39 + c * 0.26, 0.12 - f * 0.22, 0.04));
+    }
+  }
   return g;
 }
-
-/** Vagón de los trencitos (mira hacia +x). */
-function vagon() {
+function tableroChecks(color) {
   const g = new T.Group();
-  const franja = new T.MeshStandardMaterial({ color: '#0f8b8d', roughness: 0.6 });
-  g.add(en(caja(1.2, 0.5, 0.62, PALETA.blanco, { r: 0.16 }), 0, 0.42, 0));
-  g.add(en(caja(1.22, 0.12, 0.64, franja, { r: 0.05, sombra: false }), 0, 0.3, 0));
-  [-0.3, 0.05, 0.4].forEach((x) => g.add(en(caja(0.24, 0.18, 0.66, PALETA.oscuro, { r: 0.04, sombra: false }), x, 0.52, 0)));
-  return { grupo: g, franja };
+  [-1, 1].forEach((s) => g.add(en(caja(0.08, 1.3, 0.08, PALETA.patas, { r: 0.03 }), s * 0.75, 0.65, 0)));
+  g.add(en(caja(1.7, 1.05, 0.07, PALETA.blanco, { r: 0.03 }), 0, 1.35, 0));
+  for (let k = 0; k < 4; k++) {
+    g.add(en(caja(0.16, 0.16, 0.02, k < 3 ? color : PALETA.grisSuave, { r: 0.01, sombra: false }), -0.55, 1.68 - k * 0.22, 0.05));
+    g.add(en(caja(0.8, 0.06, 0.02, PALETA.grisSuave, { r: 0.01, sombra: false }), 0.05, 1.68 - k * 0.22, 0.05));
+  }
+  return g;
+}
+function mesaEntrevista() {
+  const g = new T.Group();
+  g.add(en(cilindro(0.75, 0.75, 0.1, 24, PALETA.blanco), 0, 0.8, 0));
+  g.add(en(cilindro(0.1, 0.14, 0.78, 10, PALETA.patas), 0, 0.4, 0));
+  g.add(en(cilindro(0.45, 0.5, 0.06, 16, PALETA.patas), 0, 0.03, 0));
+  [-1, 1].forEach((s) => {
+    const sl = en(silla(PALETA.coral), s * 1.15, 0, 0);
+    sl.rotation.y = s * Math.PI / 2;
+    g.add(sl);
+  });
+  g.add(en(caja(0.4, 0.02, 0.3, PALETA.blanco, { r: 0.01, sombra: false }), 0.15, 0.86, 0.1));
+  return g;
+}
+function sello(color) {
+  const g = new T.Group();
+  g.add(en(caja(1.0, 0.8, 0.7, PALETA.blanco, { r: 0.06 }), 0, 0.4, 0));
+  g.add(en(caja(0.5, 0.16, 0.36, color, { r: 0.04 }), 0, 0.88, 0));
+  g.add(en(cilindro(0.06, 0.06, 0.3, 8, PALETA.madera), 0, 1.1, 0));
+  g.add(en(malla(new T.SphereGeometry(0.12, 12, 10), mate(PALETA.madera)), 0, 1.3, 0));
+  g.add(en(caja(0.7, 0.02, 0.5, PALETA.blanco, { r: 0.01, sombra: false }), 0.15, 0.81, 0.05));
+  return g;
+}
+function buzon(color) {
+  const g = new T.Group();
+  g.add(en(cilindro(0.06, 0.06, 1.0, 8, PALETA.oscuro), 0, 0.5, 0));
+  g.add(en(caja(0.8, 0.6, 0.55, color, { r: 0.12 }), 0, 1.25, 0));
+  g.add(en(caja(0.45, 0.05, 0.02, PALETA.oscuro, { r: 0.01, sombra: false }), 0, 1.35, 0.28));
+  g.add(en(caja(0.05, 0.35, 0.05, PALETA.coral, { r: 0.02 }), 0.43, 1.45, 0.1));
+  [-0.2, 0.05].forEach((x, k) => {
+    const sobre = en(caja(0.42, 0.04, 0.3, PALETA.blanco, { r: 0.01 }), x, 0.04 + k * 0.05, 0.6);
+    sobre.rotation.y = k * 0.4;
+    g.add(sobre);
+  });
+  return g;
+}
+function mapaPines() {
+  const g = new T.Group();
+  g.add(caja(1.6, 1.0, 0.05, PALETA.corcho, { r: 0.02, sombra: false }));
+  g.add(en(caja(1.4, 0.82, 0.02, '#e8f1e4', { r: 0.01, sombra: false }), 0, 0, 0.03));
+  [[-0.45, 0.2, '#e85a5a'], [-0.1, -0.15, '#3e5bd8'], [0.3, 0.22, '#e85a5a'], [0.5, -0.2, '#2c9356'], [0.05, 0.28, '#f5b748'], [-0.55, -0.25, '#3e5bd8']]
+    .forEach(([x, y, c]) => g.add(en(malla(new T.SphereGeometry(0.05, 10, 8), mate(c), { sombra: false }), x, y, 0.07)));
+  return g;
+}
+function lectorHuella() {
+  const g = new T.Group();
+  g.add(en(cilindro(0.35, 0.42, 1.0, 14, PALETA.blanco), 0, 0.5, 0));
+  g.add(en(caja(0.6, 0.12, 0.5, PALETA.oscuro, { r: 0.04 }), 0, 1.06, 0));
+  g.add(en(caja(0.3, 0.03, 0.3, brilla('#5ee0b5', 1.0), { r: 0.04, sombra: false }), 0, 1.13, 0.02));
+  return g;
+}
+const leds = []; // LEDs de los servidores de iCheck (parpadean en el loop)
+function rack() {
+  const g = new T.Group();
+  g.add(en(caja(1.0, 2.0, 0.9, PALETA.rack, { r: 0.08 }), 0, 1.0, 0));
+  for (let s = 0; s < 4; s++) {
+    const fila = en(new T.Group(), 0, 0.45 + s * 0.4, 0.46);
+    fila.add(caja(0.82, 0.26, 0.04, PALETA.rackPanel, { r: 0.015, sombra: false }));
+    [0, 1].forEach((k) => {
+      const mat = brilla(k ? PALETA.cian : PALETA.menta, 1);
+      leds.push({ mat, fase: Math.random() * Math.PI * 2, vel: 1.5 + ((s + k) % 3) });
+      fila.add(en(new T.Mesh(new T.BoxGeometry(0.07, 0.07, 0.02), mat), -0.28 + k * 0.14, 0, 0.03));
+    });
+    g.add(fila);
+  }
+  return g;
+}
+const globos = []; // globos de bienvenida (flotan en el loop)
+function globosBienvenida() {
+  const g = new T.Group();
+  g.add(en(caja(0.6, 0.45, 0.6, '#2c9356', { r: 0.05 }), 0, 0.23, 0));
+  g.add(en(caja(0.64, 0.1, 0.14, PALETA.amarilloSuave, { r: 0.02 }), 0, 0.48, 0));
+  [['#ff8fab', -0.3, 1.9], ['#45d3ec', 0.1, 2.1], ['#f5c842', 0.4, 1.8]].forEach(([c, x, y], k) => {
+    const globo = en(malla(new T.SphereGeometry(0.28, 14, 12), mate(c), { recibe: false }), x, y, 0);
+    globo.scale.y = 1.15;
+    g.add(globo);
+    g.add(en(cilindro(0.008, 0.008, y - 0.5, 4, PALETA.gris, { sombra: false }), x * 0.5, (y + 0.5) / 2 - 0.1, 0));
+    globos.push({ m: globo, y, fase: k * 1.3 });
+  });
+  return g;
+}
+function puertaSalida() {
+  const g = new T.Group();
+  g.add(en(caja(1.3, 2.0, 0.12, '#b7473f', { r: 0.04 }), 0, 1.0, 0));
+  g.add(en(caja(1.05, 1.8, 0.06, '#f6e0de', { r: 0.03 }), 0, 0.95, 0.05));
+  g.add(en(caja(0.7, 0.22, 0.06, brilla('#2c9356', 0.9), { r: 0.03, sombra: false }), 0, 2.25, 0.03));
+  return g;
 }
 
 /* ───────────────────────── Robots (los de la Oficina) ───────────────────────── */
@@ -254,12 +367,15 @@ function crearBot(forma, color) {
 async function iniciar() {
   T = await import(THREE_URL);
   const { TRAMOS, AGENTES, ESTACIONES } = window.RUTA;
-  const tramoDe = (etapa) => TRAMOS[(ESTACIONES[etapa] || {}).tramo] || TRAMOS.x;
+  const metaDe = (sala) => (sala === 'SALIDAS' ? { tramo: 'x', agente: 'vacantes' } : ESTACIONES[sala] || {});
+  const tramoDe = (sala) => TRAMOS[metaDe(sala).tramo] || TRAMOS.x;
+  const nombreCorto = (sala) => (sala === 'SALIDAS' ? 'Salidas' : (ESTACIONES[sala] || {}).corto || sala);
 
   escena.classList.add('o3d');
   escena.innerHTML = '';
+  escena.tabIndex = 0;
   escena.setAttribute('role', 'region');
-  escena.setAttribute('aria-label', 'Maqueta 3D de la ruta del ingresante: cada andén es una estación del proceso con la gente que está esperando ahí. Tocá un andén para ver el detalle o un agente para preguntarle.');
+  escena.setAttribute('aria-label', 'Oficinas de la ruta del ingresante: una oficina por paso. Usá las flechas para pasar al paso anterior o al siguiente.');
 
   const renderer = new T.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -270,21 +386,36 @@ async function iniciar() {
   capa.className = 'o3d-capa';
   escena.appendChild(capa);
 
+  // Navegación (DOM sobre el canvas): barra de pasos y flechas a los costados.
+  const barra = document.createElement('div');
+  barra.className = 'ru3-pasos';
+  barra.setAttribute('role', 'group');
+  barra.setAttribute('aria-label', 'Pasos de la ruta');
+  barra.innerHTML = SALAS.map((s, i) => `<button type="button" class="ru3-paso" data-ir="${s}" style="--c:${tramoDe(s).color}"
+      aria-label="${s === 'SALIDAS' ? 'Salidas' : `Paso ${i + 1}: ${esc(nombreCorto(s))}`}"><i></i><span>${esc(nombreCorto(s))}</span></button>`).join('');
+  const flechaAnt = document.createElement('button');
+  flechaAnt.type = 'button';
+  flechaAnt.className = 'ru3-flecha is-ant';
+  const flechaSig = document.createElement('button');
+  flechaSig.type = 'button';
+  flechaSig.className = 'ru3-flecha is-sig';
+  escena.append(barra, flechaAnt, flechaSig);
+
   const mundo = new T.Scene();
   mundo.background = new T.Color(PALETA.fondo);
   const camara = new T.OrthographicCamera(-1, 1, 1, -1, 0.1, 200);
 
   mundo.add(new T.AmbientLight(0xffffff, 0.55));
   mundo.add(new T.HemisphereLight(0xffffff, 0xd9e1ec, 0.55));
+  // La luz del sol acompaña a la cámara: las sombras solo hacen falta cerca.
   const sol = new T.DirectionalLight(0xffffff, 1.5);
-  sol.position.set(14, 26, 9);
   sol.castShadow = true;
   sol.shadow.mapSize.set(2048, 2048);
   sol.shadow.radius = 4;
   sol.shadow.bias = -0.0004;
   sol.shadow.normalBias = 0.03;
-  Object.assign(sol.shadow.camera, { left: -32, right: 32, top: 32, bottom: -32, near: 1, far: 100 });
-  mundo.add(sol);
+  Object.assign(sol.shadow.camera, { left: -16, right: 16, top: 16, bottom: -16, near: 1, far: 80 });
+  mundo.add(sol, sol.target);
 
   // Todo se arma en coordenadas del plano (u, altura, v); el grupo gira 45° para
   // que u quede horizontal en la pantalla isométrica.
@@ -295,8 +426,8 @@ async function iniciar() {
   const P = (u, v, y = 0) => new T.Vector3(u, y, v);
   const aMundo = (vLocal) => plano.localToWorld(vLocal.clone());
 
-  plano.add(en(caja(MEDIDA.u, 0.8, MEDIDA.v, PALETA.base, { r: 0.3 }), 0, -0.4, 0));
-  plano.add(en(caja(MEDIDA.u - 0.5, 0.06, MEDIDA.v - 0.5, '#f4f7fa', { r: 0.2, sombra: false }), 0, 0.03, 0));
+  const largo = (SALAS.length - 1) * PASO;
+  plano.add(en(caja(largo + ANCHO + 4, 0.6, FONDO + 3, PALETA.base, { r: 0.25 }), largo / 2, -0.3, 0));
 
   const anclas = [];
   function etiqueta(clase, html, pos, ajuste = 'translate(-50%, -50%)') {
@@ -308,294 +439,240 @@ async function iniciar() {
     return el;
   }
 
-  /* ── La línea: una curva por todo el recorrido, coloreada por tramo ── */
-  const giro = (cu, cv, desde, hasta, r = 4) => {
-    const pts = [];
-    for (let k = 1; k < 6; k++) {
-      const a = desde + ((hasta - desde) * k) / 6;
-      pts.push(P(cu + r * Math.cos(a), cv + r * Math.sin(a), 0.34));
+  /* ── Oficinas ── */
+  const salas = SALAS.map((sala, i) => {
+    const meta = metaDe(sala);
+    const tr = tramoDe(sala);
+    const u0 = i * PASO;
+    const g = en(new T.Group(), u0, 0, 0);
+    const matPiso = new T.MeshStandardMaterial({ color: tr.suave, roughness: 0.75 });
+    g.add(en(caja(ANCHO, PISO_Y, FONDO, matPiso, { r: 0.05, sombra: false }), 0, PISO_Y / 2, 0));
+    g.add(en(pared(ANCHO, tr.color, false), 0, PISO_Y, -FONDO / 2 + PARED_T / 2));
+    const izq = en(pared(FONDO, tr.color, true), -ANCHO / 2 + PARED_T / 2, PISO_Y, 0);
+    izq.rotation.y = Math.PI / 2;
+    g.add(izq);
+    // Pasillo hacia la oficina siguiente, con una flecha en el piso del color del paso que sigue.
+    if (i < SALAS.length - 1) {
+      const sig = tramoDe(SALAS[i + 1]);
+      const largoPasillo = PASO - ANCHO;
+      g.add(en(caja(largoPasillo + 0.4, 0.1, PUERTA, PALETA.pasillo, { r: 0.03, sombra: false }), ANCHO / 2 + largoPasillo / 2, 0.05, 0));
+      [-1, 1].forEach((s) => {
+        const tramo = en(caja(0.9, 0.04, 0.16, sig.color, { r: 0.02, sombra: false }), ANCHO / 2 + largoPasillo / 2 - 0.1, 0.12, s * 0.28);
+        tramo.rotation.y = s * 0.7; // las dos patas forman una flecha ">" hacia la oficina siguiente
+        g.add(tramo);
+      });
     }
-    return pts;
-  };
-  const puntos = [
-    P(-18.2, -8, 0.34),
-    ...ORDEN.slice(0, 5).map((e) => P(POS[e][0], POS[e][1], 0.34)),
-    P(17, -8, 0.34), ...giro(17, -4, -Math.PI / 2, Math.PI / 2), P(17, 0, 0.34),
-    ...ORDEN.slice(5, 8).map((e) => P(POS[e][0], POS[e][1], 0.34)),
-    P(-17, 0, 0.34), ...giro(-17, 4, -Math.PI / 2, -Math.PI * 1.5), P(-17, 8, 0.34),
-    ...ORDEN.slice(8).map((e) => P(POS[e][0], POS[e][1], 0.34)),
-    P(17.6, 8, 0.34),
-  ];
-  const curva = new T.CatmullRomCurve3(puntos, false, 'centripetal');
-  // Dónde cae cada estación sobre la curva (0 a 1).
-  const MUESTRAS = 1200;
-  const muestras = curva.getSpacedPoints(MUESTRAS);
-  const tDe = {};
-  ORDEN.forEach((e) => {
-    const p = P(POS[e][0], POS[e][1], 0.34);
-    let mejor = 0;
-    let dist = Infinity;
-    muestras.forEach((m, i) => { const d = m.distanceToSquared(p); if (d < dist) { dist = d; mejor = i; } });
-    tDe[e] = mejor / MUESTRAS;
-  });
-  // Cada tramo de vía tiene el color de la estación a la que llega.
-  const tramoEnT = (t) => {
-    const e = ORDEN.find((x) => tDe[x] >= t - 1e-4);
-    return (ESTACIONES[e || 'INGRESO'] || {}).tramo || 4;
-  };
-  const SEG = 600;
-  const RAD = 10;
-  const tubo = new T.TubeGeometry(curva, SEG, 0.24, RAD, false);
-  const colores = [];
-  const c = new T.Color();
-  for (let i = 0; i <= SEG; i++) {
-    c.set(TRAMOS[tramoEnT(i / SEG)].color);
-    for (let j = 0; j <= RAD; j++) colores.push(c.r, c.g, c.b);
-  }
-  tubo.setAttribute('color', new T.Float32BufferAttribute(colores, 3));
-  plano.add(malla(tubo, new T.MeshStandardMaterial({ vertexColors: true, roughness: 0.5 }), { recibe: false }));
-  // Durmientes debajo de la vía.
-  const durmiente = mate('#d3d9e2');
-  for (let k = 0; k <= 160; k++) {
-    const t = k / 160;
-    const p = curva.getPointAt(t);
-    const tg = curva.getTangentAt(t);
-    const d = caja(0.18, 0.08, 0.9, durmiente, { r: 0.02, sombra: false });
-    d.position.set(p.x, 0.12, p.z);
-    d.rotation.y = Math.atan2(-tg.z, tg.x);
-    plano.add(d);
-  }
-
-  /* ── Andenes ── */
-  const andenes = new Map();
-  const clicables = [];
-  ORDEN.forEach((etapa, i) => {
-    const [u, v] = POS[etapa];
-    const tr = tramoDe(etapa);
-    const g = en(new T.Group(), u, 0, v + ANDEN_V);
-    const matPiso = new T.MeshStandardMaterial({ color: tr.suave, roughness: 0.7 });
-    const matBorde = new T.MeshStandardMaterial({ color: tr.color, roughness: 0.6 });
-    const piso = en(caja(4.4, 0.36, 2.2, matPiso, { r: 0.12 }), 0, 0.18, 0);
-    const borde = en(caja(4.4, 0.1, 0.24, matBorde, { r: 0.04, sombra: false }), 0, 0.39, 0.95);
-    g.add(piso, borde);
-    g.add(en(cilindro(0.05, 0.05, 1.3, 6, PALETA.oscuro), -1.95, 1.0, -0.85));
-    g.add(en(caja(0.7, 0.42, 0.07, matBorde, { r: 0.04 }), -1.95, 1.75, -0.85));
-    const gente = [];
-    for (let k = 0; k < 15; k++) {
-      const m = muneco(i * 7 + k);
-      const col = k % 5;
-      const fila = Math.floor(k / 5);
-      m.position.set(-1.4 + col * 0.72 + (fila % 2) * 0.3, 0.36, -0.55 + fila * 0.5);
-      m.visible = false;
-      m.userData.fase = Math.random() * 6;
-      g.add(m);
-      gente.push(m);
-    }
-    g.traverse((h) => { h.userData.etapa = etapa; });
-    plano.add(g);
-    clicables.push(g);
-    // El cartel va en el piso, delante de la vía, para no tapar la fila de arriba.
-    const cartel = etiqueta('ru3-cartel', '', () => aMundo(P(u, v + 0.85, 0.05)), 'translate(-50%, 0)');
-    cartel.style.setProperty('--c', tr.color);
-    andenes.set(etapa, { etapa, g, matPiso, matBorde, gente, cartel, tr, n: 0, elevar: 0, pulso: -10 });
-  });
-
-  // Salidas: andén rojo aparte, sin vía (se puede salir de cualquier estación).
-  const salidas = (() => {
-    const tr = TRAMOS.x;
-    const g = en(new T.Group(), SALIDAS[0], 0, SALIDAS[1]);
-    g.add(en(caja(4.4, 0.3, 2.0, tr.suave, { r: 0.12 }), 0, 0.15, 0));
-    for (let k = 0; k < 5; k++) g.add(en(caja(0.1, 0.5, 0.1, tr.color, { r: 0.03 }), -1.9 + k * 0.95, 0.5, 0.85));
-    g.add(en(caja(4.0, 0.08, 0.08, tr.color, { r: 0.03, sombra: false }), 0, 0.72, 0.85));
-    const gente = [];
-    for (let k = 0; k < 10; k++) {
-      const m = muneco(k + 3);
-      m.position.set(-1.5 + (k % 5) * 0.75, 0.3, -0.35 + Math.floor(k / 5) * 0.5);
-      m.visible = false;
-      m.userData.fase = Math.random() * 6;
-      g.add(m);
-      gente.push(m);
-    }
-    g.traverse((h) => { h.userData.etapa = 'SALIDAS'; });
-    plano.add(g);
-    clicables.push(g);
-    const cartel = etiqueta('ru3-cartel is-salida', '', () => aMundo(P(SALIDAS[0], SALIDAS[1] - 1.1, 1.0)), 'translate(-50%, -100%)');
-    cartel.style.setProperty('--c', tr.color);
-    return { g, gente, cartel };
-  })();
-
-  // Principio y fin de la línea, torre de control y algo de verde.
-  plano.add(en(totemQR(), -19.6, 0, -9.6));
-  const meta = local();
-  meta.grupo.position.set(20, 0, 9.5);
-  plano.add(meta.grupo);
-  etiqueta('ru3-hito', '📱 Formulario QR', () => aMundo(P(-19.6, -9.6, 2.4)), 'translate(-50%, -100%)');
-  etiqueta('ru3-hito is-meta', '🎉 ¡Bienvenido al equipo!', () => aMundo(P(20, 11.1, 0.1)), 'translate(-50%, 0)');
-  const tw = torre();
-  tw.grupo.position.set(TORRE[0], 0, TORRE[1]);
-  plano.add(tw.grupo);
-  [[-21.5, -11], [-10.5, -11.2], [-3.5, 11], [21.8, 3.5], [-10.5, -4], [3, -4], [3, 4], [12, 4.2]].forEach(([u, v], k) => {
-    plano.add(en(k % 3 === 2 ? planta(0.9) : arbol(0.8 + (k % 2) * 0.25), u, 0, v));
-  });
-
-  /* ── Trencitos con los últimos movimientos ── */
-  const trenes = Array.from({ length: 4 }, () => {
-    const v = vagon();
-    v.grupo.visible = false;
-    plano.add(v.grupo);
-    return { ...v, viaje: null };
-  });
-
-  /* ── Agentes ── */
-  const agentes = new Map();
-  Object.entries(PUESTOS).forEach(([id, p], i) => {
-    const bot = crearBot(p.forma, p.color);
-    const casa = P(p.casa[0], p.casa[1], p.casa[2]);
-    plano.add(bot.raiz);
-    bot.raiz.traverse((h) => { h.userData.agente = id; });
-    clicables.push(bot.raiz);
-    const a = {
-      id, p, bot, casa, pos: casa.clone(), vuelo: null, salto: -10, fase: i * 1.7, ocupado: false,
-      datos: AGENTES[id], ultima: null, estado: 'activo', sueno: 0,
+    // Pantalla en la pared del fondo (el número va en un cartel HTML encima).
+    g.add(en(caja(3.4, 1.25, 0.08, PALETA.oscuro, { r: 0.04 }), -1.5, PISO_Y + 1.0, -FONDO / 2 + PARED_T + 0.05));
+    // Escritorio del agente, sala de espera y plantas.
+    const robot = ROBOTS[meta.agente] || ROBOTS.coordinador;
+    g.add(en(escritorio(robot.color === PALETA.blanco ? '#8ea3d1' : robot.color, tr.color), 2.6, PISO_Y, -1.9));
+    g.add(en(sillon(tr.suave), -3.2, PISO_Y, 3.1));
+    g.add(en(planta(0.85), -4.3, PISO_Y, -3.3));
+    g.add(en(planta(0.7), 4.3, PISO_Y, 3.4));
+    // Objeto propio del paso.
+    const enPared = (obj, x) => en(obj, x, PISO_Y + 1.0, -FONDO / 2 + PARED_T + 0.04);
+    const props = {
+      POSTULADO: () => en(totemQR(), 3.2, PISO_Y, 2.4),
+      CITADO_ENTREVISTA: () => enPared(calendario(tr.color), 1.8),
+      CONFIRMO_ENTREVISTA: () => en(tableroChecks(tr.color), 3.0, PISO_Y, 2.2),
+      ASISTIO_ENTREVISTA: () => en(mesaEntrevista(), 2.6, PISO_Y, 2.0),
+      APROBADO: () => en(sello('#2c9356'), 3.0, PISO_Y, 2.3),
+      COMPARTIDO_ZONAL: () => en(buzon(tr.color), 3.1, PISO_Y, 2.2),
+      VACANTE_ASIGNADA: () => enPared(mapaPines(), 1.8),
+      APROBADO_ZONAL: () => en(sello(tr.color), 3.0, PISO_Y, 2.3),
+      CITADO_ONB: () => enPared(calendario(tr.color), 1.8),
+      CONFIRMA_ONB: () => en(tableroChecks(tr.color), 3.0, PISO_Y, 2.2),
+      HIZO_ONB: () => en(lectorHuella(), 3.1, PISO_Y, 2.3),
+      ALTA_ICHECK: () => en(rack(), 3.4, PISO_Y, 2.0),
+      INGRESO: () => en(globosBienvenida(), 3.1, PISO_Y, 2.3),
+      SALIDAS: () => en(puertaSalida(), 1.8, PISO_Y, -FONDO / 2 + PARED_T + 0.1),
     };
-    a.tag = etiqueta('o3d-tag', `<i></i>${a.datos.emoji}<span>${esc(a.datos.nombre)}</span>`, () => aMundo(a.pos.clone().add(new T.Vector3(0, -1.2, 0))), 'translate(-50%, 0)');
-    a.globo = etiqueta('o3d-globo', '', () => aMundo(a.pos.clone().add(new T.Vector3(0, 1.2, 0))), 'translate(-50%, -100%)');
-    a.zzz = etiqueta('o3d-zzz', '<i>z</i><i>z</i><i>Z</i>', () => aMundo(a.pos.clone().add(new T.Vector3(0.5, 0.7, 0))), 'translate(-50%, -100%)');
-    agentes.set(id, a);
+    if (props[sala]) g.add(props[sala]());
+
+    // Gente esperando (de 0 a 12) y alguien que entra por la puerta.
+    const gente = [];
+    for (let k = 0; k < 12; k++) {
+      const m = muneco(i * 5 + k);
+      m.position.set(-3.7 + (k % 6) * 0.78 + (Math.floor(k / 6) % 2) * 0.3, PISO_Y, 0.6 + Math.floor(k / 6) * 0.85);
+      m.visible = false;
+      m.userData.fase = Math.random() * 6;
+      g.add(m);
+      gente.push(m);
+    }
+    const caminante = muneco(i + 2);
+    caminante.visible = false;
+    g.add(caminante);
+    g.traverse((h) => { h.userData.sala = sala; });
+    plano.add(g);
+
+    // Robot del agente, flotando junto a su escritorio.
+    const bot = crearBot(robot.forma, robot.color);
+    const casa = P(u0 + 2.1, -2.0, PISO_Y + 2.35);
+    bot.raiz.position.copy(casa);
+    bot.raiz.traverse((h) => { h.userData.agente = meta.agente; h.userData.sala = sala; });
+    plano.add(bot.raiz);
+
+    const s = { sala, i, u0, tr, meta, matPiso, gente, caminante, paseo: null, bot, casa, robot, salto: -10, fase: i * 1.3, sueno: 0, estado: 'activo', n: 0 };
+    // El cartel va arriba de la pantalla (a la izquierda), así no se cruza con el globito del agente.
+    s.cartel = etiqueta('ru3-sala', '', () => aMundo(P(u0 - 1.5, -FONDO / 2, PISO_Y + PARED_H + 0.3)), 'translate(-50%, -100%)');
+    s.cartel.style.setProperty('--c', tr.color);
+    s.pantalla = etiqueta('ru3-pantalla', '', () => aMundo(P(u0 - 1.5, -FONDO / 2 + PARED_T + 0.1, PISO_Y + 1.0)));
+    s.pantalla.style.setProperty('--c', tr.color);
+    const ag = AGENTES[meta.agente] || AGENTES.coordinador;
+    s.tag = etiqueta('o3d-tag', `<i></i>${ag.emoji}<span>${esc(ag.nombre)}</span>`, () => aMundo(P(u0 + 2.1, -2.0, PISO_Y + 1.2)), 'translate(-50%, 0)');
+    s.globo = etiqueta('o3d-globo', '', () => aMundo(P(u0 + 2.1, -2.0, PISO_Y + 3.4)), 'translate(-50%, -100%)');
+    s.zzz = etiqueta('o3d-zzz', '<i>z</i><i>z</i><i>Z</i>', () => aMundo(P(u0 + 2.6, -2.0, PISO_Y + 3.0)), 'translate(-50%, -100%)');
+    return s;
   });
+  const porSala = new Map(salas.map((s) => [s.sala, s]));
+
+  let visible = true;
+  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(escena);
 
   /* ── Datos de la ruta ── */
   let datos = window.RUTA.datos;
-  let elegida = null;
+  let actual = 0; // índice de la oficina a la vista
+  let camU = 0;
   const est = (etapa) => (datos && datos.estaciones || []).find((e) => e.etapa === etapa) || null;
+  // La oficina de salidas suma todas las salidas.
+  function numeros(sala) {
+    if (sala !== 'SALIDAS') return est(sala) || { personas: 0, hoy: 0, ahora: 0, nombre: (ESTACIONES[sala] || {}).corto || sala };
+    const out = SALIDAS.map(est).filter(Boolean);
+    return { nombre: 'Salidas', personas: out.reduce((a, e) => a + e.personas, 0), hoy: out.reduce((a, e) => a + e.hoy, 0), ahora: out.reduce((a, e) => a + e.ahora, 0) };
+  }
 
   function pintarDatos() {
-    if (!datos) return;
-    andenes.forEach((a) => {
-      const e = est(a.etapa) || { personas: 0, hoy: 0, ahora: 0, nombre: a.etapa };
+    const dias = datos ? Math.round((new Date(datos.hasta) - new Date(datos.desde)) / 864e5) + 1 : 30;
+    salas.forEach((s) => {
+      const e = numeros(s.sala);
       const vacia = !e.personas;
-      a.matPiso.color.set(vacia ? PALETA.grisSuave : a.tr.suave);
-      a.matBorde.color.set(vacia ? PALETA.gris : a.tr.color);
-      a.n = munecos(e.ahora);
-      a.gente.forEach((m, k) => { m.visible = k < a.n; });
-      a.cartel.classList.toggle('is-vacia', vacia);
-      a.cartel.innerHTML = `<b>${esc((ESTACIONES[a.etapa] || {}).corto || e.nombre)}</b><span>${vacia ? 'Sin datos' : fmt(e.personas)}${e.hoy ? ` <em>+${fmt(e.hoy)}</em>` : ''}</span>`;
-      a.cartel.title = `${e.nombre}: ${vacia ? 'sin datos' : `${fmt(e.personas)} en el período, ${fmt(e.ahora)} esperando acá`}`;
+      s.matPiso.color.set(vacia ? PALETA.grisSuave : s.tr.suave);
+      s.n = munecos(e.ahora);
+      s.gente.forEach((m, k) => { m.visible = k < s.n; });
+      const num = s.sala === 'SALIDAS' ? 'Fuera de la ruta · de cualquier paso' : `Paso ${s.i + 1} de ${PASOS.length} · ${esc(s.tr.nombre)}`;
+      s.cartel.innerHTML = `<small>${num}</small><b>${esc(e.nombre)}</b>`;
+      s.pantalla.classList.toggle('is-vacia', vacia);
+      s.pantalla.innerHTML = vacia
+        ? '<b>Sin datos</b><span>todavía no llega nada</span>'
+        : `<b>${fmt(e.personas)}</b><span>pasaron en ${fmt(dias)} días</span><em>${fmt(e.ahora)} ${s.sala === 'SALIDAS' ? 'salieron' : 'esperan'}${e.hoy ? ` · +${fmt(e.hoy)} hoy` : ''}</em>`;
     });
-    const out = (datos.estaciones || []).filter((e) => e.es_salida);
-    const totalOut = out.reduce((s, e) => s + (e.personas || 0), 0);
-    salidas.gente.forEach((m, k) => { m.visible = k < Math.min(10, munecos(totalOut)); });
-    salidas.cartel.innerHTML = `<b>Salidas</b><span>${fmt(totalOut)}</span>`;
-    salidas.cartel.title = out.map((e) => `${e.nombre}: ${fmt(e.personas)}`).join(' · ');
+    pintarNavegacion();
   }
 
-  /* ── Globitos: uno solo a la vez ── */
-  let hablando = null;
-  function callar(a) {
-    clearTimeout(a.globoTimer);
-    a.globo.classList.remove('on');
-    if (hablando === a) hablando = null;
-  }
-  function decir(a, texto, ms = 3800, importante = false) {
-    if (hablando && hablando !== a) {
-      if (!importante) return;
-      callar(hablando);
+  function pintarNavegacion() {
+    barra.querySelectorAll('[data-ir]').forEach((b, i) => {
+      b.classList.toggle('is-actual', i === actual);
+      b.classList.toggle('is-hecho', i < actual);
+      if (i === actual) b.setAttribute('aria-current', 'step');
+      else b.removeAttribute('aria-current');
+    });
+    const ant = salas[actual - 1];
+    const sig = salas[actual + 1];
+    flechaAnt.hidden = !ant;
+    flechaSig.hidden = !sig;
+    if (ant) {
+      flechaAnt.style.setProperty('--c', ant.tr.color);
+      flechaAnt.innerHTML = `<span class="ru3-flecha-ico" aria-hidden="true">‹</span><span class="ru3-flecha-txt"><small>Anterior</small>${esc(nombreCorto(ant.sala))}</span>`;
+      flechaAnt.setAttribute('aria-label', `Paso anterior: ${nombreCorto(ant.sala)}`);
     }
-    clearTimeout(a.globoTimer);
-    a.globo.textContent = texto;
-    a.globo.classList.add('on');
-    hablando = a;
-    a.globoTimer = setTimeout(() => callar(a), ms);
-  }
-
-  function volar(a, destino, dur = 1.9) {
-    return new Promise((res) => {
-      if (reduce) {
-        a.pos.copy(destino);
-        res();
-        return;
-      }
-      a.vuelo = { desde: a.pos.clone(), hasta: destino.clone(), t0: performance.now() / 1000, dur, res };
+    if (sig) {
+      flechaSig.style.setProperty('--c', sig.tr.color);
+      flechaSig.innerHTML = `<span class="ru3-flecha-txt"><small>Siguiente</small>${esc(nombreCorto(sig.sala))}</span><span class="ru3-flecha-ico" aria-hidden="true">›</span>`;
+      flechaSig.setAttribute('aria-label', `Paso siguiente: ${nombreCorto(sig.sala)}`);
+    }
+    salas.forEach((x, i) => {
+      const lejos = Math.abs(i - actual);
+      x.cartel.hidden = lejos > 0;
+      x.pantalla.hidden = lejos > 0;
+      x.tag.hidden = lejos > 0;
+      x.zzz.hidden = lejos > 0;
+      x.globo.hidden = lejos > 0;
+      if (lejos > 0) callar(x);
     });
   }
 
-  // Lo que cuenta cada agente, con los números de la ruta.
-  function frase(a) {
-    if (!datos) return null;
-    const n = (etapa, k = 'personas') => fmt((est(etapa) || {})[k]);
-    const pasosHoy = (datos.estaciones || []).filter((e) => e.etapa !== 'POSTULADO').reduce((s, e) => s + (e.hoy || 0), 0);
-    const masGente = [...(datos.estaciones || [])].filter((e) => !e.es_salida && e.etapa !== 'POSTULADO').sort((x, y) => y.ahora - x.ahora)[0];
-    const opciones = {
-      screening: [`🔎 ${n('POSTULADO', 'hoy')} postulaciones hoy`, `🔎 ${n('APROBADO')} aprobados en el período`],
-      agenda: [`📅 ${n('CITADO_ENTREVISTA')} citados a entrevista`, `📅 ${n('CONFIRMO_ENTREVISTA')} confirmaron la entrevista`, `📅 ${n('ASISTIO_ENTREVISTA')} vinieron a la entrevista`],
-      vacantes: [`📌 ${n('VACANTE_ASIGNADA', 'ahora')} esperan el OK del zonal`, `📌 ${n('COMPARTIDO_ZONAL')} compartidos a los zonales`],
-      onboarding: [`🤝 ${n('ALTA_ICHECK')} cargados en iCheck`, `🤝 ${n('INGRESO')} ingresaron${(est('INGRESO') || {}).programados ? ` · ${n('INGRESO', 'programados')} programados` : ''}`],
-      coordinador: [masGente ? `🧭 Donde más gente espera: ${masGente.nombre} (${fmt(masGente.ahora)})` : '🧭 Reviso la ruta'],
-      analista: [`📊 ${fmt(pasosHoy)} pasos hoy en la ruta`],
-    };
-    return azar(opciones[a.id] || []);
+  // Pide a ruta.js que elija la oficina (la de salidas abre la salida con más gente).
+  function irA(i) {
+    const k = Math.max(0, Math.min(salas.length - 1, i));
+    let etapa = SALAS[k];
+    if (etapa === 'SALIDAS') {
+      const out = SALIDAS.map(est).filter(Boolean).sort((a, b) => b.personas - a.personas)[0];
+      etapa = out ? out.etapa : 'NO_AVANZA';
+    }
+    document.dispatchEvent(new CustomEvent('ruta:elegir', { detail: { etapa } }));
   }
+  flechaAnt.addEventListener('click', () => irA(actual - 1));
+  flechaSig.addEventListener('click', () => irA(actual + 1));
+  barra.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-ir]');
+    if (b) irA(SALAS.indexOf(b.dataset.ir));
+  });
+  escena.addEventListener('keydown', (e) => {
+    if (e.target.closest('.o3d-ficha')) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); irA(actual - 1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); irA(actual + 1); }
+  });
+
+  /* ── Globitos (solo habla el agente de la oficina a la vista) ── */
+  function callar(s) {
+    clearTimeout(s.globoTimer);
+    s.globo.classList.remove('on');
+  }
+  function decir(s, texto, ms = 4200) {
+    clearTimeout(s.globoTimer);
+    s.globo.textContent = texto;
+    s.globo.classList.add('on');
+    s.globoTimer = setTimeout(() => callar(s), ms);
+  }
+  const ultimas = new Map(); // agente → última acción de la bitácora
   const textoAccion = (u) => `${ACCION_EMOJI[u.estado] || '✅'} ${u.accion}${u.cantidad > 1 ? ' · ' + fmt(u.cantidad) : ''}`;
-
-  async function rutina() {
-    const libres = [...agentes.values()].filter((a) => a.estado !== 'durmiendo' && !a.ocupado && !a.vuelo);
-    if (!libres.length || !datos) return;
-    const a = azar(libres);
-    a.ocupado = true;
-    try {
-      const r = Math.random();
-      if (r < 0.45 || reduce || !a.p.estaciones.length) {
-        decir(a, a.ultima && Math.random() < 0.35 ? `${textoAccion(a.ultima)} (${SB.hace(a.ultima.created_at)})` : frase(a) || '👋');
-      } else {
-        // Visita una de sus estaciones y cuenta cuánta gente hay.
-        const etapa = azar(a.p.estaciones);
-        const [u, v] = POS[etapa];
-        await volar(a, P(u + 1.2, v + ANDEN_V - 0.4, 2.6), 2.2);
-        const e = est(etapa);
-        decir(a, e && e.personas ? `${a.datos.emoji} ${e.nombre}: ${fmt(e.ahora)} esperando` : `${a.datos.emoji} ${e ? e.nombre : etapa}: sin datos todavía`, 3600);
-        await espera(4200);
-        await volar(a, a.casa, 2.2);
-      }
-    } finally {
-      a.ocupado = false;
-    }
+  function presentar(s) {
+    if (s.estado === 'durmiendo') return;
+    const e = numeros(s.sala);
+    const ag = AGENTES[s.meta.agente] || AGENTES.coordinador;
+    decir(s, e.personas ? `${ag.emoji} ${e.nombre}: ${fmt(e.ahora)} ${s.sala === 'SALIDAS' ? 'salieron' : 'esperando acá'}` : `${ag.emoji} ${e.nombre}: todavía sin datos`);
   }
-  setInterval(rutina, 6500);
-
-  /* ── Trencitos ── */
-  let movIdx = 0;
-  function largarTren() {
-    if (reduce || !datos || !(datos.movimientos || []).length) return;
-    const movs = datos.movimientos.filter((m) => ORDEN.indexOf(m.etapa) > 0).slice(0, 30);
-    if (!movs.length) return;
-    const m = movs[movIdx++ % movs.length];
-    const k = ORDEN.indexOf(m.etapa);
-    const libre = trenes.find((t) => !t.viaje);
-    if (!libre) return;
-    const t0 = tDe[ORDEN[k - 1]];
-    const t1 = tDe[m.etapa];
-    libre.franja.color.set(tramoDe(m.etapa).color);
-    libre.viaje = { t0, t1, inicio: performance.now() / 1000, dur: Math.max(1.8, (t1 - t0) * 30), etapa: m.etapa };
-    libre.grupo.visible = true;
+  function charla() {
+    const s = salas[actual];
+    if (!s || s.estado === 'durmiendo') return;
+    const u = ultimas.get(s.meta.agente);
+    const e = numeros(s.sala);
+    const ag = AGENTES[s.meta.agente] || AGENTES.coordinador;
+    const opciones = [
+      e.hoy ? `${ag.emoji} Hoy llegaron ${fmt(e.hoy)} a este paso` : `${ag.emoji} Hoy todavía no llegó nadie a este paso`,
+      '👇 Abajo están las funciones de esta oficina',
+    ];
+    if (u) opciones.push(`${textoAccion(u)} (${SB.hace(u.created_at)})`);
+    decir(s, azar(opciones));
   }
-  setInterval(largarTren, 2600);
+  setInterval(charla, 9000);
+
+  /* ── Alguien entra por la puerta cuando hubo movimiento hoy ── */
+  function entraAlguien() {
+    const s = salas[actual];
+    if (reduce || !s || s.paseo || !numeros(s.sala).hoy) return;
+    const k = Math.floor(Math.random() * 12);
+    const destino = new T.Vector3(-3.7 + (k % 6) * 0.78, PISO_Y, 0.6 + Math.floor(k / 6) * 0.85 + 0.4);
+    s.paseo = { desde: new T.Vector3(-ANCHO / 2 - 1.2, PISO_Y, 0), hasta: destino, t0: performance.now() / 1000, dur: 2.6 };
+    s.caminante.visible = true;
+  }
+  setInterval(entraAlguien, 4500);
 
   /* ── Bitácora de los agentes ── */
   let ultimoId = 0;
-  function calcularEstado(a) {
-    if (!despierto(a.p)) return 'durmiendo';
-    const u = a.ultima;
-    if (u && u.estado === 'error' && Date.now() - new Date(u.created_at) < 24 * 3600e3) return 'alerta';
-    if (u && Date.now() - new Date(u.created_at) < 15 * 60e3) return 'trabajando';
-    return 'activo';
-  }
-  function aplicarEstados() {
-    agentes.forEach((a) => {
-      a.estado = calcularEstado(a);
-      const color = new T.Color(ESTADOS[a.estado].color);
-      [a.bot.ojoMat, a.bot.puntaMat, a.bot.anilloMat].forEach((m) => { m.color.copy(color); m.emissive.copy(color); });
-      a.tag.dataset.estado = a.estado;
-      a.zzz.classList.toggle('on', a.estado === 'durmiendo');
+  function calcularEstados() {
+    salas.forEach((s) => {
+      const u = ultimas.get(s.meta.agente);
+      let estado = 'activo';
+      if (!despierto(s.robot)) estado = 'durmiendo';
+      else if (u && u.estado === 'error' && Date.now() - new Date(u.created_at) < 24 * 3600e3) estado = 'alerta';
+      else if (u && Date.now() - new Date(u.created_at) < 15 * 60e3) estado = 'trabajando';
+      s.estado = estado;
+      const color = new T.Color(ESTADOS[estado].color);
+      [s.bot.ojoMat, s.bot.puntaMat, s.bot.anilloMat].forEach((m) => { m.color.copy(color); m.emissive.copy(color); });
+      s.tag.dataset.estado = estado;
+      s.zzz.classList.toggle('on', estado === 'durmiendo');
     });
     refrescarFicha();
   }
@@ -603,52 +680,51 @@ async function iniciar() {
     try {
       const acciones = await SB.pedir('rpc/oficina_ultimas_acciones', { limite: 40 });
       acciones.forEach((x) => {
-        const a = agentes.get(x.agente_id);
-        if (a && (!a.ultima || x.id > a.ultima.id)) a.ultima = x;
+        const u = ultimas.get(x.agente_id);
+        if (!u || x.id > u.id) ultimas.set(x.agente_id, x);
       });
       if (!primeraVez) {
-        const nuevas = acciones.filter((x) => x.id > ultimoId && agentes.has(x.agente_id) && agentes.get(x.agente_id).estado !== 'durmiendo');
-        nuevas.forEach((x) => { agentes.get(x.agente_id).salto = performance.now() / 1000; });
-        if (nuevas[0]) decir(agentes.get(nuevas[0].agente_id), `✨ ${nuevas[0].accion}${nuevas[0].cantidad > 1 ? ' · ' + fmt(nuevas[0].cantidad) : ''}`, 5000, true);
+        const nueva = acciones.find((x) => x.id > ultimoId && x.agente_id === salas[actual].meta.agente);
+        if (nueva) {
+          salas[actual].salto = performance.now() / 1000;
+          decir(salas[actual], `✨ ${nueva.accion}${nueva.cantidad > 1 ? ' · ' + fmt(nueva.cantidad) : ''}`, 5000);
+        }
       }
       if (acciones.length) ultimoId = Math.max(ultimoId, ...acciones.map((x) => x.id));
-      aplicarEstados();
+      calcularEstados();
     } catch (e) {
       console.warn('No se pudo leer la bitácora', e);
     }
   }
 
-  /* ── Ficha de un agente ── */
+  /* ── Ficha del agente ── */
   const ficha = document.createElement('div');
   ficha.className = 'o3d-ficha';
   ficha.setAttribute('role', 'dialog');
   ficha.hidden = true;
   capa.appendChild(ficha);
-  let sobre = null; // { tipo: 'agente' | 'anden', id }
-  let fijado = null; // id del agente con la ficha fija
+  let fijado = null; // oficina cuyo agente tiene la ficha abierta
   function refrescarFicha() {
-    const id = fijado || (sobre && sobre.tipo === 'agente' ? sobre.id : null);
-    if (!id) {
+    if (!fijado) {
       ficha.hidden = true;
       return;
     }
-    const a = agentes.get(id);
-    const u = a.ultima;
-    const nombres = a.p.estaciones.map((e) => (est(e) || {}).nombre || e);
-    ficha.classList.toggle('fija', !!fijado);
+    const s = porSala.get(fijado);
+    const ag = AGENTES[s.meta.agente] || AGENTES.coordinador;
+    const u = ultimas.get(s.meta.agente);
+    const cuida = Object.entries(ESTACIONES).filter(([, m]) => m.agente === s.meta.agente && m.tramo !== 'x').map(([, m]) => m.corto);
+    ficha.classList.add('fija');
     ficha.innerHTML = `
       <div class="o3d-ficha-head">
-        <span class="o3d-ficha-emoji">${esc(a.datos.emoji)}</span>
-        <div><strong>${esc(a.datos.nombre)}</strong><small>${nombres.length ? `Cuida: ${esc(nombres.join(', '))}` : 'Torre de control: mira toda la ruta'}</small></div>
-        <span class="o3d-pill" data-estado="${a.estado}">${esc(ESTADOS[a.estado].label)}</span>
+        <span class="o3d-ficha-emoji">${esc(ag.emoji)}</span>
+        <div><strong>${esc(ag.nombre)}</strong><small>Cuida: ${esc(cuida.join(', ') || 'toda la ruta')}</small></div>
+        <span class="o3d-pill" data-estado="${s.estado}">${esc(ESTADOS[s.estado].label)}</span>
       </div>
       <div class="o3d-ficha-box">
         <span>Última acción</span>
         <p>${u ? `${esc(textoAccion(u))} <em>${esc(SB.hace(u.created_at))}</em>` : 'Todavía sin actividad registrada'}</p>
       </div>
-      ${fijado
-        ? `<div class="o3d-ficha-acciones"><button type="button" class="o3d-btn" data-preguntar="${esc(a.datos.pregunta)}">Preguntale →</button></div>`
-        : '<p class="o3d-ficha-hint">Hacé clic para fijar la ficha y preguntarle</p>'}`;
+      <div class="o3d-ficha-acciones"><button type="button" class="o3d-btn" data-preguntar="${esc(ag.pregunta)}">Preguntale →</button></div>`;
     ficha.hidden = false;
   }
   ficha.addEventListener('click', (e) => {
@@ -660,68 +736,64 @@ async function iniciar() {
     refrescarFicha();
   });
 
-  /* ── Puntero ── */
+  /* ── Puntero: tocar el robot abre su ficha; tocar otra oficina va hacia ella ── */
   const raycaster = new T.Raycaster();
   const ndc = new T.Vector2();
-  let pendiente = null;
   let abajo = null;
-  const queHay = (clientX, clientY) => {
+  let pendiente = null;
+  const queHay = (x, y) => {
     const r = renderer.domElement.getBoundingClientRect();
-    ndc.set(((clientX - r.left) / r.width) * 2 - 1, -((clientY - r.top) / r.height) * 2 + 1);
+    ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(ndc, camara);
-    const hit = raycaster.intersectObjects(clicables, true)[0];
-    if (!hit) return null;
-    const d = hit.object.userData;
-    if (d.agente) return { tipo: 'agente', id: d.agente };
-    if (d.etapa) return { tipo: 'anden', id: d.etapa };
-    return null;
+    const hit = raycaster.intersectObject(plano, true).find((h) => h.object.userData.sala);
+    return hit ? hit.object.userData : null;
   };
   const lienzo = renderer.domElement;
-  const igual = (x, y) => (x && y ? x.tipo === y.tipo && x.id === y.id : x === y);
   lienzo.addEventListener('pointermove', (e) => { if (e.pointerType === 'mouse') pendiente = [e.clientX, e.clientY]; });
-  lienzo.addEventListener('pointerleave', () => { pendiente = null; if (sobre) { sobre = null; lienzo.style.cursor = ''; refrescarFicha(); } });
   lienzo.addEventListener('pointerdown', (e) => { abajo = [e.clientX, e.clientY]; });
   lienzo.addEventListener('pointerup', (e) => {
     if (!abajo || Math.hypot(e.clientX - abajo[0], e.clientY - abajo[1]) > 6) return;
     const x = queHay(e.clientX, e.clientY);
-    if (x && x.tipo === 'agente') {
-      fijado = x.id !== fijado ? x.id : null;
+    if (x && x.agente && x.sala === SALAS[actual]) {
+      fijado = fijado === x.sala ? null : x.sala;
     } else {
       fijado = null;
-      // El andén de salidas abre la salida con más gente.
-      const salida = () => [...(datos && datos.estaciones || [])].filter((s) => s.es_salida).sort((p, q) => q.personas - p.personas)[0];
-      const etapa = x && x.tipo === 'anden' ? (x.id === 'SALIDAS' ? (salida() || {}).etapa || 'NO_AVANZA' : x.id) : null;
-      document.dispatchEvent(new CustomEvent('ruta:elegir', { detail: { etapa } }));
+      if (x && x.sala !== SALAS[actual]) irA(SALAS.indexOf(x.sala));
     }
     refrescarFicha();
   });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && fijado) { fijado = null; refrescarFicha(); } });
 
-  document.addEventListener('ruta:datos', (e) => { datos = e.detail; pintarDatos(); refrescarFicha(); });
-  document.addEventListener('ruta:elegida', (e) => { elegida = (e.detail || {}).etapa || null; });
+  function mostrar(etapa, presentarse = true) {
+    const i = SALAS.indexOf(SALIDAS.includes(etapa) ? 'SALIDAS' : etapa);
+    if (i < 0 || i === actual) return;
+    actual = i;
+    fijado = null;
+    refrescarFicha();
+    pintarNavegacion();
+    if (presentarse) setTimeout(() => presentar(salas[actual]), reduce ? 0 : 900);
+  }
+  document.addEventListener('ruta:datos', (e) => { datos = e.detail; pintarDatos(); });
+  document.addEventListener('ruta:elegida', (e) => mostrar((e.detail || {}).etapa));
 
   /* ── Tamaño y cámara ── */
   let ancho = 1;
   let alto = 1;
+  let chica = false;
   function ajustar() {
     ancho = Math.max(1, escena.clientWidth);
     alto = Math.max(1, escena.clientHeight);
+    chica = ancho < 640;
     renderer.setSize(ancho, alto);
     Object.assign(camara, { left: -ancho / 2, right: ancho / 2, top: alto / 2, bottom: -alto / 2 });
-    // La maqueta proyectada mide ≈ 48 u × 18 u (con carteles y robots); el centro
-    // sube un poco porque arriba quedan los robots y abajo los carteles.
-    camara.zoom = Math.max(4, Math.min(ancho / 48, alto / 18.5));
-    const centro = new T.Vector3(-1, 2, -1).normalize().multiplyScalar(0.4);
-    camara.position.set(30, 30, 30).add(centro);
-    camara.lookAt(centro);
+    // Se ve la oficina entera y un poco de las de al lado (en celulares, solo la oficina).
+    camara.zoom = Math.max(6, Math.min(ancho / (chica ? 12.5 : 19), alto / (chica ? 11 : 9.5)));
     camara.updateProjectionMatrix();
-    escena.classList.toggle('is-chica', ancho < 640);
+    escena.classList.toggle('is-chica', chica);
   }
   new ResizeObserver(ajustar).observe(escena);
   ajustar();
 
-  let visible = true;
-  new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(escena);
 
   /* ── Loop ── */
   const v3 = new T.Vector3();
@@ -731,101 +803,76 @@ async function iniciar() {
   };
   function posicionarOverlays() {
     anclas.forEach((x) => {
+      if (x.el.hidden) return;
       let [px, py] = proyectar(typeof x.pos === 'function' ? x.pos() : x.pos);
-      // Los globitos no se salen de la maqueta (los robots de los bordes hablan hacia adentro).
-      if (x.el.classList.contains('on')) {
+      // Los globitos y el cartel no se salen de la maqueta ni quedan debajo de la barra de pasos.
+      if (x.el.classList.contains('o3d-globo') || x.el.classList.contains('ru3-sala')) {
         const mitad = x.el.offsetWidth / 2;
         px = Math.min(Math.max(px, mitad + 6), ancho - mitad - 6);
+        py = Math.max(py, 50 + x.el.offsetHeight);
       }
       x.el.style.transform = `translate3d(${Math.round(px)}px, ${Math.round(py)}px, 0) ${x.ajuste}`;
     });
-    const id = fijado || (sobre && sobre.tipo === 'agente' ? sobre.id : null);
-    if (id && !ficha.hidden) {
-      const a = agentes.get(id);
-      const [px, py] = proyectar(aMundo(a.pos.clone().add(new T.Vector3(0, 1.2, 0))));
+    if (fijado && !ficha.hidden) {
+      const s = porSala.get(fijado);
+      const [px, py] = proyectar(aMundo(s.casa.clone().add(new T.Vector3(0, 1.2, 0))));
       const w = ficha.offsetWidth;
       const h = ficha.offsetHeight;
       const x = Math.min(Math.max(px - w / 2, 8), ancho - w - 8);
-      const y = py - h - 14 < 0 ? proyectar(aMundo(a.pos.clone().add(new T.Vector3(0, -1.0, 0))))[1] + 12 : py - h - 14;
-      ficha.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(Math.max(8, y))}px, 0)`;
+      ficha.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(Math.max(52, py - h - 14))}px, 0)`;
     }
   }
 
+  const arriba = new T.Vector3(-1, 2, -1).normalize();
   const reloj = new T.Timer();
   function loop(ms) {
     requestAnimationFrame(loop);
     reloj.update(ms);
+    const delta = reloj.getDelta();
+    const dt = Math.min(delta, 0.1);
+    // La cámara avanza aunque la maqueta no esté a la vista (y aunque haya pocos cuadros por
+    // segundo): al volver, ya está en el paso elegido.
+    camU = reduce ? actual * PASO : T.MathUtils.damp(camU, actual * PASO, 4.5, Math.min(delta, 0.5));
     if (!visible || document.hidden) return;
-    const dt = Math.min(reloj.getDelta(), 0.1);
     const t = reloj.getElapsed();
     const ahora = performance.now() / 1000;
 
     if (pendiente) {
       const x = queHay(pendiente[0], pendiente[1]);
       pendiente = null;
-      if (!igual(x, sobre)) {
-        sobre = x;
-        lienzo.style.cursor = x ? 'pointer' : '';
-        refrescarFicha();
-      }
+      lienzo.style.cursor = x && (x.sala !== SALAS[actual] || x.agente) ? 'pointer' : '';
     }
 
-    andenes.forEach((a) => {
-      const marcado = elegida === a.etapa;
-      const encima = sobre && sobre.tipo === 'anden' && sobre.id === a.etapa;
-      a.elevar = T.MathUtils.damp(a.elevar, marcado ? 0.35 : encima ? 0.15 : 0, 10, dt);
-      a.g.position.y = a.elevar;
-      a.cartel.classList.toggle('is-elegida', marcado);
-      a.cartel.classList.toggle('is-pulso', ahora - a.pulso < 1.2);
-      if (!reduce) a.gente.forEach((m, k) => { if (m.visible) m.position.y = 0.36 + Math.abs(Math.sin(t * 2.2 + m.userData.fase + k)) * 0.05; });
-    });
-    salidas.cartel.classList.toggle('is-elegida', !!elegida && (ESTACIONES[elegida] || {}).tramo === 'x');
+    // La cámara se desliza hasta la oficina elegida.
+    // El foco sube un poco: arriba quedan la pared, el cartel y la barra de pasos.
+    const foco = aMundo(P(camU, 0, 0)).add(arriba.clone().multiplyScalar(chica ? 0.7 : 1.15));
+    camara.position.copy(foco).add(new T.Vector3(30, 30, 30));
+    camara.lookAt(foco);
+    sol.position.copy(foco).add(new T.Vector3(14, 26, 9));
+    sol.target.position.copy(foco);
 
-    trenes.forEach((tr) => {
-      if (!tr.viaje) return;
-      const k = Math.min(1, (ahora - tr.viaje.inicio) / tr.viaje.dur);
-      const tt = tr.viaje.t0 + (tr.viaje.t1 - tr.viaje.t0) * suave(k);
-      const p = curva.getPointAt(tt);
-      const tg = curva.getTangentAt(tt);
-      tr.grupo.position.set(p.x, 0.2, p.z);
-      tr.grupo.rotation.y = Math.atan2(-tg.z, tg.x);
-      if (k >= 1) {
-        const a = andenes.get(tr.viaje.etapa);
-        if (a) a.pulso = ahora;
-        tr.viaje = null;
-        tr.grupo.visible = false;
+    salas.forEach((s, i) => {
+      const cerca = Math.abs(i - actual) <= 1;
+      if (!reduce && cerca) s.gente.forEach((m, k) => { if (m.visible) m.position.y = PISO_Y + Math.abs(Math.sin(t * 2.2 + m.userData.fase + k)) * 0.05; });
+      if (s.paseo) {
+        const k = Math.min(1, (ahora - s.paseo.t0) / s.paseo.dur);
+        s.caminante.position.lerpVectors(s.paseo.desde, s.paseo.hasta, suave(k));
+        s.caminante.position.y = PISO_Y + Math.abs(Math.sin(k * Math.PI * 6)) * 0.12;
+        if (k >= 1) { s.paseo = null; s.caminante.visible = false; }
       }
+      s.sueno = T.MathUtils.damp(s.sueno, s.estado === 'durmiendo' ? 1 : 0, 2.5, dt);
+      const amp = reduce ? 0.02 : 0.13 * (1 - 0.85 * s.sueno);
+      s.bot.raiz.position.set(s.casa.x, s.casa.y + Math.sin(t * 1.7 + s.fase) * amp - 0.4 * s.sueno, s.casa.z);
+      s.bot.flota.rotation.y = reduce ? 0 : Math.sin(t * 0.6 + s.fase) * 0.28 * (1 - s.sueno);
+      s.bot.flota.rotation.z = 0.24 * s.sueno;
+      const desde = ahora - s.salto;
+      s.bot.flota.position.y = !reduce && desde < 0.9 ? Math.abs(Math.sin((desde / 0.9) * Math.PI * 2)) * 0.5 : 0;
+      s.bot.flota.scale.setScalar(T.MathUtils.damp(s.bot.flota.scale.x, fijado === s.sala ? 1.12 : 1, 12, dt));
+      s.bot.ojos.scale.y = s.sueno > 0.5 ? 0.12 : (t + s.fase) % 4 < 0.12 ? 0.15 : 1;
+      if (!reduce && s.sueno < 0.5) s.bot.anillo.rotation.z += dt * (s.estado === 'trabajando' ? 2.4 : 0.6);
     });
-
-    agentes.forEach((a) => {
-      if (a.vuelo) {
-        const k = Math.min(1, (ahora - a.vuelo.t0) / a.vuelo.dur);
-        a.pos.lerpVectors(a.vuelo.desde, a.vuelo.hasta, suave(k));
-        a.pos.y += Math.sin(Math.PI * k) * 1.0;
-        if (k >= 1) {
-          const res = a.vuelo.res;
-          a.vuelo = null;
-          res();
-        }
-      }
-      a.sueno = T.MathUtils.damp(a.sueno, a.estado === 'durmiendo' ? 1 : 0, 2.5, dt);
-      const amp = reduce ? 0.02 : 0.13 * (1 - 0.85 * a.sueno);
-      const bob = Math.sin(t * (1.7 - 1.1 * a.sueno) + a.fase) * amp;
-      a.bot.raiz.position.set(a.pos.x, a.pos.y + bob - 0.3 * a.sueno, a.pos.z);
-      a.bot.flota.rotation.y = reduce ? 0 : Math.sin(t * 0.6 + a.fase) * 0.28 * (1 - a.sueno);
-      a.bot.flota.rotation.z = 0.24 * a.sueno;
-      const desde = ahora - a.salto;
-      a.bot.flota.position.y = !reduce && desde < 0.9 ? Math.abs(Math.sin((desde / 0.9) * Math.PI * 2)) * 0.5 : 0;
-      const encima = fijado === a.id || (sobre && sobre.tipo === 'agente' && sobre.id === a.id);
-      a.bot.flota.scale.setScalar(T.MathUtils.damp(a.bot.flota.scale.x, encima ? 1.12 : 1, 12, dt));
-      a.bot.ojos.scale.y = a.sueno > 0.5 ? 0.12 : (t + a.fase) % 4 < 0.12 ? 0.15 : 1;
-      if (!reduce && a.sueno < 0.5) a.bot.anillo.rotation.z += dt * (a.estado === 'trabajando' ? 2.4 : 0.6);
-    });
-
-    if (!reduce) {
-      meta.bandera.rotation.y = Math.sin(t * 2.4) * 0.25;
-      tw.vidrio.emissiveIntensity = 0.3 + 0.15 * Math.sin(t * 1.6);
-    }
+    leds.forEach((l) => { l.mat.emissiveIntensity = reduce || Math.sin(t * l.vel + l.fase) > 0.15 ? 1.1 : 0.12; });
+    if (!reduce) globos.forEach((g) => { g.m.position.y = g.y + Math.sin(t * 1.4 + g.fase) * 0.08; });
 
     renderer.render(mundo, camara);
     posicionarOverlays();
@@ -833,9 +880,14 @@ async function iniciar() {
 
   /* ── Arranque ── */
   pintarDatos();
-  aplicarEstados();
+  calcularEstados();
+  if (window.RUTA.elegida) {
+    mostrar(window.RUTA.elegida, false);
+    camU = actual * PASO;
+  }
   await leerBitacora(true);
   setInterval(() => leerBitacora(false), 30000);
-  setInterval(aplicarEstados, 60000);
+  setInterval(calcularEstados, 60000);
   requestAnimationFrame(loop);
+  setTimeout(() => presentar(salas[actual]), 1200);
 }
