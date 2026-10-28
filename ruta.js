@@ -67,6 +67,7 @@ window.RUTA = (() => {
   };
 
   // Cada paso: tramo, agente que lo cuida, herramientas (H), datos en vivo,
+  // columnas de Solicitudes que se pueden cambiar desde la oficina (con PIN),
   // con qué scripts funciona hoy, dónde se carga y qué lo reemplaza.
   const ESTACIONES = {
     POSTULADO: { tramo: 1, agente: 'screening', corto: 'Postulados',
@@ -94,27 +95,27 @@ window.RUTA = (() => {
       scripts: ['Apps Script de TAREAS GRUPALES (ESTADO → ruta)'],
       hoy: 'Columna ESTADO de Proceso de Selección y BASE DE DATOS.',
       app: 'Botones Aprobado / En espera / No avanza en la ficha. Si está en BLOQUEADOS, aparece el aviso.' },
-    COMPARTIDO_ZONAL: { tramo: 3, agente: 'vacantes', corto: 'Al zonal', vivo: 'vacantes',
+    COMPARTIDO_ZONAL: { tramo: 3, agente: 'vacantes', corto: 'Al zonal', vivo: 'vacantes', acciones: ['ESTADO'],
       herramientas: [H.zonales, H.proceso],
       scripts: ['Apps Script de TAREAS GRUPALES (copia a la planilla de cada regional)'],
       hoy: 'Columna ESTADO ENVIO y la planilla de cada regional (HOJAS ZONALES).',
       app: 'Cada zonal ve sus candidatos sugeridos por cercanía al local.' },
-    VACANTE_ASIGNADA: { tramo: 3, agente: 'vacantes', corto: 'Con vacante', vivo: 'vacantes',
+    VACANTE_ASIGNADA: { tramo: 3, agente: 'vacantes', corto: 'Con vacante', vivo: 'vacantes', acciones: ['ESTADO', 'NOTAS'],
       herramientas: [H.solSabores, H.solExtremas],
       scripts: ['Apps Script «vacantesAsignaciones» (Contador de Vacantes)', 'Apps Script «Vacantes (tablero)»', 'Solicitud de Búsqueda de Personal (web + Apps Script)'],
       hoy: 'Solicitudes Sabores y Extremas, y vacantes reservadas.',
       app: 'Tablero de vacantes por local: cada solicitud es una tarjeta con su candidato.' },
-    APROBADO_ZONAL: { tramo: 3, agente: 'vacantes', corto: 'OK del zonal', vivo: 'vacantes',
+    APROBADO_ZONAL: { tramo: 3, agente: 'vacantes', corto: 'OK del zonal', vivo: 'vacantes', acciones: ['ESTADO'],
       herramientas: [H.solSabores, H.solExtremas],
       scripts: ['n8n · Avisos por mail (cambio de ESTADO)', 'Apps Script de TAREAS GRUPALES (ESTADO → ruta)'],
       hoy: 'Columna ESTADO de Solicitudes, editada a mano.',
       app: 'El zonal aprueba o rechaza con un clic y el selector recibe el aviso.' },
-    CITADO_ONB: { tramo: 4, agente: 'onboarding', corto: 'Citados ONB', vivo: 'onb',
+    CITADO_ONB: { tramo: 4, agente: 'onboarding', corto: 'Citados ONB', vivo: 'onb', acciones: ['FECHA', 'HORA', 'ESTADO'],
       herramientas: [H.solSabores, H.solExtremas, H.agendaOp],
       scripts: ['n8n · Avisos por mail (cambio de ESTADO)', 'Apps Script de TAREAS GRUPALES (ESTADO → ruta)'],
       hoy: 'FECHA y HORA de la fila en Solicitudes.',
       app: 'Calendario de onboarding con los cupos por día.' },
-    CONFIRMA_ONB: { tramo: 4, agente: 'onboarding', corto: 'Confirman ONB', vivo: 'onb',
+    CONFIRMA_ONB: { tramo: 4, agente: 'onboarding', corto: 'Confirman ONB', vivo: 'onb', acciones: ['ESTADO'],
       herramientas: [H.solSabores, H.solExtremas],
       scripts: ['Apps Script de TAREAS GRUPALES (ALTAS RRHH → ruta)'],
       hoy: 'ALTAS RRHH = "CONFIRMA ONB" en Solicitudes.',
@@ -129,7 +130,7 @@ window.RUTA = (() => {
       scripts: ['n8n · Ruta (cada 30 min, cruza DNI con Solicitudes)'],
       hoy: 'Pestaña exportacion_icheck, armada a mano. Cuando alguien aparece ahí, llega a la ruta (cada 30 min).',
       app: 'Cola de altas con el botón "Exportar iCheck", que arma el archivo y mueve a todos de paso.' },
-    INGRESO: { tramo: 4, agente: 'onboarding', corto: 'Ingresaron', vivo: 'ingreso',
+    INGRESO: { tramo: 4, agente: 'onboarding', corto: 'Ingresaron', vivo: 'ingreso', acciones: ['PRIMER DIA'],
       herramientas: [H.altas, H.encuesta],
       scripts: ['Supabase · seguimiento → altas del dashboard', 'Encuesta de experiencia (web + Apps Script)'],
       hoy: 'PRIMER DÍA en Solicitudes.',
@@ -140,7 +141,7 @@ window.RUTA = (() => {
       hoy: 'No se registra en ninguna planilla.', app: 'La agenda marca a quien no vino a la entrevista o al ONB.' },
     DESISTIO: { tramo: 'x', agente: 'onboarding', corto: 'Desistieron', herramientas: [H.solSabores, H.solExtremas], scripts: [],
       hoy: 'Queda en OBSERVACIONES.', app: 'Se marca en la ficha con el motivo.' },
-    RECHAZADO_ZONAL: { tramo: 'x', agente: 'vacantes', corto: 'Rechazo zonal', herramientas: [H.solSabores, H.solExtremas, H.bloqueados],
+    RECHAZADO_ZONAL: { tramo: 'x', agente: 'vacantes', corto: 'Rechazo zonal', herramientas: [H.solSabores, H.solExtremas, H.bloqueados], acciones: ['ESTADO', 'NOTAS'],
       scripts: ['Apps Script de TAREAS GRUPALES (ESTADO → ruta)'],
       hoy: 'Columna ESTADO de Solicitudes.', app: 'Vuelve a la bandeja con el motivo, lista para otra vacante.' },
   };
@@ -265,9 +266,252 @@ window.RUTA = (() => {
     return '';
   }
 
+  /* ── Cambiar en la planilla, confirmado con PIN ── */
+  // Igual que el chat del Coordinador: Supabase arma el pedido (proponer_accion),
+  // alguien del equipo lo confirma con su PIN personal y n8n lo escribe en
+  // Solicitudes Sabores/Extremas (TAREAS GRUPALES), donde siguen corriendo sus
+  // Apps Script. Nada cambia sin PIN y el PIN no se guarda en ningún lado.
+  const ACCION_URL = 'https://kevin9705.app.n8n.cloud/webhook/oficina-accion';
+  const CLAVE_CODIGO = 'oficina-codigo'; // el mismo código del equipo que pide el chat
+  const COLUMNAS = {
+    ESTADO: { t: 'Estado', tipo: 'text', ver: 'estado' },
+    FECHA: { t: 'Fecha', tipo: 'date', ver: 'fecha' },
+    HORA: { t: 'Hora', tipo: 'time', ver: 'hora' },
+    'PRIMER DIA': { t: 'Primer día', tipo: 'date', ver: 'primer_dia' },
+    NOTAS: { t: 'Notas', tipo: 'text', ver: null },
+  };
+  const MARCAS = { sabores: 'Sabores Express', extremas: 'Hamburguesas Extremas' };
+  let solicitudes = null; // copia de Solicitudes (sin datos personales), cada 30 min
+  const cajas = {}; // una por oficina: lo escrito no se pierde cuando el panel se repinta
+
+  async function cargarSolicitudes() {
+    try {
+      solicitudes = await SB.pedir('equipo_solicitudes?select=fila,marca,local,puesto,jornada,selector,estado,fecha,hora,primer_dia&order=marca,local,fila', null, 15000);
+    } catch (e) {
+      console.warn('No se pudieron leer las solicitudes', e);
+      solicitudes = solicitudes || [];
+    }
+    Object.values(cajas).forEach((c) => c.refrescar());
+  }
+
+  async function pedirAccion(cuerpo) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 45000);
+    try {
+      const res = await fetch(ACCION_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cuerpo),
+        signal: ctrl.signal,
+      });
+      const texto = res.ok ? (await res.text()).trim() : '';
+      return texto ? JSON.parse(texto) : { ok: false, motivo: 'conexion' };
+    } catch (e) {
+      console.warn('Cambio en planilla', e);
+      return { ok: false, motivo: 'conexion' };
+    } finally {
+      clearTimeout(t);
+    }
+  }
+
+  // "2026-10-28" → "28/10/2026", como se escribe en la planilla.
+  const aPlanilla = (tipo, v) => (tipo === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v.split('-').reverse().join('/') : v);
+
+  function cajaDe(etapa) {
+    if (cajas[etapa]) return cajas[etapa].el;
+    const meta = ESTACIONES[etapa];
+    const id = 'ruAc' + Object.keys(cajas).length;
+    const el = document.createElement('div');
+    el.className = 'ru-accion';
+    el.innerHTML = `
+      <h4>✏️ Cambiar en la planilla</h4>
+      <p class="ru-nota">Se escribe en Solicitudes (TAREAS GRUPALES) y lo confirmás con tu PIN personal. Las automatizaciones de n8n las maneja Kevin.</p>
+      <form class="ru-accion-form" novalidate>
+        <label for="${id}b">Solicitud</label>
+        <input id="${id}b" type="search" placeholder="Buscar local, puesto, selector o estado…" autocomplete="off" data-buscar />
+        <select id="${id}s" aria-label="Solicitud" data-fila></select>
+        <div class="ru-accion-fila">
+          <div>
+            <label for="${id}c">Qué cambiar</label>
+            <select id="${id}c" data-col>${meta.acciones.map((c) => `<option value="${esc(c)}">${esc(COLUMNAS[c].t)}</option>`).join('')}</select>
+          </div>
+          <div>
+            <label for="${id}v">Nuevo valor</label>
+            <input id="${id}v" type="text" maxlength="120" autocomplete="off" list="${id}l" data-valor />
+          </div>
+        </div>
+        <datalist id="${id}l"></datalist>
+        <p class="ru-nota" data-ahora></p>
+        <button class="btn-primary" type="submit">Pedir el cambio</button>
+        <p class="ru-accion-aviso" role="status"></p>
+      </form>
+      <div class="ru-accion-pin" hidden></div>`;
+    const form = el.querySelector('form');
+    const buscar = el.querySelector('[data-buscar]');
+    const sel = el.querySelector('[data-fila]');
+    const col = el.querySelector('[data-col]');
+    const valor = el.querySelector('[data-valor]');
+    const lista = el.querySelector('datalist');
+    const ahora = el.querySelector('[data-ahora]');
+    const aviso = form.querySelector('.ru-accion-aviso');
+    const pinBox = el.querySelector('.ru-accion-pin');
+
+    const clave = (s) => `${String(s.marca).toLowerCase()}:${s.fila}`;
+    const elegidaSol = () => (solicitudes || []).find((s) => clave(s) === sel.value);
+    function mostrarAhora() {
+      const c = COLUMNAS[col.value];
+      const s = elegidaSol();
+      valor.type = c.tipo;
+      valor.placeholder = col.value === 'NOTAS' ? 'Sin mails ni teléfonos' : '';
+      valor.setAttribute('list', c.tipo === 'text' && col.value === 'ESTADO' ? lista.id : '');
+      ahora.textContent = s && c.ver ? `Ahora: ${s[c.ver] || 'vacío'}` : '';
+    }
+    function refrescar() {
+      const previa = sel.value;
+      const q = SB.norm(buscar.value);
+      const filas = (solicitudes || []).filter((s) => !q || SB.norm([s.local, s.puesto, s.jornada, s.selector, s.estado].join(' ')).includes(q));
+      if (!solicitudes) sel.innerHTML = '<option value="">Cargando solicitudes…</option>';
+      else if (!filas.length) sel.innerHTML = '<option value="">Ninguna coincide</option>';
+      else {
+        sel.innerHTML = Object.keys(MARCAS).map((m) => {
+          const deMarca = filas.filter((s) => String(s.marca).toLowerCase() === m);
+          return deMarca.length ? `<optgroup label="${esc(MARCAS[m])}">${deMarca.map((s) => `<option value="${esc(clave(s))}">${esc([s.local, s.puesto, s.jornada].filter(Boolean).join(' · '))} — ${esc(s.estado || 'sin estado')}</option>`).join('')}</optgroup>` : '';
+        }).join('');
+        if (filas.some((s) => clave(s) === previa)) sel.value = previa;
+      }
+      const estados = [...new Set((solicitudes || []).map((s) => s.estado).filter(Boolean))].sort();
+      lista.innerHTML = estados.map((e) => `<option value="${esc(e)}"></option>`).join('');
+      mostrarAhora();
+    }
+    buscar.addEventListener('input', refrescar);
+    sel.addEventListener('change', mostrarAhora);
+    col.addEventListener('change', () => { valor.value = ''; mostrarAhora(); });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const s = elegidaSol();
+      const c = col.value;
+      const v = aPlanilla(COLUMNAS[c].tipo, valor.value.trim());
+      if (!s) { aviso.textContent = 'Elegí una solicitud.'; sel.focus(); return; }
+      if (!v && c !== 'NOTAS') { aviso.textContent = 'Escribí el valor nuevo.'; valor.focus(); return; }
+      const boton = form.querySelector('button');
+      boton.disabled = true;
+      aviso.textContent = 'Preparando el pedido…';
+      try {
+        const r = await SB.pedir('rpc/proponer_accion', {
+          p_tipo: c === 'ESTADO' ? 'estado' : 'editar',
+          p_hoja: String(s.marca).toLowerCase(),
+          p_fila: s.fila,
+          p_columna: c,
+          p_valor: v,
+          p_pedido_por: 'Ruta · ' + meta.corto,
+          p_sesion: 'ruta',
+        }, 15000);
+        if (!r || !r.ok) { aviso.textContent = (r && r.motivo) || 'No se pudo preparar el cambio.'; return; }
+        aviso.textContent = '';
+        form.hidden = true;
+        pedirPin(r);
+      } catch (err) {
+        console.warn('proponer_accion', err);
+        aviso.textContent = 'No pude conectarme con Supabase. Probá de nuevo.';
+      } finally {
+        boton.disabled = false;
+      }
+    });
+
+    // Tarjeta del PIN: vence a los 10 minutos, 3 intentos (lo controla Supabase).
+    function pedirPin(p) {
+      const sinCodigo = !leer(CLAVE_CODIGO);
+      pinBox.hidden = false;
+      pinBox.innerHTML = `
+        <p class="ru-accion-resumen">🔐 ${esc(p.resumen)}</p>
+        <form novalidate>
+          ${sinCodigo ? `<label for="${id}k">Código del equipo</label><input id="${id}k" type="password" autocomplete="off" data-codigo />` : ''}
+          <label for="${id}p">Tu PIN personal</label>
+          <div class="ru-accion-fila">
+            <input id="${id}p" type="password" inputmode="numeric" maxlength="6" placeholder="6 números" autocomplete="off" data-pin />
+            <button type="submit" class="btn-primary">Confirmar</button>
+            <button type="button" class="ru-accion-cancelar">Cancelar</button>
+          </div>
+        </form>
+        <p class="ru-accion-aviso" role="status"></p>
+        <p class="ru-nota" data-cuenta></p>`;
+      const f = pinBox.querySelector('form');
+      const pin = pinBox.querySelector('[data-pin]');
+      const codigo = pinBox.querySelector('[data-codigo]');
+      const msg = pinBox.querySelector('.ru-accion-aviso');
+      const cuenta = pinBox.querySelector('[data-cuenta]');
+      const vence = Date.parse(p.expira) || Date.now() + 10 * 60000;
+      let trabajando = false;
+
+      const terminar = (texto, ok) => {
+        clearInterval(reloj);
+        pinBox.innerHTML = `<p class="ru-accion-resumen${ok ? ' is-ok' : ''}">${esc(texto)}</p><button type="button" class="tab-btn">Hacer otro cambio</button>`;
+        pinBox.querySelector('button').addEventListener('click', () => {
+          pinBox.hidden = true;
+          pinBox.innerHTML = '';
+          form.hidden = false;
+          valor.value = '';
+          refrescar();
+        });
+      };
+      const contar = () => {
+        if (trabajando) return;
+        const seg = Math.round((vence - Date.now()) / 1000);
+        if (seg <= 0) { terminar('⏱️ Pasaron 10 minutos y no se hizo nada. Pedilo de nuevo si todavía hace falta.'); return; }
+        cuenta.textContent = `Vence en ${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}.`;
+      };
+      const reloj = setInterval(contar, 1000);
+      contar();
+      setTimeout(() => (codigo || pin).focus({ preventScroll: true }), 50);
+      const bloquear = (si) => { trabajando = si; f.querySelectorAll('input, button').forEach((x) => { x.disabled = si; }); };
+
+      f.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const cod = (codigo ? codigo.value : leer(CLAVE_CODIGO) || '').trim();
+        const valorPin = pin.value.replace(/\D/g, '');
+        if (!cod) { msg.textContent = 'Falta el código del equipo.'; codigo.focus(); return; }
+        if (!/^\d{6}$/.test(valorPin)) { msg.textContent = 'El PIN tiene 6 números.'; pin.focus(); return; }
+        bloquear(true);
+        msg.textContent = 'Haciendo el cambio…';
+        const r = await pedirAccion({ codigo: cod, token: p.token, pin: valorPin });
+        bloquear(false);
+        pin.value = '';
+        if (r.motivo !== 'conexion' && codigo) guardar(CLAVE_CODIGO, cod); // n8n respondió: el código es correcto
+        if (r.ok && r.hecho) {
+          avisar('oficina:cambio', { fase: 'hecho', hoja: r.hoja || p.hoja, tipo: r.tipo || p.tipo });
+          terminar(`${r.mensaje || '✅ Listo, cambio hecho.'} La copia se actualiza en un ratito.`, true);
+          setTimeout(() => { cargarSolicitudes(); cargarVivo(); cargar(); }, 25000);
+        } else if (r.motivo === 'conexion') {
+          msg.textContent = codigo ? 'No hubo respuesta: revisá el código del equipo o probá de nuevo.' : 'No pude conectarme con la oficina. Probá de nuevo.';
+        } else if (r.motivo === 'pin' || r.motivo === 'bloqueado') {
+          if (r.motivo === 'pin' && r.restantes === 0) terminar(r.mensaje || 'PIN incorrecto 3 veces: se canceló el pedido.');
+          else { msg.textContent = r.mensaje || 'PIN incorrecto.'; pin.focus(); }
+        } else {
+          avisar('oficina:cambio', { fase: 'error', hoja: p.hoja, tipo: p.tipo });
+          terminar(r.mensaje || 'No se pudo hacer el cambio. No se tocó nada.');
+        }
+      });
+
+      pinBox.querySelector('.ru-accion-cancelar').addEventListener('click', async () => {
+        const cod = (codigo ? codigo.value : leer(CLAVE_CODIGO) || '').trim();
+        bloquear(true);
+        if (cod) await pedirAccion({ codigo: cod, token: p.token, cancelar: true }); // sin código, vence solo
+        avisar('oficina:cambio', { fase: 'cancelado', hoja: p.hoja });
+        terminar('Cancelado: no se tocó nada.');
+      });
+    }
+
+    cajas[etapa] = { el, refrescar };
+    refrescar();
+    if (!solicitudes) cargarSolicitudes();
+    return el;
+  }
+
   /* ── Panel: funciones de la oficina a la vista ── */
   function pintarPanel() {
     const panel = $('rutaPanel');
+    const foco = document.activeElement;
     if (!datos) {
       panel.innerHTML = '<p class="desc">Cargando la ruta…</p>';
       return;
@@ -301,6 +545,7 @@ window.RUTA = (() => {
         ${meta.vivo ? `<div class="ru-box is-vivo"><span>En vivo</span>${widget(meta.vivo)}</div>` : ''}
         <button type="button" class="tab-btn" data-preguntar="${esc(ag.pregunta)}">Preguntale a ${esc(ag.nombre)} →</button>
       </div>
+      ${(meta.acciones || []).length ? '<div data-accion></div>' : ''}
       ${(meta.scripts || []).length ? `<div class="ru-box"><span>Funciona con</span><ul class="ru-scripts">${meta.scripts.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div>` : ''}
       ${origenes ? `<div class="ru-box"><span>De dónde llega el dato</span><ul class="ru-origenes">${origenes}</ul></div>` : '<div class="ru-box is-alerta"><span>Sin datos todavía</span><p>Ninguna planilla carga este paso en el período elegido.</p></div>'}
       <details class="ru-mas"><summary>Hoy se carga en · con la ruta unificada</summary>
@@ -311,6 +556,12 @@ window.RUTA = (() => {
         ${ant ? `<button type="button" class="ru-nav-btn" data-etapa="${ant}">‹ ${esc(ESTACIONES[ant].corto)}</button>` : '<span></span>'}
         ${sig ? `<button type="button" class="ru-nav-btn" data-etapa="${sig}">${esc(sig === 'NO_AVANZA' ? 'Salidas' : ESTACIONES[sig].corto)} ›</button>` : '<span></span>'}
       </div>`;
+    const lugar = panel.querySelector('[data-accion]');
+    if (lugar) {
+      const caja = cajaDe(elegida);
+      lugar.replaceWith(caja);
+      if (caja.contains(foco)) foco.focus({ preventScroll: true }); // el panel se repinta cada minuto
+    }
   }
 
   /* ── Últimos movimientos (sin nombres) ── */
