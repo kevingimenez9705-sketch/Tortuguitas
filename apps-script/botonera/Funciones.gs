@@ -6,7 +6,7 @@
    Archivos del proyecto:
      - Codigo.gs y Citacion.html → copia exacta de los de Citaciones-Gustavo
        (no copiar PanelB.gs ni Panel.html: tienen su propio doGet).
-     - Botonera.gs (este) y Pantalla.html → los botones. (Apps Script no deja
+     - Funciones.gs (este) y Botonera.html → los botones. (Apps Script no deja
        dos archivos con el mismo nombre, aunque uno sea .gs y el otro .html.)
 
    Hace lo mismo que el menú de la planilla, con las funciones de Codigo.gs:
@@ -30,7 +30,7 @@ const PLANILLA_CITACIONES = '1HF7Hpj6tQ6yd0FDC1TTvK0hG2xOhdELCYiGy80fZhhI';
 
 function doGet(e) {
   const pedida = e && e.parameter ? e.parameter.vista : '';
-  const template = HtmlService.createTemplateFromFile('Pantalla');
+  const template = HtmlService.createTemplateFromFile('Botonera');
   template.vista = pedida === 'confirmados' ? 'confirmados' : 'citar';
 
   return template

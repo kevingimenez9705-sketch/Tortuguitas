@@ -16,8 +16,8 @@ Usa el mismo código de la planilla (`Codigo.gs` y `Citacion.html`) en un **proy
 3. En el editor:
    - Renombrá `Código.gs` a `Codigo` y pegá **el mismo** `Codigo.gs` del proyecto Citaciones-Gustavo.
    - **+ → HTML** → `Citacion` → pegá el mismo `Citacion.html`.
-   - **+ → Secuencia de comandos** → `Botonera` → pegá [`Botonera.gs`](Botonera.gs).
-   - **+ → HTML** → `Pantalla` → pegá [`Pantalla.html`](Pantalla.html) (no puede llamarse igual que `Botonera.gs`).
+   - **+ → Secuencia de comandos** → `Funciones` → pegá [`Funciones.gs`](Funciones.gs).
+   - **+ → HTML** → `Botonera` → pegá [`Botonera.html`](Botonera.html) (no puede llamarse igual que el `.gs`).
    - No copies `PanelB.gs` ni `Panel.html`: tienen su propio `doGet`.
 4. **Implementar → Nueva implementación** → tipo **Aplicación web**:
    - Ejecutar como: **Usuario que accede a la aplicación web**
@@ -25,5 +25,7 @@ Usa el mismo código de la planilla (`Codigo.gs` y `Citacion.html`) en un **proy
 5. **Implementar** → autorizá los permisos → copiá la URL que termina en `/exec` y pegala en `BOTONERA_URL` de `ruta.js`.
 
 Cada persona del equipo abre esa URL **una vez** en una pestaña para dar permiso con su cuenta; después los botones andan dentro de la página. Solo puede usarla quien tiene acceso a la planilla.
+
+La zona horaria tiene que ser Buenos Aires: si queda otra (por ejemplo Nueva York), las fechas de entrevista que vienen como fecha de la planilla pueden salir un día antes en el mail.
 
 Si cambia `Codigo.gs` en la planilla, pegá la versión nueva acá también y hacé **Implementar → Gestionar implementaciones → Editar → Nueva versión** (la URL no cambia).
