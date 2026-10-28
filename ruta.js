@@ -72,17 +72,17 @@ window.RUTA = (() => {
   const ESTACIONES = {
     POSTULADO: { tramo: 1, agente: 'screening', corto: 'Postulados',
       herramientas: [H.formQR, H.ats, H.portal],
-      scripts: ['Formulario QR → Supabase', 'n8n · Screening IA', 'n8n · ATS a Sheets (8 y 14 h)', 'Apps Script «Entrevistas» · menú 📞 Citar por zona'],
+      scripts: ['Formulario QR → Supabase', 'n8n · Screening IA', 'n8n · ATS a Sheets (8 y 14 h)', 'Citaciones Tortus · menú 📞 Citar por zona'],
       hoy: 'Formulario QR → Supabase. Después se copia a "ATS - Postulaciones" y a "Citaciones-<selector>".',
       app: 'Bandeja de postulantes con puntaje A/B/C y la recomendación de Screening, sin copiar a planillas.' },
     CITADO_ENTREVISTA: { tramo: 1, agente: 'agenda', corto: 'Citados', vivo: 'agenda',
       herramientas: [H.citaciones, H.agendaOp],
-      scripts: ['Apps Script de Citaciones Tortus (envía la citación y marca ENVIADO)', 'n8n · Ruta (cada 30 min)'],
+      scripts: ['Citaciones Tortus · 📞 Citar por zona (CABA y Norte → Florida, Sur → Adrogué, Oeste → Merlo): manda el mail y marca ENVIADO', 'n8n · Ruta (cada 30 min)'],
       hoy: 'Citaciones Tortus: fecha, hora y "ENVIADO" en la pestaña de cada selector.',
       app: 'Agenda por sede: se elige el horario y sale la citación.' },
     CONFIRMO_ENTREVISTA: { tramo: 1, agente: 'agenda', corto: 'Confirmaron', vivo: 'confirmados',
       herramientas: [H.confirmados, H.panelSala],
-      scripts: ['Apps Script de Citaciones Tortus (Confirmados)', 'Apps Script «Entrevistas» · Panel de Sala', 'n8n · Ruta (cada 30 min)'],
+      scripts: ['Citaciones Tortus · 📋 Recopilar confirmados (lee «Confirmo» en Gmail y arma Confirmados)', 'Citaciones Tortus · Panel «Estado de Sala» (cupo 40 por turno)', 'n8n · Ruta (cada 30 min)'],
       hoy: 'Citaciones Tortus · pestaña Confirmados.',
       app: 'La confirmación tilda al postulante en la agenda.' },
     ASISTIO_ENTREVISTA: { tramo: 2, agente: 'agenda', corto: 'Asistieron', vivo: 'sala',
@@ -166,9 +166,18 @@ window.RUTA = (() => {
   const dia = (iso, opciones = { weekday: 'short', day: 'numeric', month: 'numeric' }) =>
     new Intl.DateTimeFormat('es-AR', { timeZone: ZONA, ...opciones }).format(new Date(String(iso).slice(0, 10) + 'T12:00:00'));
   const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
-  // Misma escala que el Panel de Sala (Apps Script «Entrevistas» · clippy.gs).
-  const ESCALA_SALA = [[0.40, 'paspando moscas'], [0.75, 'apenas movido'], [1.15, 'sala viva'], [Infinity, 'explotado']];
-  const etiquetaSala = (r) => ESCALA_SALA.find(([hasta]) => r <= hasta)[1];
+  // Misma escala que el Panel «Estado de Sala» de Citaciones Tortus (PanelB.gs · PANEL.ESCALA, % de la sala).
+  const ESCALA_SALA = [
+    { hasta: 45, clave: 'frio', texto: 'paspando moscas', icono: '🪰' },
+    { hasta: 66, clave: 'tibio', texto: 'calentando motores', icono: '🔥' },
+    { hasta: 91, clave: 'vivo', texto: 'A full', icono: '⚡' },
+    { hasta: Infinity, clave: 'lleno', texto: 'explotado', icono: '🚨' },
+  ];
+  const tramoSala = (t) => ESCALA_SALA.find((e) => (t.cupo ? (t.confirmados / t.cupo) * 100 : 0) < e.hasta);
+  // Como el panel: un turno dura 60 min y "Salas vacías" mira las próximas 48 hs.
+  const DURACION_TURNO = 60 * 60000;
+  const HORAS_SALA_VACIA = 48;
+  const inicioTurno = (t) => Date.parse(`${t.fecha}T${t.hora}:00-03:00`);
 
   let dias = Number(leer(CLAVE_DIAS)) || 30;
   let datos = null;
@@ -224,10 +233,19 @@ window.RUTA = (() => {
     if (tipo === 'sala') {
       const turnos = vivo.sala_turnos || [];
       if (!turnos.length) return vacio('No hay turnos confirmados para hoy ni mañana.');
-      return `<ul class="ru-vivo">${turnos.map((t) => {
-        const r = t.cupo ? t.confirmados / t.cupo : 0;
-        return `<li class="${r > 1 ? 'is-lleno' : ''}"><span>${esc(t.fecha === vivo.hoy ? 'Hoy' : dia(t.fecha))} · ${esc(t.sede)} ${esc(t.hora)}</span>${barra(t.confirmados, t.cupo)}<b>${fmt(t.confirmados)}/${fmt(t.cupo)}</b><small>${esc(etiquetaSala(r))}</small></li>`;
-      }).join('')}</ul>`;
+      const ahora = Date.now();
+      const proximos = turnos.filter((t) => !(inicioTurno(t) + DURACION_TURNO <= ahora));
+      const explotados = proximos.filter((t) => tramoSala(t).clave === 'lleno').length;
+      const vacias = proximos.filter((t) => tramoSala(t).clave === 'frio' && inicioTurno(t) - ahora <= HORAS_SALA_VACIA * 3600000).length;
+      const prox = proximos[0];
+      const cuando = (t) => `${t.fecha === vivo.hoy ? 'Hoy' : dia(t.fecha)} ${t.hora}`;
+      return (prox ? `<p class="ru-nota">Próximo turno: <b>${esc(cuando(prox))} · ${esc(prox.sede)}</b> · ${fmt(prox.confirmados)} confirmados${inicioTurno(prox) <= ahora ? ' · en curso' : ''}</p>` : '')
+        + `<div class="tab-chips"><span class="tab-chip${explotados ? ' is-alerta' : ''}">🚨 <b>${fmt(explotados)}</b> explotados</span><span class="tab-chip">🪰 <b>${fmt(vacias)}</b> salas vacías</span></div>`
+        + `<ul class="ru-vivo">${turnos.map((t) => {
+          const tr = tramoSala(t);
+          const terminado = inicioTurno(t) + DURACION_TURNO <= ahora;
+          return `<li class="is-${tr.clave}${terminado ? ' is-terminado' : ''}"><span>${esc(cuando(t))} · ${esc(t.sede)}</span>${barra(t.confirmados, t.cupo)}<b>${fmt(t.confirmados)}/${fmt(t.cupo)}</b><small>${terminado ? 'terminado' : `${tr.icono} ${esc(tr.texto)} · ${pct(t.confirmados, t.cupo)}%`}</small></li>`;
+        }).join('')}</ul>`;
     }
     if (tipo === 'confirmados' || tipo === 'agenda') {
       const dias7 = vivo.sala_dias || [];
