@@ -1006,7 +1006,7 @@ function prepararMundo() {
   return armado;
 }
 
-// Helpers de geometría (mismo estilo "arcilla" mate que oficina-3d.js).
+// Helpers de geometría (estilo "arcilla" mate, como ruta-3d.js).
 const materiales = new Map();
 function mate(color) {
   if (!materiales.has(color)) materiales.set(color, new T.MeshStandardMaterial({ color, roughness: 0.75, metalness: 0 }));

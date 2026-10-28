@@ -723,18 +723,9 @@ async function iniciar() {
       <div class="o3d-ficha-box">
         <span>Última acción</span>
         <p>${u ? `${esc(textoAccion(u))} <em>${esc(SB.hace(u.created_at))}</em>` : 'Todavía sin actividad registrada'}</p>
-      </div>
-      <div class="o3d-ficha-acciones"><button type="button" class="o3d-btn" data-preguntar="${esc(ag.pregunta)}">Preguntale →</button></div>`;
+      </div>`;
     ficha.hidden = false;
   }
-  ficha.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-preguntar]');
-    if (!b) return;
-    document.dispatchEvent(new CustomEvent('oficina:preguntar', { detail: { texto: b.dataset.preguntar } }));
-    document.getElementById('ofiChatInput')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    fijado = null;
-    refrescarFicha();
-  });
 
   /* ── Puntero: tocar el robot abre su ficha; tocar otra oficina va hacia ella ── */
   const raycaster = new T.Raycaster();

@@ -1,5 +1,5 @@
 // fuentes.js — "De dónde lee la Oficina": cada fuente de datos que usan los
-// agentes y el chat (lo que ya lee, lo que falta conectar) y el mapa de todas
+// agentes (lo que ya lee, lo que falta conectar) y el mapa de todas
 // las carpetas y trabajos del equipo, con su link directo.
 //
 // Fuente: rpc/oficina_mapa en Supabase (clave publicable, sin datos
@@ -64,10 +64,6 @@
     }
     const extra = (f.trabajos || []).map((id) => porId[id]).filter((t) => t && t.link && t.link !== f.link)
       .slice(0, 2).map((t) => link(t.link, t.nombre)).join('');
-    const quien = AGENTES[agentes[0]] || AGENTES.coordinador;
-    const boton = f.estado === 'lee'
-      ? `<button class="tab-btn" type="button" data-pregunta="${esc(`¿Qué datos tenés de «${f.nombre}»? Resumime lo último.`)}">Preguntale a ${esc(quien.nombre)} →</button>`
-      : '';
     return `<article class="fu-item is-${esc(f.estado)}">
       <header class="tab-head">
         <span class="tab-emoji" aria-hidden="true">${ICONO[f.tipo] || '📄'}</span>
@@ -79,7 +75,6 @@
       ${fresco}
       ${f.nota ? `<p class="fu-nota">${esc(f.nota)}</p>` : ''}
       <div class="fu-links">${link(f.link, 'Abrir')}${extra}</div>
-      ${boton}
     </article>`;
   }
 
@@ -194,10 +189,6 @@
     seccion.querySelectorAll('[data-f]').forEach((x) => x.setAttribute('aria-pressed', String(x === b)));
     renderCarpetas();
   }));
-  seccion.addEventListener('click', (e) => {
-    const b = e.target.closest('[data-pregunta]');
-    if (b) document.dispatchEvent(new CustomEvent('oficina:preguntar', { detail: { texto: b.dataset.pregunta } }));
-  });
 
   cargar();
   setInterval(() => { if (!document.hidden) cargar(); }, 5 * 60 * 1000);
