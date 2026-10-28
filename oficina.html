@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Oficina digital · Equipo Tortuguitas</title>
-<link rel="stylesheet" href="styles.css?v=20261020b" />
+<title>Ruta del ingresante · Oficina digital · Equipo Tortuguitas</title>
+<link rel="stylesheet" href="styles.css?v=20261028b" />
 </head>
 <body>
 <script src="transition.js?v=20261019"></script>
@@ -16,13 +16,43 @@
       <img class="ofi-hero-ico" src="images/clippy.jpg" alt="Clippy, el asistente del equipo" width="96" height="96" />
       <div>
         <span class="breadcrumb">Selección · Oficina digital</span>
-        <h1>Agentes de IA del equipo</h1>
-        <p>Los 6 agentes trabajan en n8n y avisan por Telegram. Acá los ves en vivo, les preguntás por el chat y ves de dónde sacan cada dato.</p>
+        <h1>Ruta del ingresante</h1>
+        <p>Todo el proceso, del formulario QR a iCheck, como una fila de oficinas: una por paso, con su gente esperando, el agente que la cuida y sus funciones. Junta lo que estaba repartido en Citaciones Tortus, TAREAS GRUPALES y Tareas grupales/zonas.</p>
       </div>
     </div>
   </div>
 
-  <div class="section-label" style="margin-top:0;">Oficina en vivo</div>
+  <section class="ru" id="rutaSeccion" aria-labelledby="rutaTitulo">
+    <div class="section-label" id="rutaTitulo" style="margin-top:0;">La ruta en vivo</div>
+    <div class="ru-barra">
+      <div class="ru-periodo" role="group" aria-label="Período">
+        <span>Período</span>
+        <button class="chip" type="button" data-dias="7" aria-pressed="false">7 días</button>
+        <button class="chip" type="button" data-dias="30" aria-pressed="true">30 días</button>
+        <button class="chip" type="button" data-dias="90" aria-pressed="false">90 días</button>
+      </div>
+      <ul class="ru-leyenda" id="rutaLeyenda" aria-label="Tramos de la ruta"></ul>
+      <span class="ru-cuando" id="rutaCuando" aria-live="polite">Cargando…</span>
+    </div>
+    <div class="ru-escena" id="rutaEscena"></div>
+    <div class="ru-abajo">
+      <aside class="card ru-panel" id="rutaPanel" aria-live="polite"></aside>
+      <div class="card">
+        <h3>Paso por paso</h3>
+        <p class="desc">Cuánta gente pasó por cada paso en el período. Tocá uno para ir a su oficina.</p>
+        <ol class="ru-linea" id="rutaLinea"></ol>
+        <p class="ru-nota ru-identidad" id="rutaIdentidad"></p>
+      </div>
+      <div class="card">
+        <h3>Últimos movimientos</h3>
+        <p class="desc">Sin nombres: solo la estación, el lugar y quién la movió.</p>
+        <ul class="ru-movs" id="rutaMovs"></ul>
+      </div>
+    </div>
+    <p class="footer-note">Supabase (tabla seguimiento, función ruta_estaciones) · se renueva cada minuto · sin datos personales.</p>
+  </section>
+
+  <div class="section-label">Los agentes · chat con el Coordinador</div>
   <div class="ov-layout">
     <div class="ov-escena" id="ofiEscena" role="img" aria-label="Oficina animada: cada agente trabaja en su escritorio y muestra lo último que hizo"></div>
     <div class="card ov-chat">
@@ -94,8 +124,10 @@
 
 </div>
 <script src="supabase.js?v=20261015"></script>
+<script src="ruta.js?v=20261028b"></script>
 <script src="oficina-viva.js?v=20261020"></script>
 <script src="fuentes.js?v=20261020b"></script>
+<script type="module" src="ruta-3d.js?v=20261028"></script>
 <script type="module" src="oficina-3d.js?v=20261016b"></script>
 </body>
 </html>
