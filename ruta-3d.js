@@ -10,18 +10,14 @@
 // - la sala de espera con muñequitos (más muñequitos, más gente esperando;
 //   escala logarítmica para que entren de 1 a 10.000) y alguien que entra por la
 //   puerta cuando hubo movimiento hoy;
-// - el agente que cuida ese paso en su escritorio (cuenta los números reales y lo
-//   último que hizo según la bitácora; duerme fuera de horario);
 // - un objeto propio del paso (totem del QR, calendario, mesa de entrevista,
 //   buzón al zonal, lector de huella, servidores de iCheck, globos de bienvenida…).
-// Las funciones de cada oficina (planillas, herramientas, datos en vivo) están en
-// el panel de ruta.js, debajo de la maqueta.
+// Las funciones de cada oficina (botones, datos en vivo y su planilla real) están
+// en ruta.js, debajo de la maqueta.
 //
 // Eventos: escucha "ruta:datos" y "ruta:elegida"; pide "ruta:elegir" al navegar.
-// Sin WebGL o si three.js no carga, la maqueta se oculta y queda el panel con la
-// línea estación por estación.
+// Sin WebGL o si three.js no carga, la maqueta se oculta y queda el panel.
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
-const ZONA_HORARIA = 'America/Argentina/Buenos_Aires';
 
 const escena = document.getElementById('rutaEscena');
 const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -69,12 +65,6 @@ const PALETA = {
   corcho: '#d8b48a',
   madera: '#c99a6b',
 };
-const ESTADOS = {
-  trabajando: { label: 'Trabajando', color: PALETA.cian },
-  activo: { label: 'En horario', color: PALETA.menta },
-  alerta: { label: 'Con aviso', color: PALETA.ambar },
-  durmiendo: { label: 'Durmiendo', color: PALETA.gris },
-};
 const ROPA = ['#f4a261', '#e9c46a', '#8ecae6', '#cdb4db', '#ffafcc', '#a3c4bc', '#f6bd60', '#90be6d', '#bde0fe'];
 const PIEL = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac'];
 
@@ -93,35 +83,13 @@ const PARED_H = 1.7;
 const PARED_T = 0.22;
 const PUERTA = 2.2;
 
-// Robot de cada agente: forma, color y días de trabajo (los mismos de la Oficina).
-const ROBOTS = {
-  screening: { forma: 'esfera', color: '#9b87f5', dias: [1, 2, 3, 4, 5, 6] },
-  agenda: { forma: 'cubo', color: '#f5c842', dias: [1, 2, 3, 4, 5] },
-  vacantes: { forma: 'cubo', color: '#e85a5a', dias: [1, 2, 3, 4, 5] },
-  onboarding: { forma: 'capsula', color: '#8a3b45', dias: [1, 2, 3, 4, 5] },
-  coordinador: { forma: 'capsula', color: PALETA.blanco, dias: [1, 2, 3, 4, 5] },
-  analista: { forma: 'esfera', color: '#5b8def', dias: [1, 2, 3, 4, 5] },
-};
-const DESPIERTOS = [8, 18];
-const ACCION_EMOJI = { ok: '✅', error: '⚠️', pendiente: '⏳', resuelto: '✅' };
-
 /* ───────────────────────── Utilidades ───────────────────────── */
 
 let T;
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = (n) => Number(n || 0).toLocaleString('es-AR');
-const azar = (lista) => lista[Math.floor(Math.random() * lista.length)];
 const suave = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
 
-function horaBA() {
-  const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: ZONA_HORARIA, hour: 'numeric', hourCycle: 'h23', weekday: 'short' })
-    .formatToParts(new Date()).map((x) => [x.type, x.value]));
-  return { dia: { Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6, Sun: 7 }[p.weekday], hora: Number(p.hour) };
-}
-const despierto = (r) => {
-  const t = horaBA();
-  return r.dias.includes(t.dia) && t.hora >= DESPIERTOS[0] && t.hora < DESPIERTOS[1];
-};
 // Muñequitos en la sala de espera: 0 → 0, 1 → 1, 10 → 3, 100 → 6, 1.000 → 9, 10.000 → 12.
 const munecos = (n) => (n > 0 ? Math.min(12, Math.max(1, Math.round(Math.log10(n + 1) * 3))) : 0);
 
@@ -330,44 +298,12 @@ function puertaSalida() {
   return g;
 }
 
-/* ───────────────────────── Robots (los de la Oficina) ───────────────────────── */
-
-const FORMAS = { esfera: { visor: 0.36, tope: 0.42 }, cubo: { visor: 0.36, tope: 0.36 }, capsula: { visor: 0.29, tope: 0.47 } };
-function crearBot(forma, color) {
-  const raiz = new T.Group();
-  const giro = new T.Group(); // el plano ya está girado 45°: así quedan de frente a la cámara
-  giro.scale.setScalar(1.35);
-  raiz.add(giro);
-  const flota = new T.Group();
-  giro.add(flota);
-  const dims = FORMAS[forma] || FORMAS.esfera;
-  let cuerpo;
-  if (forma === 'cubo') cuerpo = caja(0.72, 0.72, 0.72, color, { r: 0.18, recibe: false });
-  else if (forma === 'capsula') cuerpo = malla(new T.CapsuleGeometry(0.3, 0.34, 6, 14), mate(color), { recibe: false });
-  else cuerpo = malla(new T.IcosahedronGeometry(0.42, 1), mate(color, true), { recibe: false });
-  flota.add(cuerpo);
-  flota.add(en(caja(0.5, 0.22, 0.1, new T.MeshStandardMaterial({ color: PALETA.oscuro, roughness: 0.5 }), { r: 0.05, sombra: false }), 0, 0.04, dims.visor));
-  const luz = ESTADOS.activo.color;
-  const ojoMat = new T.MeshStandardMaterial({ color: luz, emissive: luz, emissiveIntensity: 1.2 });
-  const ojos = en(new T.Group(), 0, 0.04, dims.visor + 0.055);
-  [-0.11, 0.11].forEach((x) => ojos.add(en(new T.Mesh(new T.SphereGeometry(0.045, 12, 12), ojoMat), x, 0, 0)));
-  flota.add(ojos);
-  flota.add(en(cilindro(0.015, 0.015, 0.2, 6, PALETA.patas, { sombra: false }), 0, dims.tope + 0.1, 0));
-  const puntaMat = new T.MeshStandardMaterial({ color: luz, emissive: luz, emissiveIntensity: 0.9 });
-  flota.add(en(new T.Mesh(new T.SphereGeometry(0.055, 12, 12), puntaMat), 0, dims.tope + 0.22, 0));
-  const anilloMat = new T.MeshStandardMaterial({ color: luz, emissive: luz, emissiveIntensity: 0.7, roughness: 0.6 });
-  const anillo = en(new T.Mesh(new T.TorusGeometry(0.38, 0.035, 8, 36), anilloMat), 0, -0.62, 0);
-  anillo.rotation.x = Math.PI / 2;
-  flota.add(anillo);
-  return { raiz, flota, ojos, ojoMat, puntaMat, anillo, anilloMat };
-}
-
 /* ───────────────────────── Escena ───────────────────────── */
 
 async function iniciar() {
   T = await import(THREE_URL);
-  const { TRAMOS, AGENTES, ESTACIONES } = window.RUTA;
-  const metaDe = (sala) => (sala === 'SALIDAS' ? { tramo: 'x', agente: 'vacantes' } : ESTACIONES[sala] || {});
+  const { TRAMOS, ESTACIONES } = window.RUTA;
+  const metaDe = (sala) => (sala === 'SALIDAS' ? { tramo: 'x' } : ESTACIONES[sala] || {});
   const tramoDe = (sala) => TRAMOS[metaDe(sala).tramo] || TRAMOS.x;
   const nombreCorto = (sala) => (sala === 'SALIDAS' ? 'Salidas' : (ESTACIONES[sala] || {}).corto || sala);
 
@@ -464,9 +400,8 @@ async function iniciar() {
     }
     // Pantalla en la pared del fondo (el número va en un cartel HTML encima).
     g.add(en(caja(3.4, 1.25, 0.08, PALETA.oscuro, { r: 0.04 }), -1.5, PISO_Y + 1.0, -FONDO / 2 + PARED_T + 0.05));
-    // Escritorio del agente, sala de espera y plantas.
-    const robot = ROBOTS[meta.agente] || ROBOTS.coordinador;
-    g.add(en(escritorio(robot.color === PALETA.blanco ? '#8ea3d1' : robot.color, tr.color), 2.6, PISO_Y, -1.9));
+    // Escritorio, sala de espera y plantas.
+    g.add(en(escritorio('#8ea3d1', tr.color), 2.6, PISO_Y, -1.9));
     g.add(en(sillon(tr.suave), -3.2, PISO_Y, 3.1));
     g.add(en(planta(0.85), -4.3, PISO_Y, -3.3));
     g.add(en(planta(0.7), 4.3, PISO_Y, 3.4));
@@ -506,26 +441,14 @@ async function iniciar() {
     g.traverse((h) => { h.userData.sala = sala; });
     plano.add(g);
 
-    // Robot del agente, flotando junto a su escritorio.
-    const bot = crearBot(robot.forma, robot.color);
-    const casa = P(u0 + 2.1, -2.0, PISO_Y + 2.35);
-    bot.raiz.position.copy(casa);
-    bot.raiz.traverse((h) => { h.userData.agente = meta.agente; h.userData.sala = sala; });
-    plano.add(bot.raiz);
-
-    const s = { sala, i, u0, tr, meta, matPiso, gente, caminante, paseo: null, bot, casa, robot, salto: -10, fase: i * 1.3, sueno: 0, estado: 'activo', n: 0 };
-    // El cartel va arriba de la pantalla (a la izquierda), así no se cruza con el globito del agente.
+    const s = { sala, i, u0, tr, meta, matPiso, gente, caminante, paseo: null, n: 0 };
+    // El cartel va arriba de la pantalla.
     s.cartel = etiqueta('ru3-sala', '', () => aMundo(P(u0 - 1.5, -FONDO / 2, PISO_Y + PARED_H + 0.3)), 'translate(-50%, -100%)');
     s.cartel.style.setProperty('--c', tr.color);
     s.pantalla = etiqueta('ru3-pantalla', '', () => aMundo(P(u0 - 1.5, -FONDO / 2 + PARED_T + 0.1, PISO_Y + 1.0)));
     s.pantalla.style.setProperty('--c', tr.color);
-    const ag = AGENTES[meta.agente] || AGENTES.coordinador;
-    s.tag = etiqueta('o3d-tag', `<i></i>${ag.emoji}<span>${esc(ag.nombre)}</span>`, () => aMundo(P(u0 + 2.1, -2.0, PISO_Y + 1.2)), 'translate(-50%, 0)');
-    s.globo = etiqueta('o3d-globo', '', () => aMundo(P(u0 + 2.1, -2.0, PISO_Y + 3.4)), 'translate(-50%, -100%)');
-    s.zzz = etiqueta('o3d-zzz', '<i>z</i><i>z</i><i>Z</i>', () => aMundo(P(u0 + 2.6, -2.0, PISO_Y + 3.0)), 'translate(-50%, -100%)');
     return s;
   });
-  const porSala = new Map(salas.map((s) => [s.sala, s]));
 
   let visible = true;
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(escena);
@@ -585,10 +508,6 @@ async function iniciar() {
       const lejos = Math.abs(i - actual);
       x.cartel.hidden = lejos > 0;
       x.pantalla.hidden = lejos > 0;
-      x.tag.hidden = lejos > 0;
-      x.zzz.hidden = lejos > 0;
-      x.globo.hidden = lejos > 0;
-      if (lejos > 0) callar(x);
     });
   }
 
@@ -609,44 +528,9 @@ async function iniciar() {
     if (b) irA(SALAS.indexOf(b.dataset.ir));
   });
   escena.addEventListener('keydown', (e) => {
-    if (e.target.closest('.o3d-ficha')) return;
     if (e.key === 'ArrowLeft') { e.preventDefault(); irA(actual - 1); }
     if (e.key === 'ArrowRight') { e.preventDefault(); irA(actual + 1); }
   });
-
-  /* ── Globitos (solo habla el agente de la oficina a la vista) ── */
-  function callar(s) {
-    clearTimeout(s.globoTimer);
-    s.globo.classList.remove('on');
-  }
-  function decir(s, texto, ms = 4200) {
-    clearTimeout(s.globoTimer);
-    s.globo.textContent = texto;
-    s.globo.classList.add('on');
-    s.globoTimer = setTimeout(() => callar(s), ms);
-  }
-  const ultimas = new Map(); // agente → última acción de la bitácora
-  const textoAccion = (u) => `${ACCION_EMOJI[u.estado] || '✅'} ${u.accion}${u.cantidad > 1 ? ' · ' + fmt(u.cantidad) : ''}`;
-  function presentar(s) {
-    if (s.estado === 'durmiendo') return;
-    const e = numeros(s.sala);
-    const ag = AGENTES[s.meta.agente] || AGENTES.coordinador;
-    decir(s, e.personas ? `${ag.emoji} ${e.nombre}: ${fmt(e.ahora)} ${s.sala === 'SALIDAS' ? 'salieron' : 'esperando acá'}` : `${ag.emoji} ${e.nombre}: todavía sin datos`);
-  }
-  function charla() {
-    const s = salas[actual];
-    if (!s || s.estado === 'durmiendo') return;
-    const u = ultimas.get(s.meta.agente);
-    const e = numeros(s.sala);
-    const ag = AGENTES[s.meta.agente] || AGENTES.coordinador;
-    const opciones = [
-      e.hoy ? `${ag.emoji} Hoy llegaron ${fmt(e.hoy)} a este paso` : `${ag.emoji} Hoy todavía no llegó nadie a este paso`,
-      '👇 Abajo están las funciones de esta oficina',
-    ];
-    if (u) opciones.push(`${textoAccion(u)} (${SB.hace(u.created_at)})`);
-    decir(s, azar(opciones));
-  }
-  setInterval(charla, 9000);
 
   /* ── Alguien entra por la puerta cuando hubo movimiento hoy ── */
   function entraAlguien() {
@@ -659,75 +543,7 @@ async function iniciar() {
   }
   setInterval(entraAlguien, 4500);
 
-  /* ── Bitácora de los agentes ── */
-  let ultimoId = 0;
-  function calcularEstados() {
-    salas.forEach((s) => {
-      const u = ultimas.get(s.meta.agente);
-      let estado = 'activo';
-      if (!despierto(s.robot)) estado = 'durmiendo';
-      else if (u && u.estado === 'error' && Date.now() - new Date(u.created_at) < 24 * 3600e3) estado = 'alerta';
-      else if (u && Date.now() - new Date(u.created_at) < 15 * 60e3) estado = 'trabajando';
-      s.estado = estado;
-      const color = new T.Color(ESTADOS[estado].color);
-      [s.bot.ojoMat, s.bot.puntaMat, s.bot.anilloMat].forEach((m) => { m.color.copy(color); m.emissive.copy(color); });
-      s.tag.dataset.estado = estado;
-      s.zzz.classList.toggle('on', estado === 'durmiendo');
-    });
-    refrescarFicha();
-  }
-  async function leerBitacora(primeraVez) {
-    try {
-      const acciones = await SB.pedir('rpc/oficina_ultimas_acciones', { limite: 40 });
-      acciones.forEach((x) => {
-        const u = ultimas.get(x.agente_id);
-        if (!u || x.id > u.id) ultimas.set(x.agente_id, x);
-      });
-      if (!primeraVez) {
-        const nueva = acciones.find((x) => x.id > ultimoId && x.agente_id === salas[actual].meta.agente);
-        if (nueva) {
-          salas[actual].salto = performance.now() / 1000;
-          decir(salas[actual], `✨ ${nueva.accion}${nueva.cantidad > 1 ? ' · ' + fmt(nueva.cantidad) : ''}`, 5000);
-        }
-      }
-      if (acciones.length) ultimoId = Math.max(ultimoId, ...acciones.map((x) => x.id));
-      calcularEstados();
-    } catch (e) {
-      console.warn('No se pudo leer la bitácora', e);
-    }
-  }
-
-  /* ── Ficha del agente ── */
-  const ficha = document.createElement('div');
-  ficha.className = 'o3d-ficha';
-  ficha.setAttribute('role', 'dialog');
-  ficha.hidden = true;
-  capa.appendChild(ficha);
-  let fijado = null; // oficina cuyo agente tiene la ficha abierta
-  function refrescarFicha() {
-    if (!fijado) {
-      ficha.hidden = true;
-      return;
-    }
-    const s = porSala.get(fijado);
-    const ag = AGENTES[s.meta.agente] || AGENTES.coordinador;
-    const u = ultimas.get(s.meta.agente);
-    const cuida = Object.entries(ESTACIONES).filter(([, m]) => m.agente === s.meta.agente && m.tramo !== 'x').map(([, m]) => m.corto);
-    ficha.classList.add('fija');
-    ficha.innerHTML = `
-      <div class="o3d-ficha-head">
-        <span class="o3d-ficha-emoji">${esc(ag.emoji)}</span>
-        <div><strong>${esc(ag.nombre)}</strong><small>Cuida: ${esc(cuida.join(', ') || 'toda la ruta')}</small></div>
-        <span class="o3d-pill" data-estado="${s.estado}">${esc(ESTADOS[s.estado].label)}</span>
-      </div>
-      <div class="o3d-ficha-box">
-        <span>Última acción</span>
-        <p>${u ? `${esc(textoAccion(u))} <em>${esc(SB.hace(u.created_at))}</em>` : 'Todavía sin actividad registrada'}</p>
-      </div>`;
-    ficha.hidden = false;
-  }
-
-  /* ── Puntero: tocar el robot abre su ficha; tocar otra oficina va hacia ella ── */
+  /* ── Puntero: tocar otra oficina va hacia ella ── */
   const raycaster = new T.Raycaster();
   const ndc = new T.Vector2();
   let abajo = null;
@@ -745,24 +561,14 @@ async function iniciar() {
   lienzo.addEventListener('pointerup', (e) => {
     if (!abajo || Math.hypot(e.clientX - abajo[0], e.clientY - abajo[1]) > 6) return;
     const x = queHay(e.clientX, e.clientY);
-    if (x && x.agente && x.sala === SALAS[actual]) {
-      fijado = fijado === x.sala ? null : x.sala;
-    } else {
-      fijado = null;
-      if (x && x.sala !== SALAS[actual]) irA(SALAS.indexOf(x.sala));
-    }
-    refrescarFicha();
+    if (x && x.sala !== SALAS[actual]) irA(SALAS.indexOf(x.sala));
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && fijado) { fijado = null; refrescarFicha(); } });
 
-  function mostrar(etapa, presentarse = true) {
+  function mostrar(etapa) {
     const i = SALAS.indexOf(SALIDAS.includes(etapa) ? 'SALIDAS' : etapa);
     if (i < 0 || i === actual) return;
     actual = i;
-    fijado = null;
-    refrescarFicha();
     pintarNavegacion();
-    if (presentarse) setTimeout(() => presentar(salas[actual]), reduce ? 0 : 900);
   }
   document.addEventListener('ruta:datos', (e) => { datos = e.detail; pintarDatos(); });
   document.addEventListener('ruta:elegida', (e) => mostrar((e.detail || {}).etapa));
@@ -796,22 +602,14 @@ async function iniciar() {
     anclas.forEach((x) => {
       if (x.el.hidden) return;
       let [px, py] = proyectar(typeof x.pos === 'function' ? x.pos() : x.pos);
-      // Los globitos y el cartel no se salen de la maqueta ni quedan debajo de la barra de pasos.
-      if (x.el.classList.contains('o3d-globo') || x.el.classList.contains('ru3-sala')) {
+      // El cartel no se sale de la maqueta ni queda debajo de la barra de pasos.
+      if (x.el.classList.contains('ru3-sala')) {
         const mitad = x.el.offsetWidth / 2;
         px = Math.min(Math.max(px, mitad + 6), ancho - mitad - 6);
         py = Math.max(py, 50 + x.el.offsetHeight);
       }
       x.el.style.transform = `translate3d(${Math.round(px)}px, ${Math.round(py)}px, 0) ${x.ajuste}`;
     });
-    if (fijado && !ficha.hidden) {
-      const s = porSala.get(fijado);
-      const [px, py] = proyectar(aMundo(s.casa.clone().add(new T.Vector3(0, 1.2, 0))));
-      const w = ficha.offsetWidth;
-      const h = ficha.offsetHeight;
-      const x = Math.min(Math.max(px - w / 2, 8), ancho - w - 8);
-      ficha.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(Math.max(52, py - h - 14))}px, 0)`;
-    }
   }
 
   const arriba = new T.Vector3(-1, 2, -1).normalize();
@@ -820,7 +618,6 @@ async function iniciar() {
     requestAnimationFrame(loop);
     reloj.update(ms);
     const delta = reloj.getDelta();
-    const dt = Math.min(delta, 0.1);
     // La cámara avanza aunque la maqueta no esté a la vista (y aunque haya pocos cuadros por
     // segundo): al volver, ya está en el paso elegido.
     camU = reduce ? actual * PASO : T.MathUtils.damp(camU, actual * PASO, 4.5, Math.min(delta, 0.5));
@@ -831,7 +628,7 @@ async function iniciar() {
     if (pendiente) {
       const x = queHay(pendiente[0], pendiente[1]);
       pendiente = null;
-      lienzo.style.cursor = x && (x.sala !== SALAS[actual] || x.agente) ? 'pointer' : '';
+      lienzo.style.cursor = x && x.sala !== SALAS[actual] ? 'pointer' : '';
     }
 
     // La cámara se desliza hasta la oficina elegida.
@@ -851,16 +648,6 @@ async function iniciar() {
         s.caminante.position.y = PISO_Y + Math.abs(Math.sin(k * Math.PI * 6)) * 0.12;
         if (k >= 1) { s.paseo = null; s.caminante.visible = false; }
       }
-      s.sueno = T.MathUtils.damp(s.sueno, s.estado === 'durmiendo' ? 1 : 0, 2.5, dt);
-      const amp = reduce ? 0.02 : 0.13 * (1 - 0.85 * s.sueno);
-      s.bot.raiz.position.set(s.casa.x, s.casa.y + Math.sin(t * 1.7 + s.fase) * amp - 0.4 * s.sueno, s.casa.z);
-      s.bot.flota.rotation.y = reduce ? 0 : Math.sin(t * 0.6 + s.fase) * 0.28 * (1 - s.sueno);
-      s.bot.flota.rotation.z = 0.24 * s.sueno;
-      const desde = ahora - s.salto;
-      s.bot.flota.position.y = !reduce && desde < 0.9 ? Math.abs(Math.sin((desde / 0.9) * Math.PI * 2)) * 0.5 : 0;
-      s.bot.flota.scale.setScalar(T.MathUtils.damp(s.bot.flota.scale.x, fijado === s.sala ? 1.12 : 1, 12, dt));
-      s.bot.ojos.scale.y = s.sueno > 0.5 ? 0.12 : (t + s.fase) % 4 < 0.12 ? 0.15 : 1;
-      if (!reduce && s.sueno < 0.5) s.bot.anillo.rotation.z += dt * (s.estado === 'trabajando' ? 2.4 : 0.6);
     });
     leds.forEach((l) => { l.mat.emissiveIntensity = reduce || Math.sin(t * l.vel + l.fase) > 0.15 ? 1.1 : 0.12; });
     if (!reduce) globos.forEach((g) => { g.m.position.y = g.y + Math.sin(t * 1.4 + g.fase) * 0.08; });
@@ -871,14 +658,9 @@ async function iniciar() {
 
   /* ── Arranque ── */
   pintarDatos();
-  calcularEstados();
   if (window.RUTA.elegida) {
-    mostrar(window.RUTA.elegida, false);
+    mostrar(window.RUTA.elegida);
     camU = actual * PASO;
   }
-  await leerBitacora(true);
-  setInterval(() => leerBitacora(false), 30000);
-  setInterval(calcularEstados, 60000);
   requestAnimationFrame(loop);
-  setTimeout(() => presentar(salas[actual]), 1200);
 }

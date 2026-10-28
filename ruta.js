@@ -4,19 +4,16 @@
 //
 // Fuentes (clave publicable, solo totales):
 //   rpc/ruta_estaciones → cuántas personas pasaron por cada paso en el período,
-//     hoy, cuántas están ahí ahora, de qué planilla llegó el dato y los últimos
-//     movimientos sin nombres.
+//     hoy y cuántas están ahí ahora.
 //   rpc/ruta_oficinas → datos en vivo de las oficinas: turnos de la sala (lo que
 //     muestra el Panel de Sala), solicitudes por estado y selector (lo que cuenta
 //     el Contador de Vacantes), onboardings, primeros días, agenda de salas,
 //     encuesta y uniformes.
 // n8n y los Apps Script de cada planilla cargan esos datos; la ruta no los modifica.
 //
-// Arma el panel "Funciones de esta oficina" (herramientas y planillas del paso,
-// datos en vivo y con qué scripts funciona), la planilla real de la oficina
-// adentro de la página, la línea estación por estación y los últimos
-// movimientos. ruta-3d.js dibuja las
-// oficinas y se comunica con eventos:
+// Arma, para la oficina a la vista: el panel (números, datos en vivo, cambios
+// con PIN y accesos), los botones de Apps Script (Botonera) y su planilla real
+// adentro de la página. ruta-3d.js dibuja las oficinas y se comunica con eventos:
 //   ruta:datos   → { ...respuesta de ruta_estaciones } (cada vez que se leen)
 //   ruta:elegir  → { etapa } (la 3D pide ir a un paso)
 //   ruta:elegida → { etapa } (paso a la vista, para mover la 3D)
@@ -29,16 +26,6 @@ window.RUTA = (() => {
     4: { nombre: 'Ingreso e iCheck', color: '#2c9356', suave: '#ddf0e4' },
     x: { nombre: 'Salidas', color: '#b7473f', suave: '#f6e0de' },
   };
-  // Agentes que cuidan cada paso (ids de la tabla agentes).
-  const AGENTES = {
-    screening: { emoji: '🔎', nombre: 'Screening' },
-    agenda: { emoji: '📅', nombre: 'Agenda' },
-    vacantes: { emoji: '📌', nombre: 'Vacantes' },
-    onboarding: { emoji: '🤝', nombre: 'Onboarding' },
-    coordinador: { emoji: '🧭', nombre: 'Coordinador' },
-    analista: { emoji: '📊', nombre: 'Analista' },
-  };
-
   // Planillas y herramientas que ya usa el equipo (se abren tal cual, sin cambios).
   const hoja = (id, gid) => `https://docs.google.com/spreadsheets/d/${id}/edit#gid=${gid}`;
   const TAREAS = '1BeSkjch_rEdZx7QTRcJK0XV9fGcHcFpXWQX-vlFrT98';
@@ -67,92 +54,44 @@ window.RUTA = (() => {
     altas: { t: 'Dashboard de altas', d: 'Tortuguitas', u: 'dashboard.html' },
   };
 
-  // Cada paso: tramo, agente que lo cuida, herramientas (H), datos en vivo,
-  // columnas de Solicitudes que se pueden cambiar desde la oficina (con PIN),
-  // con qué scripts funciona hoy, dónde se carga y qué lo reemplaza.
+  // Cada paso: tramo, ícono, planillas y herramientas (H), datos en vivo, botones
+  // de Apps Script (funciones: vista de la botonera) y columnas de Solicitudes que
+  // se pueden cambiar desde la oficina con PIN (acciones).
   const ESTACIONES = {
-    POSTULADO: { tramo: 1, agente: 'screening', corto: 'Postulados',
-      herramientas: [H.formQR, H.ats, H.portal],
-      scripts: ['Formulario QR → Supabase', 'n8n · Screening IA', 'n8n · ATS a Sheets (8 y 14 h)', 'Citaciones Tortus · menú 📞 Citar por zona'],
-      hoy: 'Formulario QR → Supabase. Después se copia a "ATS - Postulaciones" y a "Citaciones-<selector>".',
-      app: 'Bandeja de postulantes con puntaje A/B/C y la recomendación de Screening, sin copiar a planillas.' },
-    CITADO_ENTREVISTA: { tramo: 1, agente: 'agenda', corto: 'Citados', vivo: 'agenda',
-      herramientas: [H.citaciones, H.agendaOp],
-      scripts: ['Citaciones Tortus · 📞 Citar por zona (CABA y Norte → Florida, Sur → Adrogué, Oeste → Merlo): manda el mail y marca ENVIADO', 'n8n · Ruta (cada 30 min)'],
-      hoy: 'Citaciones Tortus: fecha, hora y "ENVIADO" en la pestaña de cada selector.',
-      app: 'Agenda por sede: se elige el horario y sale la citación.' },
-    CONFIRMO_ENTREVISTA: { tramo: 1, agente: 'agenda', corto: 'Confirmaron', vivo: 'confirmados',
-      herramientas: [H.confirmados, H.panelSala],
-      scripts: ['Citaciones Tortus · 📋 Recopilar confirmados (lee «Confirmo» en Gmail y arma Confirmados)', 'Citaciones Tortus · Panel «Estado de Sala» (cupo 40 por turno)', 'n8n · Ruta (cada 30 min)'],
-      hoy: 'Citaciones Tortus · pestaña Confirmados.',
-      app: 'La confirmación tilda al postulante en la agenda.' },
-    ASISTIO_ENTREVISTA: { tramo: 2, agente: 'agenda', corto: 'Asistieron', vivo: 'sala',
-      herramientas: [H.proceso, H.panelSala],
-      scripts: ['Formulario Proceso de Selección', 'Apps Script de TAREAS GRUPALES (ID POSTULANTE → ruta)'],
-      hoy: 'TAREAS GRUPALES · Proceso de Selección (formulario en la sede).',
-      app: 'Check-in en la sala desde el Panel de Sala.' },
-    APROBADO: { tramo: 2, agente: 'screening', corto: 'Aprobados',
-      herramientas: [H.proceso, H.baseDatos, H.bloqueados],
-      scripts: ['Apps Script de TAREAS GRUPALES (ESTADO → ruta)'],
-      hoy: 'Columna ESTADO de Proceso de Selección y BASE DE DATOS.',
-      app: 'Botones Aprobado / En espera / No avanza en la ficha. Si está en BLOQUEADOS, aparece el aviso.' },
-    COMPARTIDO_ZONAL: { tramo: 3, agente: 'vacantes', corto: 'Al zonal', vivo: 'vacantes', acciones: ['ESTADO'],
-      herramientas: [H.zonales, H.proceso],
-      scripts: ['Apps Script de TAREAS GRUPALES (copia a la planilla de cada regional)'],
-      hoy: 'Columna ESTADO ENVIO y la planilla de cada regional (HOJAS ZONALES).',
-      app: 'Cada zonal ve sus candidatos sugeridos por cercanía al local.' },
-    VACANTE_ASIGNADA: { tramo: 3, agente: 'vacantes', corto: 'Con vacante', vivo: 'vacantes', acciones: ['ESTADO', 'NOTAS'],
-      herramientas: [H.solSabores, H.solExtremas],
-      scripts: ['Apps Script «vacantesAsignaciones» (Contador de Vacantes)', 'Apps Script «Vacantes (tablero)»', 'Solicitud de Búsqueda de Personal (web + Apps Script)'],
-      hoy: 'Solicitudes Sabores y Extremas, y vacantes reservadas.',
-      app: 'Tablero de vacantes por local: cada solicitud es una tarjeta con su candidato.' },
-    APROBADO_ZONAL: { tramo: 3, agente: 'vacantes', corto: 'OK del zonal', vivo: 'vacantes', acciones: ['ESTADO'],
-      herramientas: [H.solSabores, H.solExtremas],
-      scripts: ['n8n · Avisos por mail (cambio de ESTADO)', 'Apps Script de TAREAS GRUPALES (ESTADO → ruta)'],
-      hoy: 'Columna ESTADO de Solicitudes, editada a mano.',
-      app: 'El zonal aprueba o rechaza con un clic y el selector recibe el aviso.' },
-    CITADO_ONB: { tramo: 4, agente: 'onboarding', corto: 'Citados ONB', vivo: 'onb', acciones: ['FECHA', 'HORA', 'ESTADO'],
-      herramientas: [H.solSabores, H.solExtremas, H.agendaOp],
-      scripts: ['n8n · Avisos por mail (cambio de ESTADO)', 'Apps Script de TAREAS GRUPALES (ESTADO → ruta)'],
-      hoy: 'FECHA y HORA de la fila en Solicitudes.',
-      app: 'Calendario de onboarding con los cupos por día.' },
-    CONFIRMA_ONB: { tramo: 4, agente: 'onboarding', corto: 'Confirman ONB', vivo: 'onb', acciones: ['ESTADO'],
-      herramientas: [H.solSabores, H.solExtremas],
-      scripts: ['Apps Script de TAREAS GRUPALES (ALTAS RRHH → ruta)'],
-      hoy: 'ALTAS RRHH = "CONFIRMA ONB" en Solicitudes.',
-      app: 'Se marca al confirmar y Onboarding avisa a quien no confirmó.' },
-    HIZO_ONB: { tramo: 4, agente: 'onboarding', corto: 'Hicieron ONB', vivo: 'uniformes',
-      herramientas: [H.ingreso, H.docIngreso, H.constancias],
-      scripts: ['Formulario Proceso de Ingreso', 'Documentación de Ingreso (web + Apps Script, firma digital)', 'Constancia de puesto y sucursal (web + Apps Script)'],
-      hoy: 'Solicitudes + formulario Proceso de Ingreso (datos personales).',
-      app: 'Ficha de alta que marca lo que falta: DNI, CUIL, domicilio o fechas mal escritas.' },
-    ALTA_ICHECK: { tramo: 4, agente: 'onboarding', corto: 'En iCheck', vivo: 'primeros',
-      herramientas: [H.icheck, H.carpetaIcheck],
-      scripts: ['n8n · Ruta (cada 30 min, cruza DNI con Solicitudes)'],
-      hoy: 'Pestaña exportacion_icheck, armada a mano. Cuando alguien aparece ahí, llega a la ruta (cada 30 min).',
-      app: 'Cola de altas con el botón "Exportar iCheck", que arma el archivo y mueve a todos de paso.' },
-    INGRESO: { tramo: 4, agente: 'onboarding', corto: 'Ingresaron', vivo: 'ingreso', acciones: ['PRIMER DIA'],
-      herramientas: [H.solSabores, H.solExtremas, H.altas, H.encuesta],
-      scripts: ['Supabase · seguimiento → altas del dashboard', 'Encuesta de experiencia (web + Apps Script)'],
-      hoy: 'PRIMER DÍA en Solicitudes.',
-      app: 'Se registra solo y suma al dashboard de altas de Tortuguitas.' },
-    NO_AVANZA: { tramo: 'x', agente: 'screening', corto: 'No avanzan', herramientas: [H.proceso, H.bloqueados], scripts: [],
-      hoy: 'Se pierde entre ESTADO y OBSERVACIONES.', app: 'Cada salida con su motivo.' },
-    NO_SE_PRESENTO: { tramo: 'x', agente: 'agenda', corto: 'No vinieron', herramientas: [H.confirmados, H.panelSala], scripts: [],
-      hoy: 'No se registra en ninguna planilla.', app: 'La agenda marca a quien no vino a la entrevista o al ONB.' },
-    DESISTIO: { tramo: 'x', agente: 'onboarding', corto: 'Desistieron', herramientas: [H.solSabores, H.solExtremas], scripts: [],
-      hoy: 'Queda en OBSERVACIONES.', app: 'Se marca en la ficha con el motivo.' },
-    RECHAZADO_ZONAL: { tramo: 'x', agente: 'vacantes', corto: 'Rechazo zonal', herramientas: [H.solSabores, H.solExtremas, H.bloqueados], acciones: ['ESTADO', 'NOTAS'],
-      scripts: ['Apps Script de TAREAS GRUPALES (ESTADO → ruta)'],
-      hoy: 'Columna ESTADO de Solicitudes.', app: 'Vuelve a la bandeja con el motivo, lista para otra vacante.' },
+    POSTULADO: { tramo: 1, icono: '📝', corto: 'Postulados', herramientas: [H.ats, H.formQR, H.portal] },
+    CITADO_ENTREVISTA: { tramo: 1, icono: '✉️', corto: 'Citados', vivo: 'agenda', funciones: 'citar',
+      herramientas: [H.citaciones, H.agendaOp] },
+    CONFIRMO_ENTREVISTA: { tramo: 1, icono: '✅', corto: 'Confirmaron', vivo: 'confirmados', funciones: 'confirmados',
+      herramientas: [H.confirmados, H.panelSala] },
+    ASISTIO_ENTREVISTA: { tramo: 2, icono: '🪑', corto: 'Asistieron', vivo: 'sala', herramientas: [H.proceso, H.panelSala] },
+    APROBADO: { tramo: 2, icono: '👍', corto: 'Aprobados', herramientas: [H.proceso, H.baseDatos, H.bloqueados] },
+    COMPARTIDO_ZONAL: { tramo: 3, icono: '📤', corto: 'Al zonal', vivo: 'vacantes', acciones: ['ESTADO'],
+      herramientas: [H.zonales, H.proceso] },
+    VACANTE_ASIGNADA: { tramo: 3, icono: '📌', corto: 'Con vacante', vivo: 'vacantes', acciones: ['ESTADO', 'NOTAS'],
+      herramientas: [H.solSabores, H.solExtremas] },
+    APROBADO_ZONAL: { tramo: 3, icono: '🆗', corto: 'OK del zonal', vivo: 'vacantes', acciones: ['ESTADO'],
+      herramientas: [H.solSabores, H.solExtremas] },
+    CITADO_ONB: { tramo: 4, icono: '📅', corto: 'Citados ONB', vivo: 'onb', acciones: ['FECHA', 'HORA', 'ESTADO'],
+      herramientas: [H.solSabores, H.solExtremas, H.agendaOp] },
+    CONFIRMA_ONB: { tramo: 4, icono: '☑️', corto: 'Confirman ONB', vivo: 'onb', acciones: ['ESTADO'],
+      herramientas: [H.solSabores, H.solExtremas] },
+    HIZO_ONB: { tramo: 4, icono: '🎓', corto: 'Hicieron ONB', vivo: 'uniformes', herramientas: [H.ingreso, H.docIngreso, H.constancias] },
+    ALTA_ICHECK: { tramo: 4, icono: '💾', corto: 'En iCheck', vivo: 'primeros', herramientas: [H.icheck, H.carpetaIcheck] },
+    INGRESO: { tramo: 4, icono: '🎉', corto: 'Ingresaron', vivo: 'ingreso', acciones: ['PRIMER DIA'],
+      herramientas: [H.solSabores, H.solExtremas, H.altas, H.encuesta] },
+    NO_AVANZA: { tramo: 'x', icono: '⛔', corto: 'No avanzan', herramientas: [H.proceso, H.bloqueados] },
+    NO_SE_PRESENTO: { tramo: 'x', icono: '🚷', corto: 'No vinieron', herramientas: [H.confirmados, H.panelSala] },
+    DESISTIO: { tramo: 'x', icono: '🏳️', corto: 'Desistieron', herramientas: [H.solSabores, H.solExtremas] },
+    RECHAZADO_ZONAL: { tramo: 'x', icono: '✋', corto: 'Rechazo zonal', acciones: ['ESTADO', 'NOTAS'],
+      herramientas: [H.solSabores, H.solExtremas, H.bloqueados] },
   };
-  return { TRAMOS, AGENTES, ESTACIONES, datos: null, elegida: null };
+  return { TRAMOS, ESTACIONES, datos: null, elegida: null };
 })();
 
 (() => {
   const seccion = document.getElementById('rutaSeccion');
   if (!seccion || !window.SB) return;
-  const { TRAMOS, AGENTES, ESTACIONES } = window.RUTA;
+  const { TRAMOS, ESTACIONES } = window.RUTA;
   const ZONA = 'America/Argentina/Buenos_Aires';
   const CLAVE_DIAS = 'ruta-dias';
   const PASOS = Object.keys(ESTACIONES).filter((k) => ESTACIONES[k].tramo !== 'x');
@@ -196,35 +135,6 @@ window.RUTA = (() => {
 
   const est = (etapa) => (datos && datos.estaciones || []).find((e) => e.etapa === etapa);
   const tramoDe = (etapa) => TRAMOS[(ESTACIONES[etapa] || {}).tramo] || TRAMOS.x;
-
-  /* ── Línea 2D: estación por estación ── */
-  function pintarLinea() {
-    const lista = $('rutaLinea');
-    const estaciones = (datos && datos.estaciones) || [];
-    const grupos = [1, 2, 3, 4, 'x'].map((t) => ({ t, filas: estaciones.filter((e) => (ESTACIONES[e.etapa] || {}).tramo === t) }));
-    lista.innerHTML = grupos.filter((g) => g.filas.length).map((g) => {
-      const tr = TRAMOS[g.t];
-      const filas = g.filas.map((e) => {
-        const vacia = !e.personas;
-        const chips = [
-          e.hoy ? `<span class="ru-chip is-hoy">+${fmt(e.hoy)} hoy</span>` : '',
-          e.programados ? `<span class="ru-chip">${fmt(e.programados)} programados</span>` : '',
-        ].join('');
-        return `<li>
-          <button type="button" class="ru-est${vacia ? ' is-vacia' : ''}" data-etapa="${esc(e.etapa)}" aria-pressed="${elegida === e.etapa}">
-            <span class="ru-est-punto" aria-hidden="true"></span>
-            <span class="ru-est-nombre">${esc(e.nombre)}</span>
-            <span class="ru-est-chips">${chips}</span>
-            <span class="ru-est-n">${vacia ? 'Sin datos' : fmt(e.personas)}</span>
-          </button>
-        </li>`;
-      }).join('');
-      return `<li class="ru-tramo" style="--c:${tr.color};--cs:${tr.suave}">
-        <div class="ru-tramo-head"><span class="ru-tramo-badge">${g.t === 'x' ? '×' : g.t}</span>${esc(tr.nombre)}</div>
-        <ol class="ru-tramo-lista">${filas}</ol>
-      </li>`;
-    }).join('');
-  }
 
   /* ── Por citar: lo que espera el menú 📞 Citar de Citaciones Tortus ── */
   // Las citaciones se siguen mandando desde la planilla (cada uno desde su Gmail).
@@ -561,7 +471,8 @@ window.RUTA = (() => {
     return el;
   }
 
-  /* ── Panel: funciones de la oficina a la vista ── */
+  /* ── Panel de la oficina a la vista ── */
+  const esHoja = (h) => /docs\.google\.com\/spreadsheets\//.test(h.u);
   function pintarPanel() {
     const panel = $('rutaPanel');
     const foco = document.activeElement;
@@ -569,20 +480,19 @@ window.RUTA = (() => {
       panel.innerHTML = '<p class="desc">Cargando la ruta…</p>';
       return;
     }
-    const e = est(elegida) || { etapa: elegida, nombre: elegida, personas: 0, hoy: 0, ahora: 0, origenes: [] };
+    const e = est(elegida) || { etapa: elegida, nombre: elegida, personas: 0, hoy: 0, ahora: 0 };
     const meta = ESTACIONES[elegida] || {};
     const tr = tramoDe(elegida);
-    const ag = AGENTES[meta.agente] || AGENTES.coordinador;
     const salida = meta.tramo === 'x';
     const n = PASOS.indexOf(elegida);
     const ant = salida ? PASOS[PASOS.length - 1] : PASOS[n - 1];
     const sig = salida ? null : PASOS[n + 1] || 'NO_AVANZA';
-    const total = (e.origenes || []).reduce((s, o) => s + o.personas, 0) || 1;
-    const origenes = (e.origenes || []).map((o) => `<li><span class="ru-or-nombre">${esc(o.origen)}</span><span class="ru-or-bar"><i style="width:${Math.max(3, pct(o.personas, total))}%"></i></span><b>${fmt(o.personas)}</b></li>`).join('');
     const otrasSalidas = salida ? `<div class="tab-chips">${SALIDAS.map((s) => `<button type="button" class="ru-chip-btn" data-etapa="${s}" aria-pressed="${s === elegida}">${esc(ESTACIONES[s].corto)} · ${fmt((est(s) || {}).personas)}</button>`).join('')}</div>` : '';
+    // Las planillas se ven adentro (a la derecha); acá quedan los sitios y carpetas del paso.
+    const accesos = (meta.herramientas || []).filter((h) => !esHoja(h));
     panel.innerHTML = `
       <div class="ru-panel-head" style="--c:${tr.color};--cs:${tr.suave}">
-        <span class="ru-panel-emoji" aria-hidden="true">${esc(ag.emoji)}</span>
+        <span class="ru-panel-emoji" aria-hidden="true">${esc(meta.icono || '📍')}</span>
         <div><p>${salida ? 'Salidas · de cualquier paso' : `Paso ${n + 1} de ${PASOS.length} · <span class="ru-tramo-pill">${esc(tr.nombre)}</span>`}</p><h3>${esc(e.nombre)}</h3></div>
       </div>
       ${otrasSalidas}
@@ -592,18 +502,9 @@ window.RUTA = (() => {
         <div><b>${fmt(e.ahora)}</b><span>${salida ? 'salieron acá' : 'esperan acá'}</span></div>
       </div>
       ${e.programados ? `<p class="ru-nota">📅 ${fmt(e.programados)} con fecha futura (programados).</p>` : ''}
-      <div class="ru-funciones">
-        <h4>Funciones de esta oficina</h4>
-        <div class="ru-herr">${(meta.herramientas || []).map((h) => `<a class="ru-herr-btn" href="${esc(h.u)}" target="_blank" rel="noopener"><b>${esc(h.t)}</b><small>${esc(h.d)} ↗</small></a>`).join('')}</div>
-        ${meta.vivo ? `<div class="ru-box is-vivo"><span>En vivo</span>${widget(meta.vivo)}</div>` : ''}
-      </div>
+      ${meta.vivo ? `<div class="ru-box is-vivo"><span>En vivo</span>${widget(meta.vivo)}</div>` : ''}
       ${(meta.acciones || []).length ? '<div data-accion></div>' : ''}
-      ${(meta.scripts || []).length ? `<div class="ru-box"><span>Funciona con</span><ul class="ru-scripts">${meta.scripts.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div>` : ''}
-      ${origenes ? `<div class="ru-box"><span>De dónde llega el dato</span><ul class="ru-origenes">${origenes}</ul></div>` : '<div class="ru-box is-alerta"><span>Sin datos todavía</span><p>Ninguna planilla carga este paso en el período elegido.</p></div>'}
-      <details class="ru-mas"><summary>Hoy se carga en · con la ruta unificada</summary>
-        <div class="ru-box"><span>Hoy se carga en</span><p>${esc(meta.hoy || 'S/D')}</p></div>
-        <div class="ru-box is-app"><span>Con la ruta unificada</span><p>${esc(meta.app || 'S/D')}</p></div>
-      </details>
+      ${accesos.length ? `<div class="ru-herr">${accesos.map((h) => `<a class="ru-herr-btn" href="${esc(h.u)}" target="_blank" rel="noopener"><b>${esc(h.t)}</b><small>${esc(h.d)} ↗</small></a>`).join('')}</div>` : ''}
       <div class="ru-nav">
         ${ant ? `<button type="button" class="ru-nav-btn" data-etapa="${ant}">‹ ${esc(ESTACIONES[ant].corto)}</button>` : '<span></span>'}
         ${sig ? `<button type="button" class="ru-nav-btn" data-etapa="${sig}">${esc(sig === 'NO_AVANZA' ? 'Salidas' : ESTACIONES[sig].corto)} ›</button>` : '<span></span>'}
@@ -616,30 +517,39 @@ window.RUTA = (() => {
     }
   }
 
-  /* ── Últimos movimientos (sin nombres) ── */
-  function pintarMovs() {
-    const ul = $('rutaMovs');
-    const movs = (datos && datos.movimientos) || [];
-    if (!movs.length) {
-      ul.innerHTML = '<li class="ru-mov-vacio">Todavía no hay movimientos en el período.</li>';
-      return;
+  /* ── Botonera: las funciones de los Apps Script como botones ── */
+  // App web en un proyecto de Apps Script aparte (apps-script/botonera) que usa
+  // el mismo código de Citaciones Tortus sin tocar el original. Corre con la
+  // cuenta de quien la usa: la citación sale de su Gmail, igual que con el menú.
+  // Cada vista queda cargada (un iframe que se mueve en la página se recarga).
+  const BOTONERA_URL = '';
+  const VISTAS = {
+    citar: { titulo: '📞 Citar por zona', alto: 470 },
+    confirmados: { titulo: '📋 Confirmados', alto: 330 },
+  };
+  const botoneras = new Map(); // vista → iframe
+  function pintarBotonera() {
+    const caja = $('rutaBotonera');
+    const vista = (ESTACIONES[elegida] || {}).funciones;
+    caja.hidden = !vista;
+    if (!vista) return;
+    $('rutaBotoneraTitulo').textContent = VISTAS[vista].titulo;
+    const url = BOTONERA_URL ? `${BOTONERA_URL}?vista=${vista}` : '';
+    $('rutaBotoneraAbrir').hidden = !url;
+    $('rutaBotoneraAbrir').href = url || '#';
+    $('rutaBotoneraFalta').hidden = !!url;
+    if (!url) return;
+    let marco = botoneras.get(vista);
+    if (!marco) {
+      marco = document.createElement('iframe');
+      marco.className = 'ru-botonera-marco';
+      marco.title = VISTAS[vista].titulo;
+      marco.style.height = VISTAS[vista].alto + 'px';
+      marco.src = url;
+      $('rutaBotoneraMarcos').appendChild(marco);
+      botoneras.set(vista, marco);
     }
-    const nombre = (etapa) => ((datos.estaciones || []).find((e) => e.etapa === etapa) || {}).nombre || etapa;
-    ul.innerHTML = movs.slice(0, 25).map((m) => {
-      const tr = tramoDe(m.etapa);
-      const extra = [m.lugar, m.selector].filter(Boolean).map(esc).join(' · ');
-      return `<li style="--c:${tr.color}">
-        <span class="ru-mov-punto" aria-hidden="true"></span>
-        <div><b>${esc(nombre(m.etapa))}</b>${extra ? `<small>${extra}</small>` : ''}</div>
-        <time datetime="${esc(m.fecha)}">${esc(SB.hace(m.fecha))}</time>
-      </li>`;
-    }).join('');
-  }
-
-  // Nota de la línea: por qué los pasos todavía no encadenan a todos.
-  function pintarIdentidad() {
-    const id = (datos && datos.identidad) || {};
-    $('rutaIdentidad').innerHTML = datos ? `Cada planilla identifica a la persona a su manera: ${fmt(id.con_formulario)} tienen el id del formulario QR, ${fmt(id.solo_planilla)} solo el ID POSTULANTE de las planillas y ${fmt(id.solo_mail)} solo el mail. Por eso los números de cada paso todavía no se pueden restar entre sí.${id.fechas_raras ? ` ${id.fechas_raras === 1 ? 'Un paso tiene una fecha rara' : `${fmt(id.fechas_raras)} pasos tienen fechas raras`} (por ejemplo, un año 0226).` : ''}` : '';
+    botoneras.forEach((f) => { f.hidden = f !== marco; });
   }
 
   function pintarBarra() {
@@ -651,10 +561,7 @@ window.RUTA = (() => {
   }
   function pintar() {
     pintarBarra();
-    pintarLinea();
     pintarPanel();
-    pintarMovs();
-    pintarIdentidad();
   }
 
   /* ── La planilla real de la oficina, adentro de la página ── */
@@ -662,7 +569,6 @@ window.RUTA = (() => {
   // siempre, con sus menús (📞 Citar…) y sus Apps Script, y abajo de la hoja
   // están todas las pestañas. Hay que estar con la cuenta de Google que tiene
   // acceso. Quedan hasta 3 abiertas para ir y volver sin recargarlas.
-  const esHoja = (h) => /docs\.google\.com\/spreadsheets\//.test(h.u);
   const MAX_ABIERTAS = 3;
   const abiertas = new Map(); // url → iframe, la última usada al final
   const hojaDe = {}; // etapa → url de la pestaña elegida
@@ -699,8 +605,8 @@ window.RUTA = (() => {
     elegida = etapa;
     window.RUTA.elegida = etapa;
     try { history.replaceState(null, '', '#' + hashDe(etapa)); } catch (e) { /* sin historial */ }
-    pintarLinea();
     pintarPanel();
+    pintarBotonera();
     pintarHoja();
     avisar('ruta:elegida', { etapa });
   }
@@ -754,6 +660,7 @@ window.RUTA = (() => {
 
   pintarLeyenda();
   pintar();
+  pintarBotonera();
   pintarHoja();
   cargar();
   cargarVivo();
