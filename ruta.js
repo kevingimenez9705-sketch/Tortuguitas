@@ -13,8 +13,9 @@
 // n8n y los Apps Script de cada planilla cargan esos datos; la ruta no los modifica.
 //
 // Arma el panel "Funciones de esta oficina" (herramientas y planillas del paso,
-// datos en vivo, con qué scripts funciona y "Preguntale" al agente), la línea
-// estación por estación y los últimos movimientos. ruta-3d.js dibuja las
+// datos en vivo y con qué scripts funciona), la planilla real de la oficina
+// adentro de la página, la línea estación por estación y los últimos
+// movimientos. ruta-3d.js dibuja las
 // oficinas y se comunica con eventos:
 //   ruta:datos   → { ...respuesta de ruta_estaciones } (cada vez que se leen)
 //   ruta:elegir  → { etapa } (la 3D pide ir a un paso)
@@ -28,14 +29,14 @@ window.RUTA = (() => {
     4: { nombre: 'Ingreso e iCheck', color: '#2c9356', suave: '#ddf0e4' },
     x: { nombre: 'Salidas', color: '#b7473f', suave: '#f6e0de' },
   };
-  // Mismos agentes que la Oficina (ids de la tabla agentes) y la pregunta que se les hace.
+  // Agentes que cuidan cada paso (ids de la tabla agentes).
   const AGENTES = {
-    screening: { emoji: '🔎', nombre: 'Screening', pregunta: '¿Cuántas postulaciones recomendó avanzar el Screening en las últimas 48 horas y de qué zonas?' },
-    agenda: { emoji: '📅', nombre: 'Agenda', pregunta: '¿Qué entrevistas hay hoy y mañana?' },
-    vacantes: { emoji: '📌', nombre: 'Vacantes', pregunta: '¿Qué búsquedas siguen abiertas o trabadas y de quién son?' },
-    onboarding: { emoji: '🤝', nombre: 'Onboarding', pregunta: '¿Qué ingresos hay en los próximos días?' },
-    coordinador: { emoji: '🧭', nombre: 'Coordinador', pregunta: '¿Qué hizo la oficina hoy?' },
-    analista: { emoji: '📊', nombre: 'Analista', pregunta: '¿Cómo vienen las postulaciones hoy comparado con ayer?' },
+    screening: { emoji: '🔎', nombre: 'Screening' },
+    agenda: { emoji: '📅', nombre: 'Agenda' },
+    vacantes: { emoji: '📌', nombre: 'Vacantes' },
+    onboarding: { emoji: '🤝', nombre: 'Onboarding' },
+    coordinador: { emoji: '🧭', nombre: 'Coordinador' },
+    analista: { emoji: '📊', nombre: 'Analista' },
   };
 
   // Planillas y herramientas que ya usa el equipo (se abren tal cual, sin cambios).
@@ -131,13 +132,13 @@ window.RUTA = (() => {
       hoy: 'Pestaña exportacion_icheck, armada a mano. Cuando alguien aparece ahí, llega a la ruta (cada 30 min).',
       app: 'Cola de altas con el botón "Exportar iCheck", que arma el archivo y mueve a todos de paso.' },
     INGRESO: { tramo: 4, agente: 'onboarding', corto: 'Ingresaron', vivo: 'ingreso', acciones: ['PRIMER DIA'],
-      herramientas: [H.altas, H.encuesta],
+      herramientas: [H.solSabores, H.solExtremas, H.altas, H.encuesta],
       scripts: ['Supabase · seguimiento → altas del dashboard', 'Encuesta de experiencia (web + Apps Script)'],
       hoy: 'PRIMER DÍA en Solicitudes.',
       app: 'Se registra solo y suma al dashboard de altas de Tortuguitas.' },
     NO_AVANZA: { tramo: 'x', agente: 'screening', corto: 'No avanzan', herramientas: [H.proceso, H.bloqueados], scripts: [],
       hoy: 'Se pierde entre ESTADO y OBSERVACIONES.', app: 'Cada salida con su motivo.' },
-    NO_SE_PRESENTO: { tramo: 'x', agente: 'agenda', corto: 'No vinieron', herramientas: [H.panelSala], scripts: [],
+    NO_SE_PRESENTO: { tramo: 'x', agente: 'agenda', corto: 'No vinieron', herramientas: [H.confirmados, H.panelSala], scripts: [],
       hoy: 'No se registra en ninguna planilla.', app: 'La agenda marca a quien no vino a la entrevista o al ONB.' },
     DESISTIO: { tramo: 'x', agente: 'onboarding', corto: 'Desistieron', herramientas: [H.solSabores, H.solExtremas], scripts: [],
       hoy: 'Queda en OBSERVACIONES.', app: 'Se marca en la ficha con el motivo.' },
@@ -319,12 +320,12 @@ window.RUTA = (() => {
   }
 
   /* ── Cambiar en la planilla, confirmado con PIN ── */
-  // Igual que el chat del Coordinador: Supabase arma el pedido (proponer_accion),
+  // Supabase arma el pedido (proponer_accion),
   // alguien del equipo lo confirma con su PIN personal y n8n lo escribe en
   // Solicitudes Sabores/Extremas (TAREAS GRUPALES), donde siguen corriendo sus
   // Apps Script. Nada cambia sin PIN y el PIN no se guarda en ningún lado.
   const ACCION_URL = 'https://kevin9705.app.n8n.cloud/webhook/oficina-accion';
-  const CLAVE_CODIGO = 'oficina-codigo'; // el mismo código del equipo que pide el chat
+  const CLAVE_CODIGO = 'oficina-codigo'; // código del equipo: se pide una vez y queda en el navegador
   const COLUMNAS = {
     ESTADO: { t: 'Estado', tipo: 'text', ver: 'estado' },
     FECHA: { t: 'Fecha', tipo: 'date', ver: 'fecha' },
@@ -595,7 +596,6 @@ window.RUTA = (() => {
         <h4>Funciones de esta oficina</h4>
         <div class="ru-herr">${(meta.herramientas || []).map((h) => `<a class="ru-herr-btn" href="${esc(h.u)}" target="_blank" rel="noopener"><b>${esc(h.t)}</b><small>${esc(h.d)} ↗</small></a>`).join('')}</div>
         ${meta.vivo ? `<div class="ru-box is-vivo"><span>En vivo</span>${widget(meta.vivo)}</div>` : ''}
-        <button type="button" class="tab-btn" data-preguntar="${esc(ag.pregunta)}">Preguntale a ${esc(ag.nombre)} →</button>
       </div>
       ${(meta.acciones || []).length ? '<div data-accion></div>' : ''}
       ${(meta.scripts || []).length ? `<div class="ru-box"><span>Funciona con</span><ul class="ru-scripts">${meta.scripts.map((s) => `<li>${esc(s)}</li>`).join('')}</ul></div>` : ''}
@@ -657,6 +657,43 @@ window.RUTA = (() => {
     pintarIdentidad();
   }
 
+  /* ── La planilla real de la oficina, adentro de la página ── */
+  // Cada oficina abre su pestaña de Google Sheets tal cual: se edita igual que
+  // siempre, con sus menús (📞 Citar…) y sus Apps Script, y abajo de la hoja
+  // están todas las pestañas. Hay que estar con la cuenta de Google que tiene
+  // acceso. Quedan hasta 3 abiertas para ir y volver sin recargarlas.
+  const esHoja = (h) => /docs\.google\.com\/spreadsheets\//.test(h.u);
+  const MAX_ABIERTAS = 3;
+  const abiertas = new Map(); // url → iframe, la última usada al final
+  const hojaDe = {}; // etapa → url de la pestaña elegida
+  function pintarHoja() {
+    const caja = $('rutaHoja');
+    const hojas = (ESTACIONES[elegida].herramientas || []).filter(esHoja);
+    caja.hidden = !hojas.length;
+    if (!hojas.length) return;
+    const actual = hojas.find((h) => h.u === hojaDe[elegida]) || hojas[0];
+    $('rutaHojaTabs').innerHTML = hojas.map((h) => `<button type="button" class="ru-hoja-tab" data-hoja="${esc(h.u)}" aria-pressed="${h === actual}"><b>${esc(h.t)}</b><small>${esc(h.d)}</small></button>`).join('');
+    $('rutaHojaAbrir').href = actual.u;
+    let marco = abiertas.get(actual.u);
+    if (marco) {
+      abiertas.delete(actual.u);
+    } else {
+      marco = document.createElement('iframe');
+      marco.className = 'ru-hoja-marco';
+      marco.title = `${actual.t} · ${actual.d}`;
+      marco.allow = 'clipboard-read; clipboard-write';
+      marco.src = actual.u;
+      $('rutaHojaMarcos').appendChild(marco);
+    }
+    abiertas.set(actual.u, marco);
+    if (abiertas.size > MAX_ABIERTAS) {
+      const [vieja, f] = abiertas.entries().next().value;
+      f.remove();
+      abiertas.delete(vieja);
+    }
+    abiertas.forEach((f) => { f.hidden = f !== marco; });
+  }
+
   function elegir(etapa) {
     if (!ESTACIONES[etapa]) return;
     elegida = etapa;
@@ -664,6 +701,7 @@ window.RUTA = (() => {
     try { history.replaceState(null, '', '#' + hashDe(etapa)); } catch (e) { /* sin historial */ }
     pintarLinea();
     pintarPanel();
+    pintarHoja();
     avisar('ruta:elegida', { etapa });
   }
 
@@ -705,10 +743,10 @@ window.RUTA = (() => {
       cargar();
       return;
     }
-    const p = e.target.closest('[data-preguntar]');
-    if (p) {
-      avisar('oficina:preguntar', { texto: p.dataset.preguntar });
-      document.getElementById('ofiChatInput')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const h = e.target.closest('[data-hoja]');
+    if (h) {
+      hojaDe[elegida] = h.dataset.hoja;
+      pintarHoja();
     }
   });
   document.addEventListener('ruta:elegir', (e) => elegir((e.detail || {}).etapa));
@@ -716,6 +754,7 @@ window.RUTA = (() => {
 
   pintarLeyenda();
   pintar();
+  pintarHoja();
   cargar();
   cargarVivo();
   setInterval(cargar, 60000);

@@ -1268,10 +1268,12 @@ html.reveal-pending .container > *{opacity:0;}
 .ru-panel .tab-btn{margin-top:0;}
 
 /* Debajo de la maqueta: panel de la estación (queda a la vista al bajar), línea y movimientos. */
-.ru-abajo{display:grid;grid-template-columns:360px minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start;}
+.ru-trabajo{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px;}
+.ru-trabajo>*{min-width:0;}
+@media(max-width:1100px){.ru-trabajo{grid-template-columns:1fr;}}
+.ru-abajo{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start;}
 .ru-abajo>*{min-width:0;}
 /* El panel no es sticky: con el formulario de cambios puede ser más alto que la pantalla. */
-@media(max-width:1100px){.ru-abajo{grid-template-columns:340px minmax(0,1fr);}.ru-abajo>:last-child{grid-column:1 / -1;}}
 @media(max-width:760px){.ru-abajo{grid-template-columns:1fr;}}
 .ru-abajo h3{margin:0 0 4px;font-size:15px;}
 .ru-linea{list-style:none;margin:0;padding:0;display:grid;gap:14px;}
@@ -1394,3 +1396,22 @@ html.reveal-pending .container > *{opacity:0;}
 .ru-accion-resumen.is-ok{color:#16805e;}
 .ru-accion-pin{display:flex;flex-direction:column;gap:6px;}
 .ru-accion-pin .tab-btn{align-self:flex-start;margin-top:0;}
+
+/* Ruta · la planilla real de la oficina (Google Sheets adentro de la página) */
+.ru-hoja{display:flex;flex-direction:column;gap:10px;}
+.ru-hoja[hidden]{display:none;}
+.ru-hoja-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
+.ru-hoja-head h3{margin:0 0 4px;font-size:15px;}
+.ru-hoja-head .desc{margin:0;}
+.ru-hoja-head .tab-btn{flex-shrink:0;margin-top:0;text-decoration:none;}
+.ru-hoja-tabs{display:flex;flex-wrap:wrap;gap:6px;}
+.ru-hoja-tab{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 12px;border:0;border-radius:10px;background:#fff;box-shadow:0 0 0 1px var(--border);font:inherit;color:var(--text);text-align:left;cursor:pointer;}
+.ru-hoja-tab b{font-size:13px;}
+.ru-hoja-tab small{font-size:10.5px;color:var(--text-muted);}
+.ru-hoja-tab:hover{box-shadow:0 0 0 1px var(--navy);}
+.ru-hoja-tab[aria-pressed="true"]{background:var(--navy);box-shadow:none;color:#fff;}
+.ru-hoja-tab[aria-pressed="true"] small{color:#c9d2e3;}
+.ru-hoja-tab:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
+.ru-hoja-marcos{position:relative;height:max(560px,75vh);overflow:hidden;border-radius:12px;background:#f6f8fb;box-shadow:0 0 0 1px var(--border);}
+.ru-hoja-marco{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;}
+.ru-hoja-marco[hidden]{display:none;}

@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Ruta del ingresante · Oficina digital · Equipo Tortuguitas</title>
-<link rel="stylesheet" href="styles.css?v=20261028c" />
+<link rel="stylesheet" href="styles.css?v=20261028d" />
 </head>
 <body>
 <script src="transition.js?v=20261019"></script>
@@ -17,7 +17,7 @@
       <div>
         <span class="breadcrumb">Selección · Oficina digital</span>
         <h1>Ruta del ingresante</h1>
-        <p>Todo el proceso, del formulario QR a iCheck, como una fila de oficinas: una por paso, con su gente esperando, el agente que la cuida y sus funciones. Junta lo que estaba repartido en Citaciones Tortus, TAREAS GRUPALES y Tareas grupales/zonas.</p>
+        <p>Todo el proceso, del formulario QR a iCheck, como una fila de oficinas: una por paso, con su gente esperando, sus funciones y su planilla real adentro. Junta Citaciones Tortus, TAREAS GRUPALES y Tareas grupales/zonas: se trabaja igual que en Drive, pero paso por paso.</p>
       </div>
     </div>
   </div>
@@ -35,8 +35,22 @@
       <span class="ru-cuando" id="rutaCuando" aria-live="polite">Cargando…</span>
     </div>
     <div class="ru-escena" id="rutaEscena"></div>
-    <div class="ru-abajo">
+    <div class="ru-trabajo">
       <aside class="card ru-panel" id="rutaPanel" aria-live="polite"></aside>
+      <div class="card ru-hoja" id="rutaHoja" hidden>
+        <div class="ru-hoja-head">
+          <div>
+            <h3>📄 La planilla de esta oficina</h3>
+            <p class="desc">Es la hoja real de Drive: lo que cambies acá queda en la planilla y siguen andando sus menús y Apps Script (📞 Citar incluido). Abajo de la hoja están todas sus pestañas.</p>
+          </div>
+          <a class="tab-btn" id="rutaHojaAbrir" href="#" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a>
+        </div>
+        <div class="ru-hoja-tabs" id="rutaHojaTabs" role="group" aria-label="Planillas de esta oficina"></div>
+        <div class="ru-hoja-marcos" id="rutaHojaMarcos"></div>
+        <p class="ru-nota">¿No carga? Entrá a Google con la cuenta que tiene acceso a la planilla, o abrila en otra pestaña.</p>
+      </div>
+    </div>
+    <div class="ru-abajo">
       <div class="card">
         <h3>Paso por paso</h3>
         <p class="desc">Cuánta gente pasó por cada paso en el período. Tocá uno para ir a su oficina.</p>
@@ -51,34 +65,6 @@
     </div>
     <p class="footer-note">Supabase (tabla seguimiento, función ruta_estaciones) · se renueva cada minuto · sin datos personales.</p>
   </section>
-
-  <div class="section-label">Los agentes · chat con el Coordinador</div>
-  <div class="ov-layout">
-    <div class="ov-escena" id="ofiEscena" role="img" aria-label="Oficina animada: cada agente trabaja en su escritorio y muestra lo último que hizo"></div>
-    <div class="card ov-chat">
-      <h3>Chat con el Coordinador 🧭</h3>
-      <p class="desc">Responde con datos reales · los cambios en planillas se confirman con tu PIN · sin datos personales</p>
-      <ul class="ov-chat-lista" id="ofiChatLista" aria-live="polite"></ul>
-      <div class="ov-sugerencias">
-        <button class="ov-sugerencia" type="button" data-q="¿Cómo vienen las postulaciones esta semana?">📊 Postulaciones de la semana</button>
-        <button class="ov-sugerencia" type="button" data-q="¿Qué búsquedas siguen abiertas y de quién son?">📌 Búsquedas abiertas</button>
-        <button class="ov-sugerencia" type="button" data-q="¿Qué entrevistas hay hoy?">📅 Entrevistas de hoy</button>
-        <button class="ov-sugerencia" type="button" data-q="¿Qué hizo la oficina hoy?">🧭 ¿Qué hizo la oficina hoy?</button>
-        <button class="ov-sugerencia" type="button" data-q="¿Qué comentarios dejó el equipo esta semana?">🗒️ Notas de la semana</button>
-        <button class="ov-sugerencia ov-sugerencia--anotar" type="button" data-rellenar="Anotá que ">📝 Anotar un comentario</button>
-      </div>
-      <form class="ov-chat-form" id="ofiCodigoForm" hidden>
-        <label class="ov-sr" for="ofiCodigoInput">Código del equipo</label>
-        <input id="ofiCodigoInput" type="password" placeholder="Código del equipo" autocomplete="off" required />
-        <button class="btn-primary" type="submit">Entrar</button>
-      </form>
-      <form class="ov-chat-form" id="ofiChatForm">
-        <label class="ov-sr" for="ofiChatInput">Tu pregunta</label>
-        <input id="ofiChatInput" type="text" placeholder="Escribí tu pregunta…" maxlength="500" autocomplete="off" />
-        <button class="btn-primary" id="ofiChatEnviar" type="submit">Enviar</button>
-      </form>
-    </div>
-  </div>
 
   <section id="fuentesSeccion" aria-labelledby="fuentesTitulo">
     <div class="section-label" id="fuentesTitulo">De dónde lee la Oficina · fuentes y carpetas</div>
@@ -124,10 +110,8 @@
 
 </div>
 <script src="supabase.js?v=20261015"></script>
-<script src="ruta.js?v=20261028c"></script>
-<script src="oficina-viva.js?v=20261020"></script>
-<script src="fuentes.js?v=20261020b"></script>
-<script type="module" src="ruta-3d.js?v=20261028"></script>
-<script type="module" src="oficina-3d.js?v=20261016b"></script>
+<script src="ruta.js?v=20261028d"></script>
+<script src="fuentes.js?v=20261028"></script>
+<script type="module" src="ruta-3d.js?v=20261028b"></script>
 </body>
 </html>
