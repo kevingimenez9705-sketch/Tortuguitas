@@ -5,18 +5,21 @@
 // arriba o tocando la oficina de al lado.
 //
 // Cada oficina tiene:
-// - la pantalla con cuánta gente pasó por el paso en el período, cuántos esperan
-//   ahí y cuántos llegaron hoy (rpc/ruta_estaciones, vía ruta.js);
-// - la sala de espera con muñequitos (más muñequitos, más gente esperando;
-//   escala logarítmica para que entren de 1 a 10.000) y alguien que entra por la
-//   puerta cuando hubo movimiento hoy;
+// - la pantalla con cuánta gente pasó por el paso en el período (o desde que hay
+//   fechas), en los últimos 7 días y hoy (rpc/ruta_estaciones, vía ruta.js);
+// - su referente: un personaje del equipo (tortuga, Splinter o April, los de
+//   personajes-3d.js) que saluda al llegar y dice en qué planilla se hace el paso;
+// - la sala de espera con muñequitos (más muñequitos, más gente llegó en los
+//   últimos 7 días; escala logarítmica para que entren de 1 a 10.000) y alguien
+//   que entra por la puerta cuando hubo movimiento hoy;
 // - un objeto propio del paso (totem del QR, calendario, mesa de entrevista,
 //   buzón al zonal, lector de huella, servidores de iCheck, globos de bienvenida…).
-// Las funciones de cada oficina (botones, datos en vivo y su planilla real) están
-// en ruta.js, debajo de la maqueta.
+// Los datos en vivo y los accesos a las planillas están en ruta.js, debajo de la maqueta.
 //
 // Eventos: escucha "ruta:datos" y "ruta:elegida"; pide "ruta:elegir" al navegar.
 // Sin WebGL o si three.js no carga, la maqueta se oculta y queda el panel.
+import { crearPersonajes } from './personajes-3d.js?v=20261029';
+
 const THREE_URL = './vendor/three.min.js?v=0.186.1';
 
 const escena = document.getElementById('rutaEscena');
@@ -92,6 +95,20 @@ const suave = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
 
 // Muñequitos en la sala de espera: 0 → 0, 1 → 1, 10 → 3, 100 → 6, 1.000 → 9, 10.000 → 12.
 const munecos = (n) => (n > 0 ? Math.min(12, Math.max(1, Math.round(Math.log10(n + 1) * 3))) : 0);
+const ICONO_TUTOR = { tortuga: '🐢', rata: '🐀', april: '🎙️' };
+
+// Referente: respira y, durante 2 s después de llegar a su oficina, saluda con la mano.
+const SALUDO = 2;
+function animarTutor(s, t, ahora) {
+  const P = s.tutor;
+  P.torso.position.y = Math.sin(t * 2 + s.i) * 0.015;
+  const k = (ahora - s.saludo) / SALUDO;
+  const brazo = P.brazos[1];
+  if (!brazo) return;
+  brazo.rotation.z = k >= 0 && k < 1
+    ? P.base[1] + Math.sin(k * Math.PI) * (2.3 + Math.sin(ahora * 14) * 0.25)
+    : P.base[1];
+}
 
 /* ───────────────────────── Geometría low-poly ───────────────────────── */
 
@@ -302,8 +319,9 @@ function puertaSalida() {
 
 async function iniciar() {
   T = await import(THREE_URL);
-  const { TRAMOS, ESTACIONES } = window.RUTA;
-  const metaDe = (sala) => (sala === 'SALIDAS' ? { tramo: 'x' } : ESTACIONES[sala] || {});
+  const { PERSONAJES } = crearPersonajes(T);
+  const { TRAMOS, TUTORES, ESTACIONES } = window.RUTA;
+  const metaDe = (sala) => (sala === 'SALIDAS' ? { tramo: 'x', tutor: ESTACIONES.NO_AVANZA.tutor, donde: 'Proceso de Selección y Solicitudes' } : ESTACIONES[sala] || {});
   const tramoDe = (sala) => TRAMOS[metaDe(sala).tramo] || TRAMOS.x;
   const nombreCorto = (sala) => (sala === 'SALIDAS' ? 'Salidas' : (ESTACIONES[sala] || {}).corto || sala);
 
@@ -438,15 +456,30 @@ async function iniciar() {
     const caminante = muneco(i + 2);
     caminante.visible = false;
     g.add(caminante);
+    // El referente, parado delante del escritorio, mirando hacia la sala de espera.
+    const tu = TUTORES[meta.tutor];
+    const tutor = tu ? PERSONAJES[tu.personaje]({ color: tu.color, arma: tu.arma }) : null;
+    if (tutor) {
+      tutor.raiz.scale.setScalar(0.85);
+      tutor.raiz.position.set(1.3, PISO_Y, -0.3);
+      tutor.raiz.rotation.y = -0.45;
+      tutor.base = tutor.brazos.map((b) => b.rotation.z);
+      g.add(tutor.raiz);
+    }
     g.traverse((h) => { h.userData.sala = sala; });
     plano.add(g);
 
-    const s = { sala, i, u0, tr, meta, matPiso, gente, caminante, paseo: null, n: 0 };
+    const s = { sala, i, u0, tr, meta, matPiso, gente, caminante, tutor, saludo: 0, paseo: null, n: 0 };
     // El cartel va arriba de la pantalla.
     s.cartel = etiqueta('ru3-sala', '', () => aMundo(P(u0 - 1.5, -FONDO / 2, PISO_Y + PARED_H + 0.3)), 'translate(-50%, -100%)');
     s.cartel.style.setProperty('--c', tr.color);
     s.pantalla = etiqueta('ru3-pantalla', '', () => aMundo(P(u0 - 1.5, -FONDO / 2 + PARED_T + 0.1, PISO_Y + 1.0)));
     s.pantalla.style.setProperty('--c', tr.color);
+    if (tu) {
+      s.globo = etiqueta('ru3-tutor', `<b>${ICONO_TUTOR[tu.personaje] || '🤖'} ${esc(tu.nombre)}</b><span>Se hace en ${esc(meta.donde || 'la planilla')}</span>`,
+        () => aMundo(P(u0 + 1.3, -0.3, PISO_Y + 1.75)), 'translate(-22px, -100%)'); // hacia la derecha: a la izquierda está la pantalla
+      s.globo.style.setProperty('--c', tu.color);
+    }
     return s;
   });
 
@@ -454,15 +487,18 @@ async function iniciar() {
   new IntersectionObserver(([e]) => { visible = e.isIntersecting; }).observe(escena);
 
   /* ── Datos de la ruta ── */
+  const corta = (iso) => new Intl.DateTimeFormat('es-AR', { day: 'numeric', month: 'numeric', timeZone: 'UTC' }).format(new Date(iso));
   let datos = window.RUTA.datos;
   let actual = 0; // índice de la oficina a la vista
   let camU = 0;
   const est = (etapa) => (datos && datos.estaciones || []).find((e) => e.etapa === etapa) || null;
   // La oficina de salidas suma todas las salidas.
   function numeros(sala) {
-    if (sala !== 'SALIDAS') return est(sala) || { personas: 0, hoy: 0, ahora: 0, nombre: (ESTACIONES[sala] || {}).corto || sala };
+    if (sala !== 'SALIDAS') return est(sala) || { personas: 0, hoy: 0, semana: 0, sin_fecha: 0, nombre: (ESTACIONES[sala] || {}).corto || sala };
     const out = SALIDAS.map(est).filter(Boolean);
-    return { nombre: 'Salidas', personas: out.reduce((a, e) => a + e.personas, 0), hoy: out.reduce((a, e) => a + e.hoy, 0), ahora: out.reduce((a, e) => a + e.ahora, 0) };
+    const suma = (k) => out.reduce((a, e) => a + (e[k] || 0), 0);
+    const desdes = out.map((e) => e.datos_desde).filter(Boolean).sort();
+    return { nombre: 'Salidas', personas: suma('personas'), hoy: suma('hoy'), semana: suma('semana'), sin_fecha: suma('sin_fecha'), datos_desde: desdes[0] || null };
   }
 
   function pintarDatos() {
@@ -471,14 +507,17 @@ async function iniciar() {
       const e = numeros(s.sala);
       const vacia = !e.personas;
       s.matPiso.color.set(vacia ? PALETA.grisSuave : s.tr.suave);
-      s.n = munecos(e.ahora);
+      s.n = munecos(e.semana);
       s.gente.forEach((m, k) => { m.visible = k < s.n; });
       const num = s.sala === 'SALIDAS' ? 'Fuera de la ruta · de cualquier paso' : `Paso ${s.i + 1} de ${PASOS.length} · ${esc(s.tr.nombre)}`;
       s.cartel.innerHTML = `<small>${num}</small><b>${esc(e.nombre)}</b>`;
       s.pantalla.classList.toggle('is-vacia', vacia);
+      const desde = datos && e.datos_desde && e.datos_desde > datos.desde && e.datos_desde <= datos.hasta ? e.datos_desde : null;
       s.pantalla.innerHTML = vacia
-        ? '<b>Sin datos</b><span>todavía no llega nada</span>'
-        : `<b>${fmt(e.personas)}</b><span>pasaron en ${fmt(dias)} días</span><em>${fmt(e.ahora)} ${s.sala === 'SALIDAS' ? 'salieron' : 'esperan'}${e.hoy ? ` · +${fmt(e.hoy)} hoy` : ''}</em>`;
+        ? (e.programados ? `<b>${fmt(e.programados)}</b><span>con fecha programada</span>`
+          : e.sin_fecha ? `<b>Sin fechas</b><span>${fmt(e.sin_fecha)} en la planilla sin fecha del paso</span>`
+            : '<b>Sin datos</b><span>todavía no llega nada</span>')
+        : `<b>${fmt(e.personas)}</b><span>${desde ? `pasaron desde el ${esc(corta(desde))}` : `pasaron en ${fmt(dias)} días`}</span><em>${fmt(e.semana)} en 7 días${e.hoy ? ` · +${fmt(e.hoy)} hoy` : ''}</em>`;
     });
     pintarNavegacion();
   }
@@ -508,6 +547,7 @@ async function iniciar() {
       const lejos = Math.abs(i - actual);
       x.cartel.hidden = lejos > 0;
       x.pantalla.hidden = lejos > 0;
+      if (x.globo) x.globo.hidden = lejos > 0;
     });
   }
 
@@ -568,6 +608,7 @@ async function iniciar() {
     const i = SALAS.indexOf(SALIDAS.includes(etapa) ? 'SALIDAS' : etapa);
     if (i < 0 || i === actual) return;
     actual = i;
+    salas[i].saludo = performance.now() / 1000; // el referente saluda al que llega
     pintarNavegacion();
   }
   document.addEventListener('ruta:datos', (e) => { datos = e.detail; pintarDatos(); });
@@ -642,6 +683,7 @@ async function iniciar() {
     salas.forEach((s, i) => {
       const cerca = Math.abs(i - actual) <= 1;
       if (!reduce && cerca) s.gente.forEach((m, k) => { if (m.visible) m.position.y = PISO_Y + Math.abs(Math.sin(t * 2.2 + m.userData.fase + k)) * 0.05; });
+      if (s.tutor && cerca && !reduce) animarTutor(s, t, ahora);
       if (s.paseo) {
         const k = Math.min(1, (ahora - s.paseo.t0) / s.paseo.dur);
         s.caminante.position.lerpVectors(s.paseo.desde, s.paseo.hasta, suave(k));

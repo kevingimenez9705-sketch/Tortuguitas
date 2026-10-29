@@ -1,19 +1,21 @@
 // ruta.js — "Ruta del ingresante": el proceso completo, del QR a iCheck, como
 // 13 oficinas en fila (una por paso) más la de salidas. Une lo que antes estaba
 // repartido en Citaciones Tortus, TAREAS GRUPALES y Tareas grupales/zonas.
+// Solo muestra: el trabajo se sigue haciendo en las planillas.
 //
 // Fuentes (clave publicable, solo totales):
 //   rpc/ruta_estaciones → cuántas personas pasaron por cada paso en el período,
-//     hoy y cuántas están ahí ahora.
+//     hoy y en los últimos 7 días, contando solo pasos con fecha real. Lo que
+//     está en la planilla sin fecha del paso (cargas iniciales, fechas mal
+//     escritas) se informa aparte y no se suma.
 //   rpc/ruta_oficinas → datos en vivo de las oficinas: turnos de la sala (lo que
 //     muestra el Panel de Sala), solicitudes por estado y selector (lo que cuenta
 //     el Contador de Vacantes), onboardings, primeros días, agenda de salas,
 //     encuesta y uniformes.
 // n8n y los Apps Script de cada planilla cargan esos datos; la ruta no los modifica.
 //
-// Arma, para la oficina a la vista: el panel (números, datos en vivo, cambios
-// con PIN y accesos), los botones de Apps Script (Botonera) y su planilla real
-// adentro de la página. ruta-3d.js dibuja las oficinas y se comunica con eventos:
+// Arma el panel de la oficina a la vista (números, tutor, datos en vivo y accesos
+// a sus planillas). ruta-3d.js dibuja las oficinas y se comunica con eventos:
 //   ruta:datos   → { ...respuesta de ruta_estaciones } (cada vez que se leen)
 //   ruta:elegir  → { etapa } (la 3D pide ir a un paso)
 //   ruta:elegida → { etapa } (paso a la vista, para mover la 3D)
@@ -54,44 +56,63 @@ window.RUTA = (() => {
     altas: { t: 'Dashboard de altas', d: 'Tortuguitas', u: 'dashboard.html' },
   };
 
-  // Cada paso: tramo, ícono, planillas y herramientas (H), datos en vivo, botones
-  // de Apps Script (funciones: vista de la botonera) y columnas de Solicitudes que
-  // se pueden cambiar desde la oficina con PIN (acciones).
+  // Tutores: los personajes del equipo (los de personajes.html) hacen de referentes
+  // de cada oficina. Van rotando por la ruta.
+  const TUTORES = {
+    kevin: { nombre: 'Kevin', personaje: 'rata', color: '#5c2430' },
+    agustin: { nombre: 'Agustín', personaje: 'tortuga', arma: 'bo', color: '#5b2d78' },
+    agustina: { nombre: 'Agustina', personaje: 'tortuga', arma: 'sai', color: '#cc2f2f' },
+    rafael: { nombre: 'Rafael', personaje: 'tortuga', arma: 'nunchaku', color: '#e2721f' },
+    gustavo: { nombre: 'Gustavo', personaje: 'tortuga', arma: 'katana', color: '#4f8fc9' },
+    albana: { nombre: 'Albana', personaje: 'april', color: '#d4a017' },
+  };
+  const SOLICITUDES = 'TAREAS GRUPALES · Solicitudes Sabores / Extremas';
+
+  // Cada paso: tramo, ícono, tutor, dónde se hace (siempre en la planilla), datos
+  // en vivo y sus planillas y herramientas (H).
   const ESTACIONES = {
-    POSTULADO: { tramo: 1, icono: '📝', corto: 'Postulados', herramientas: [H.ats, H.formQR, H.portal] },
-    CITADO_ENTREVISTA: { tramo: 1, icono: '✉️', corto: 'Citados', vivo: 'agenda', funciones: 'citar',
-      herramientas: [H.citaciones, H.agendaOp] },
-    CONFIRMO_ENTREVISTA: { tramo: 1, icono: '✅', corto: 'Confirmaron', vivo: 'confirmados', funciones: 'confirmados',
-      herramientas: [H.confirmados, H.panelSala] },
-    ASISTIO_ENTREVISTA: { tramo: 2, icono: '🪑', corto: 'Asistieron', vivo: 'sala', herramientas: [H.proceso, H.panelSala] },
-    APROBADO: { tramo: 2, icono: '👍', corto: 'Aprobados', herramientas: [H.proceso, H.baseDatos, H.bloqueados] },
-    COMPARTIDO_ZONAL: { tramo: 3, icono: '📤', corto: 'Al zonal', vivo: 'vacantes', acciones: ['ESTADO'],
-      herramientas: [H.zonales, H.proceso] },
-    VACANTE_ASIGNADA: { tramo: 3, icono: '📌', corto: 'Con vacante', vivo: 'vacantes', acciones: ['ESTADO', 'NOTAS'],
+    POSTULADO: { tramo: 1, icono: '📝', corto: 'Postulados', tutor: 'kevin', donde: 'el formulario QR (llega solo al ATS)',
+      herramientas: [H.ats, H.formQR, H.portal] },
+    CITADO_ENTREVISTA: { tramo: 1, icono: '✉️', corto: 'Citados', tutor: 'agustin', vivo: 'agenda',
+      donde: 'Citaciones Tortus · tu pestaña Citaciones-… → 📞 Citar', herramientas: [H.citaciones, H.agendaOp] },
+    CONFIRMO_ENTREVISTA: { tramo: 1, icono: '✅', corto: 'Confirmaron', tutor: 'agustina', vivo: 'confirmados',
+      donde: 'Citaciones Tortus · Confirmados', herramientas: [H.confirmados, H.panelSala] },
+    ASISTIO_ENTREVISTA: { tramo: 2, icono: '🪑', corto: 'Asistieron', tutor: 'rafael', vivo: 'sala',
+      donde: 'TAREAS GRUPALES · Proceso de Selección', herramientas: [H.proceso, H.panelSala] },
+    APROBADO: { tramo: 2, icono: '👍', corto: 'Aprobados', tutor: 'gustavo',
+      donde: 'TAREAS GRUPALES · Proceso de Selección', herramientas: [H.proceso, H.baseDatos, H.bloqueados] },
+    COMPARTIDO_ZONAL: { tramo: 3, icono: '📤', corto: 'Al zonal', tutor: 'albana', vivo: 'vacantes',
+      donde: 'TAREAS GRUPALES · Proceso de Selección y Solicitudes', herramientas: [H.zonales, H.proceso] },
+    VACANTE_ASIGNADA: { tramo: 3, icono: '📌', corto: 'Con vacante', tutor: 'kevin', vivo: 'vacantes',
+      donde: 'TAREAS GRUPALES · Solicitudes y Vacantes Reservadas', herramientas: [H.solSabores, H.solExtremas] },
+    APROBADO_ZONAL: { tramo: 3, icono: '🆗', corto: 'OK del zonal', tutor: 'agustin', vivo: 'vacantes',
+      donde: SOLICITUDES, herramientas: [H.solSabores, H.solExtremas] },
+    CITADO_ONB: { tramo: 4, icono: '📅', corto: 'Citados ONB', tutor: 'agustina', vivo: 'onb',
+      donde: SOLICITUDES, herramientas: [H.solSabores, H.solExtremas, H.agendaOp] },
+    CONFIRMA_ONB: { tramo: 4, icono: '☑️', corto: 'Confirman ONB', tutor: 'rafael', vivo: 'onb',
+      donde: SOLICITUDES, herramientas: [H.solSabores, H.solExtremas] },
+    HIZO_ONB: { tramo: 4, icono: '🎓', corto: 'Hicieron ONB', tutor: 'gustavo', vivo: 'uniformes',
+      donde: SOLICITUDES, herramientas: [H.ingreso, H.docIngreso, H.constancias] },
+    ALTA_ICHECK: { tramo: 4, icono: '💾', corto: 'En iCheck', tutor: 'albana', vivo: 'primeros',
+      donde: 'TAREAS GRUPALES · exportacion_icheck', herramientas: [H.icheck, H.carpetaIcheck] },
+    INGRESO: { tramo: 4, icono: '🎉', corto: 'Ingresaron', tutor: 'kevin', vivo: 'ingreso',
+      donde: SOLICITUDES, herramientas: [H.solSabores, H.solExtremas, H.altas, H.encuesta] },
+    NO_AVANZA: { tramo: 'x', icono: '⛔', corto: 'No avanzan', tutor: 'agustin',
+      donde: 'TAREAS GRUPALES · Proceso de Selección', herramientas: [H.proceso, H.bloqueados] },
+    NO_SE_PRESENTO: { tramo: 'x', icono: '🚷', corto: 'No vinieron', tutor: 'agustin',
+      donde: 'Citaciones Tortus · Confirmados', herramientas: [H.confirmados, H.panelSala] },
+    DESISTIO: { tramo: 'x', icono: '🏳️', corto: 'Desistieron', tutor: 'agustin', donde: SOLICITUDES,
       herramientas: [H.solSabores, H.solExtremas] },
-    APROBADO_ZONAL: { tramo: 3, icono: '🆗', corto: 'OK del zonal', vivo: 'vacantes', acciones: ['ESTADO'],
-      herramientas: [H.solSabores, H.solExtremas] },
-    CITADO_ONB: { tramo: 4, icono: '📅', corto: 'Citados ONB', vivo: 'onb', acciones: ['FECHA', 'HORA', 'ESTADO'],
-      herramientas: [H.solSabores, H.solExtremas, H.agendaOp] },
-    CONFIRMA_ONB: { tramo: 4, icono: '☑️', corto: 'Confirman ONB', vivo: 'onb', acciones: ['ESTADO'],
-      herramientas: [H.solSabores, H.solExtremas] },
-    HIZO_ONB: { tramo: 4, icono: '🎓', corto: 'Hicieron ONB', vivo: 'uniformes', herramientas: [H.ingreso, H.docIngreso, H.constancias] },
-    ALTA_ICHECK: { tramo: 4, icono: '💾', corto: 'En iCheck', vivo: 'primeros', herramientas: [H.icheck, H.carpetaIcheck] },
-    INGRESO: { tramo: 4, icono: '🎉', corto: 'Ingresaron', vivo: 'ingreso', acciones: ['PRIMER DIA'],
-      herramientas: [H.solSabores, H.solExtremas, H.altas, H.encuesta] },
-    NO_AVANZA: { tramo: 'x', icono: '⛔', corto: 'No avanzan', herramientas: [H.proceso, H.bloqueados] },
-    NO_SE_PRESENTO: { tramo: 'x', icono: '🚷', corto: 'No vinieron', herramientas: [H.confirmados, H.panelSala] },
-    DESISTIO: { tramo: 'x', icono: '🏳️', corto: 'Desistieron', herramientas: [H.solSabores, H.solExtremas] },
-    RECHAZADO_ZONAL: { tramo: 'x', icono: '✋', corto: 'Rechazo zonal', acciones: ['ESTADO', 'NOTAS'],
+    RECHAZADO_ZONAL: { tramo: 'x', icono: '✋', corto: 'Rechazo zonal', tutor: 'agustin', donde: SOLICITUDES,
       herramientas: [H.solSabores, H.solExtremas, H.bloqueados] },
   };
-  return { TRAMOS, ESTACIONES, datos: null, elegida: null };
+  return { TRAMOS, TUTORES, ESTACIONES, datos: null, elegida: null };
 })();
 
 (() => {
   const seccion = document.getElementById('rutaSeccion');
   if (!seccion || !window.SB) return;
-  const { TRAMOS, ESTACIONES } = window.RUTA;
+  const { TRAMOS, TUTORES, ESTACIONES } = window.RUTA;
   const ZONA = 'America/Argentina/Buenos_Aires';
   const CLAVE_DIAS = 'ruta-dias';
   const PASOS = Object.keys(ESTACIONES).filter((k) => ESTACIONES[k].tramo !== 'x');
@@ -212,16 +233,18 @@ window.RUTA = (() => {
         + `<p class="ru-sub">Por selector</p><div class="tab-chips">${(vivo.selectores || []).map((s) => `<span class="tab-chip">${esc(s.selector)} <b>${fmt(s.n)}</b></span>`).join('')}</div>`;
     }
     if (tipo === 'onb' || tipo === 'primeros' || tipo === 'ingreso' || tipo === 'uniformes') {
+      // Solicitudes con fecha en los próximos 30 días; "comunicados" es el estado COMUNICADO (ya avisados).
       const lista = (arr, vacioTxt) => (arr.length
-        ? `<ul class="ru-vivo">${arr.map((d) => `<li><span>${esc(d.fecha === vivo.hoy ? 'Hoy' : dia(d.fecha))}</span><b>${fmt(d.n)}</b></li>`).join('')}</ul>`
+        ? `<ul class="ru-vivo">${arr.map((d) => `<li><span>${esc(d.fecha === vivo.hoy ? 'Hoy' : dia(d.fecha))}</span><b>${fmt(d.n)}</b>${d.comunicados ? `<small>${fmt(d.comunicados)} comunicados</small>` : ''}</li>`).join('')}</ul>`
         : vacio(vacioTxt));
-      if (tipo === 'onb') return `<p class="ru-sub">Onboardings por día</p>${lista(vivo.onb_dias || [], 'No hay onboardings cargados desde hoy.')}`;
-      const primeros = `<p class="ru-sub">Primeros días</p>${lista(vivo.primeros_dias || [], 'No hay primeros días cargados desde hoy.')}`;
+      const onb = `<p class="ru-sub">Onboardings por día · Solicitudes</p>${lista(vivo.onb_dias || [], 'No hay onboardings cargados para los próximos 30 días.')}`;
+      if (tipo === 'onb') return onb;
+      const primeros = `<p class="ru-sub">Primeros días · Solicitudes</p>${lista(vivo.primeros_dias || [], 'No hay primeros días cargados para los próximos 30 días.')}`;
       if (tipo === 'primeros') return primeros;
       if (tipo === 'uniformes') {
         const u = vivo.uniformes;
-        return `<p class="ru-sub">Onboardings por día</p>${lista(vivo.onb_dias || [], 'No hay onboardings cargados desde hoy.')}`
-          + (u ? `<p class="ru-sub">Uniformes entregados (planilla Uniformes)</p><div class="tab-chips"><span class="tab-chip">${fmt(u.personas)} personas</span><span class="tab-chip">${fmt(u.remeras)} remeras</span><span class="tab-chip">${fmt(u.gorras)} gorras</span><span class="tab-chip">${fmt(u.delantales)} delantales</span></div>` : '');
+        return onb
+          + (u ? `<p class="ru-sub">Uniformes entregados · planilla Uniformes${u.ultima_fecha ? `, última entrega cargada el ${esc(dia(u.ultima_fecha, { day: 'numeric', month: 'numeric', year: '2-digit' }))}` : ''}</p><div class="tab-chips"><span class="tab-chip">${fmt(u.personas)} personas</span><span class="tab-chip">${fmt(u.remeras)} remeras</span><span class="tab-chip">${fmt(u.gorras)} gorras</span><span class="tab-chip">${fmt(u.delantales)} delantales</span></div>` : '');
       }
       const enc = vivo.encuesta;
       return primeros + (enc ? `<p class="ru-sub">Encuesta de experiencia</p><div class="tab-chips"><span class="tab-chip"><b>${fmt(enc.satisfaccion_pct)}%</b> satisfechos</span><span class="tab-chip">${fmt(enc.respuestas)} respuestas</span>${enc.malas ? `<span class="tab-chip is-alerta">${fmt(enc.malas)} malas</span>` : ''}</div>` : '');
@@ -229,327 +252,53 @@ window.RUTA = (() => {
     return '';
   }
 
-  /* ── Cambiar en la planilla, confirmado con PIN ── */
-  // Supabase arma el pedido (proponer_accion),
-  // alguien del equipo lo confirma con su PIN personal y n8n lo escribe en
-  // Solicitudes Sabores/Extremas (TAREAS GRUPALES), donde siguen corriendo sus
-  // Apps Script. Nada cambia sin PIN y el PIN no se guarda en ningún lado.
-  const ACCION_URL = 'https://kevin9705.app.n8n.cloud/webhook/oficina-accion';
-  const CLAVE_CODIGO = 'oficina-codigo'; // código del equipo: se pide una vez y queda en el navegador
-  const COLUMNAS = {
-    ESTADO: { t: 'Estado', tipo: 'text', ver: 'estado' },
-    FECHA: { t: 'Fecha', tipo: 'date', ver: 'fecha' },
-    HORA: { t: 'Hora', tipo: 'time', ver: 'hora' },
-    'PRIMER DIA': { t: 'Primer día', tipo: 'date', ver: 'primer_dia' },
-    NOTAS: { t: 'Notas', tipo: 'text', ver: null },
-  };
-  const MARCAS = { sabores: 'Sabores Express', extremas: 'Hamburguesas Extremas' };
-  let solicitudes = null; // copia de Solicitudes (sin datos personales), cada 30 min
-  const cajas = {}; // una por oficina: lo escrito no se pierde cuando el panel se repinta
-
-  async function cargarSolicitudes() {
-    try {
-      solicitudes = await SB.pedir('equipo_solicitudes?select=fila,marca,local,puesto,jornada,selector,estado,fecha,hora,primer_dia&order=marca,local,fila', null, 15000);
-    } catch (e) {
-      console.warn('No se pudieron leer las solicitudes', e);
-      solicitudes = solicitudes || [];
-    }
-    Object.values(cajas).forEach((c) => c.refrescar());
-  }
-
-  async function pedirAccion(cuerpo) {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 45000);
-    try {
-      const res = await fetch(ACCION_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(cuerpo),
-        signal: ctrl.signal,
-      });
-      const texto = res.ok ? (await res.text()).trim() : '';
-      return texto ? JSON.parse(texto) : { ok: false, motivo: 'conexion' };
-    } catch (e) {
-      console.warn('Cambio en planilla', e);
-      return { ok: false, motivo: 'conexion' };
-    } finally {
-      clearTimeout(t);
-    }
-  }
-
-  // "2026-10-28" → "28/10/2026", como se escribe en la planilla.
-  const aPlanilla = (tipo, v) => (tipo === 'date' && /^\d{4}-\d{2}-\d{2}$/.test(v) ? v.split('-').reverse().join('/') : v);
-
-  function cajaDe(etapa) {
-    if (cajas[etapa]) return cajas[etapa].el;
-    const meta = ESTACIONES[etapa];
-    const id = 'ruAc' + Object.keys(cajas).length;
-    const el = document.createElement('div');
-    el.className = 'ru-accion';
-    el.innerHTML = `
-      <h4>✏️ Cambiar en la planilla</h4>
-      <p class="ru-nota">Se escribe en Solicitudes (TAREAS GRUPALES) y lo confirmás con tu PIN personal. Las automatizaciones de n8n las maneja Kevin.</p>
-      <form class="ru-accion-form" novalidate>
-        <label for="${id}b">Solicitud</label>
-        <input id="${id}b" type="search" placeholder="Buscar local, puesto, selector o estado…" autocomplete="off" data-buscar />
-        <select id="${id}s" aria-label="Solicitud" data-fila></select>
-        <div class="ru-accion-fila">
-          <div>
-            <label for="${id}c">Qué cambiar</label>
-            <select id="${id}c" data-col>${meta.acciones.map((c) => `<option value="${esc(c)}">${esc(COLUMNAS[c].t)}</option>`).join('')}</select>
-          </div>
-          <div>
-            <label for="${id}v">Nuevo valor</label>
-            <input id="${id}v" type="text" maxlength="120" autocomplete="off" list="${id}l" data-valor />
-          </div>
-        </div>
-        <datalist id="${id}l"></datalist>
-        <p class="ru-nota" data-ahora></p>
-        <button class="btn-primary" type="submit">Pedir el cambio</button>
-        <p class="ru-accion-aviso" role="status"></p>
-      </form>
-      <div class="ru-accion-pin" hidden></div>`;
-    const form = el.querySelector('form');
-    const buscar = el.querySelector('[data-buscar]');
-    const sel = el.querySelector('[data-fila]');
-    const col = el.querySelector('[data-col]');
-    const valor = el.querySelector('[data-valor]');
-    const lista = el.querySelector('datalist');
-    const ahora = el.querySelector('[data-ahora]');
-    const aviso = form.querySelector('.ru-accion-aviso');
-    const pinBox = el.querySelector('.ru-accion-pin');
-
-    const clave = (s) => `${String(s.marca).toLowerCase()}:${s.fila}`;
-    const elegidaSol = () => (solicitudes || []).find((s) => clave(s) === sel.value);
-    function mostrarAhora() {
-      const c = COLUMNAS[col.value];
-      const s = elegidaSol();
-      valor.type = c.tipo;
-      valor.placeholder = col.value === 'NOTAS' ? 'Sin mails ni teléfonos' : '';
-      valor.setAttribute('list', c.tipo === 'text' && col.value === 'ESTADO' ? lista.id : '');
-      ahora.textContent = s && c.ver ? `Ahora: ${s[c.ver] || 'vacío'}` : '';
-    }
-    function refrescar() {
-      const previa = sel.value;
-      const q = SB.norm(buscar.value);
-      const filas = (solicitudes || []).filter((s) => !q || SB.norm([s.local, s.puesto, s.jornada, s.selector, s.estado].join(' ')).includes(q));
-      if (!solicitudes) sel.innerHTML = '<option value="">Cargando solicitudes…</option>';
-      else if (!filas.length) sel.innerHTML = '<option value="">Ninguna coincide</option>';
-      else {
-        sel.innerHTML = Object.keys(MARCAS).map((m) => {
-          const deMarca = filas.filter((s) => String(s.marca).toLowerCase() === m);
-          return deMarca.length ? `<optgroup label="${esc(MARCAS[m])}">${deMarca.map((s) => `<option value="${esc(clave(s))}">${esc([s.local, s.puesto, s.jornada].filter(Boolean).join(' · '))} — ${esc(s.estado || 'sin estado')}</option>`).join('')}</optgroup>` : '';
-        }).join('');
-        if (filas.some((s) => clave(s) === previa)) sel.value = previa;
-      }
-      const estados = [...new Set((solicitudes || []).map((s) => s.estado).filter(Boolean))].sort();
-      lista.innerHTML = estados.map((e) => `<option value="${esc(e)}"></option>`).join('');
-      mostrarAhora();
-    }
-    buscar.addEventListener('input', refrescar);
-    sel.addEventListener('change', mostrarAhora);
-    col.addEventListener('change', () => { valor.value = ''; mostrarAhora(); });
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const s = elegidaSol();
-      const c = col.value;
-      const v = aPlanilla(COLUMNAS[c].tipo, valor.value.trim());
-      if (!s) { aviso.textContent = 'Elegí una solicitud.'; sel.focus(); return; }
-      if (!v && c !== 'NOTAS') { aviso.textContent = 'Escribí el valor nuevo.'; valor.focus(); return; }
-      const boton = form.querySelector('button');
-      boton.disabled = true;
-      aviso.textContent = 'Preparando el pedido…';
-      try {
-        const r = await SB.pedir('rpc/proponer_accion', {
-          p_tipo: c === 'ESTADO' ? 'estado' : 'editar',
-          p_hoja: String(s.marca).toLowerCase(),
-          p_fila: s.fila,
-          p_columna: c,
-          p_valor: v,
-          p_pedido_por: 'Ruta · ' + meta.corto,
-          p_sesion: 'ruta',
-        }, 15000);
-        if (!r || !r.ok) { aviso.textContent = (r && r.motivo) || 'No se pudo preparar el cambio.'; return; }
-        aviso.textContent = '';
-        form.hidden = true;
-        pedirPin(r);
-      } catch (err) {
-        console.warn('proponer_accion', err);
-        aviso.textContent = 'No pude conectarme con Supabase. Probá de nuevo.';
-      } finally {
-        boton.disabled = false;
-      }
-    });
-
-    // Tarjeta del PIN: vence a los 10 minutos, 3 intentos (lo controla Supabase).
-    function pedirPin(p) {
-      const sinCodigo = !leer(CLAVE_CODIGO);
-      pinBox.hidden = false;
-      pinBox.innerHTML = `
-        <p class="ru-accion-resumen">🔐 ${esc(p.resumen)}</p>
-        <form novalidate>
-          ${sinCodigo ? `<label for="${id}k">Código del equipo</label><input id="${id}k" type="password" autocomplete="off" data-codigo />` : ''}
-          <label for="${id}p">Tu PIN personal</label>
-          <div class="ru-accion-fila">
-            <input id="${id}p" type="password" inputmode="numeric" maxlength="6" placeholder="6 números" autocomplete="off" data-pin />
-            <button type="submit" class="btn-primary">Confirmar</button>
-            <button type="button" class="ru-accion-cancelar">Cancelar</button>
-          </div>
-        </form>
-        <p class="ru-accion-aviso" role="status"></p>
-        <p class="ru-nota" data-cuenta></p>`;
-      const f = pinBox.querySelector('form');
-      const pin = pinBox.querySelector('[data-pin]');
-      const codigo = pinBox.querySelector('[data-codigo]');
-      const msg = pinBox.querySelector('.ru-accion-aviso');
-      const cuenta = pinBox.querySelector('[data-cuenta]');
-      const vence = Date.parse(p.expira) || Date.now() + 10 * 60000;
-      let trabajando = false;
-
-      const terminar = (texto, ok) => {
-        clearInterval(reloj);
-        pinBox.innerHTML = `<p class="ru-accion-resumen${ok ? ' is-ok' : ''}">${esc(texto)}</p><button type="button" class="tab-btn">Hacer otro cambio</button>`;
-        pinBox.querySelector('button').addEventListener('click', () => {
-          pinBox.hidden = true;
-          pinBox.innerHTML = '';
-          form.hidden = false;
-          valor.value = '';
-          refrescar();
-        });
-      };
-      const contar = () => {
-        if (trabajando) return;
-        const seg = Math.round((vence - Date.now()) / 1000);
-        if (seg <= 0) { terminar('⏱️ Pasaron 10 minutos y no se hizo nada. Pedilo de nuevo si todavía hace falta.'); return; }
-        cuenta.textContent = `Vence en ${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, '0')}.`;
-      };
-      const reloj = setInterval(contar, 1000);
-      contar();
-      setTimeout(() => (codigo || pin).focus({ preventScroll: true }), 50);
-      const bloquear = (si) => { trabajando = si; f.querySelectorAll('input, button').forEach((x) => { x.disabled = si; }); };
-
-      f.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const cod = (codigo ? codigo.value : leer(CLAVE_CODIGO) || '').trim();
-        const valorPin = pin.value.replace(/\D/g, '');
-        if (!cod) { msg.textContent = 'Falta el código del equipo.'; codigo.focus(); return; }
-        if (!/^\d{6}$/.test(valorPin)) { msg.textContent = 'El PIN tiene 6 números.'; pin.focus(); return; }
-        bloquear(true);
-        msg.textContent = 'Haciendo el cambio…';
-        const r = await pedirAccion({ codigo: cod, token: p.token, pin: valorPin });
-        bloquear(false);
-        pin.value = '';
-        if (r.motivo !== 'conexion' && codigo) guardar(CLAVE_CODIGO, cod); // n8n respondió: el código es correcto
-        if (r.ok && r.hecho) {
-          avisar('oficina:cambio', { fase: 'hecho', hoja: r.hoja || p.hoja, tipo: r.tipo || p.tipo });
-          terminar(`${r.mensaje || '✅ Listo, cambio hecho.'} La copia se actualiza en un ratito.`, true);
-          setTimeout(() => { cargarSolicitudes(); cargarVivo(); cargar(); }, 25000);
-        } else if (r.motivo === 'conexion') {
-          msg.textContent = codigo ? 'No hubo respuesta: revisá el código del equipo o probá de nuevo.' : 'No pude conectarme con la oficina. Probá de nuevo.';
-        } else if (r.motivo === 'pin' || r.motivo === 'bloqueado') {
-          if (r.motivo === 'pin' && r.restantes === 0) terminar(r.mensaje || 'PIN incorrecto 3 veces: se canceló el pedido.');
-          else { msg.textContent = r.mensaje || 'PIN incorrecto.'; pin.focus(); }
-        } else {
-          avisar('oficina:cambio', { fase: 'error', hoja: p.hoja, tipo: p.tipo });
-          terminar(r.mensaje || 'No se pudo hacer el cambio. No se tocó nada.');
-        }
-      });
-
-      pinBox.querySelector('.ru-accion-cancelar').addEventListener('click', async () => {
-        const cod = (codigo ? codigo.value : leer(CLAVE_CODIGO) || '').trim();
-        bloquear(true);
-        if (cod) await pedirAccion({ codigo: cod, token: p.token, cancelar: true }); // sin código, vence solo
-        avisar('oficina:cambio', { fase: 'cancelado', hoja: p.hoja });
-        terminar('Cancelado: no se tocó nada.');
-      });
-    }
-
-    cajas[etapa] = { el, refrescar };
-    refrescar();
-    if (!solicitudes) cargarSolicitudes();
-    return el;
-  }
-
   /* ── Panel de la oficina a la vista ── */
-  const esHoja = (h) => /docs\.google\.com\/spreadsheets\//.test(h.u);
+  const corta = (iso) => dia(iso, { day: 'numeric', month: 'numeric' });
+  const ICONO_TUTOR = { tortuga: '🐢', rata: '🐀', april: '🎙️' };
   function pintarPanel() {
     const panel = $('rutaPanel');
-    const foco = document.activeElement;
     if (!datos) {
       panel.innerHTML = '<p class="desc">Cargando la ruta…</p>';
       return;
     }
-    const e = est(elegida) || { etapa: elegida, nombre: elegida, personas: 0, hoy: 0, ahora: 0 };
+    const e = est(elegida) || { etapa: elegida, nombre: elegida, personas: 0, hoy: 0, semana: 0, sin_fecha: 0 };
     const meta = ESTACIONES[elegida] || {};
     const tr = tramoDe(elegida);
+    const tutor = TUTORES[meta.tutor];
     const salida = meta.tramo === 'x';
     const n = PASOS.indexOf(elegida);
     const ant = salida ? PASOS[PASOS.length - 1] : PASOS[n - 1];
     const sig = salida ? null : PASOS[n + 1] || 'NO_AVANZA';
     const otrasSalidas = salida ? `<div class="tab-chips">${SALIDAS.map((s) => `<button type="button" class="ru-chip-btn" data-etapa="${s}" aria-pressed="${s === elegida}">${esc(ESTACIONES[s].corto)} · ${fmt((est(s) || {}).personas)}</button>`).join('')}</div>` : '';
-    // Las planillas se ven adentro (a la derecha); acá quedan los sitios y carpetas del paso.
-    const accesos = (meta.herramientas || []).filter((h) => !esHoja(h));
+    // Si el paso tiene fechas desde hace menos que el período, se dice desde cuándo.
+    const desde = e.datos_desde && e.datos_desde > datos.desde && e.datos_desde <= datos.hasta ? e.datos_desde : null;
     panel.innerHTML = `
-      <div class="ru-panel-head" style="--c:${tr.color};--cs:${tr.suave}">
-        <span class="ru-panel-emoji" aria-hidden="true">${esc(meta.icono || '📍')}</span>
-        <div><p>${salida ? 'Salidas · de cualquier paso' : `Paso ${n + 1} de ${PASOS.length} · <span class="ru-tramo-pill">${esc(tr.nombre)}</span>`}</p><h3>${esc(e.nombre)}</h3></div>
+      <div class="ru-panel-col">
+        <div class="ru-panel-head" style="--c:${tr.color};--cs:${tr.suave}">
+          <span class="ru-panel-emoji" aria-hidden="true">${esc(meta.icono || '📍')}</span>
+          <div><p>${salida ? 'Salidas · de cualquier paso' : `Paso ${n + 1} de ${PASOS.length} · <span class="ru-tramo-pill">${esc(tr.nombre)}</span>`}</p><h3>${esc(e.nombre)}</h3></div>
+        </div>
+        ${otrasSalidas}
+        <div class="ru-stats">
+          <div><b>${fmt(e.personas)}</b><span>${desde ? `pasaron desde el ${esc(corta(desde))}` : `pasaron en ${fmt(dias)} días`}</span></div>
+          <div><b>${fmt(e.semana)}</b><span>últimos 7 días</span></div>
+          <div><b>${fmt(e.hoy)}</b><span>hoy</span></div>
+        </div>
+        ${desde ? `<p class="ru-nota">Hay fechas de este paso desde el ${esc(corta(desde))}: antes no se registraban.</p>` : ''}
+        ${e.sin_fecha ? `<p class="ru-nota">📄 ${fmt(e.sin_fecha)} más ${e.sin_fecha === 1 ? 'está' : 'están'} en la planilla sin la fecha del paso (carga inicial o fecha mal escrita): no se cuentan.</p>` : ''}
+        ${e.programados ? `<p class="ru-nota">📅 ${fmt(e.programados)} con fecha futura (programados).</p>` : ''}
+        ${tutor ? `<div class="ru-tutor" style="--c:${tutor.color}"><span class="ru-tutor-ico" aria-hidden="true">${ICONO_TUTOR[tutor.personaje] || '🤖'}</span><p><small>Referente de esta oficina</small><b>${esc(tutor.nombre)}</b></p></div>` : ''}
+        <div class="ru-nav">
+          ${ant ? `<button type="button" class="ru-nav-btn" data-etapa="${ant}">‹ ${esc(ESTACIONES[ant].corto)}</button>` : '<span></span>'}
+          ${sig ? `<button type="button" class="ru-nav-btn" data-etapa="${sig}">${esc(sig === 'NO_AVANZA' ? 'Salidas' : ESTACIONES[sig].corto)} ›</button>` : '<span></span>'}
+        </div>
       </div>
-      ${otrasSalidas}
-      <div class="ru-stats">
-        <div><b>${fmt(e.personas)}</b><span>pasaron en ${fmt(dias)} días</span></div>
-        <div><b>${fmt(e.hoy)}</b><span>hoy</span></div>
-        <div><b>${fmt(e.ahora)}</b><span>${salida ? 'salieron acá' : 'esperan acá'}</span></div>
-      </div>
-      ${e.programados ? `<p class="ru-nota">📅 ${fmt(e.programados)} con fecha futura (programados).</p>` : ''}
-      ${meta.vivo ? `<div class="ru-box is-vivo"><span>En vivo</span>${widget(meta.vivo)}</div>` : ''}
-      ${(meta.acciones || []).length ? '<div data-accion></div>' : ''}
-      ${accesos.length ? `<div class="ru-herr">${accesos.map((h) => `<a class="ru-herr-btn" href="${esc(h.u)}" target="_blank" rel="noopener"><b>${esc(h.t)}</b><small>${esc(h.d)} ↗</small></a>`).join('')}</div>` : ''}
-      <div class="ru-nav">
-        ${ant ? `<button type="button" class="ru-nav-btn" data-etapa="${ant}">‹ ${esc(ESTACIONES[ant].corto)}</button>` : '<span></span>'}
-        ${sig ? `<button type="button" class="ru-nav-btn" data-etapa="${sig}">${esc(sig === 'NO_AVANZA' ? 'Salidas' : ESTACIONES[sig].corto)} ›</button>` : '<span></span>'}
+      <div class="ru-panel-col">
+        <div class="ru-box"><span>Se hace en la planilla</span><p><b>${esc(meta.donde || '')}</b></p>
+          <div class="ru-herr">${(meta.herramientas || []).map((h) => `<a class="ru-herr-btn" href="${esc(h.u)}" target="_blank" rel="noopener"><b>${esc(h.t)}</b><small>${esc(h.d)} ↗</small></a>`).join('')}</div>
+        </div>
+        ${meta.vivo ? `<div class="ru-box is-vivo"><span>En vivo</span>${widget(meta.vivo)}</div>` : ''}
       </div>`;
-    const lugar = panel.querySelector('[data-accion]');
-    if (lugar) {
-      const caja = cajaDe(elegida);
-      lugar.replaceWith(caja);
-      if (caja.contains(foco)) foco.focus({ preventScroll: true }); // el panel se repinta cada minuto
-    }
-  }
-
-  /* ── Botonera: las funciones de los Apps Script como botones ── */
-  // App web en un proyecto de Apps Script aparte (apps-script/botonera) que usa
-  // el mismo código de Citaciones Tortus sin tocar el original. Corre con la
-  // cuenta de quien la usa: la citación sale de su Gmail, igual que con el menú.
-  // Cada vista queda cargada (un iframe que se mueve en la página se recarga).
-  const BOTONERA_URL = 'https://script.google.com/macros/s/AKfycbzxs6r4Gt7tBRg1KjaltsDWeBLRxGPkByTbcNaWlWpyQHoXLNbZ019WtKRvYjGg4WMghA/exec';
-  const VISTAS = {
-    citar: { titulo: '📞 Citar por zona', alto: 470 },
-    confirmados: { titulo: '📋 Confirmados', alto: 330 },
-  };
-  const botoneras = new Map(); // vista → iframe
-  function pintarBotonera() {
-    const caja = $('rutaBotonera');
-    const vista = (ESTACIONES[elegida] || {}).funciones;
-    caja.hidden = !vista;
-    if (!vista) return;
-    $('rutaBotoneraTitulo').textContent = VISTAS[vista].titulo;
-    const url = BOTONERA_URL ? `${BOTONERA_URL}?vista=${vista}` : '';
-    $('rutaBotoneraAbrir').hidden = !url;
-    $('rutaBotoneraAbrir').href = url || '#';
-    $('rutaBotoneraFalta').hidden = !!url;
-    if (!url) return;
-    let marco = botoneras.get(vista);
-    if (!marco) {
-      marco = document.createElement('iframe');
-      marco.className = 'ru-botonera-marco';
-      marco.title = VISTAS[vista].titulo;
-      marco.style.height = VISTAS[vista].alto + 'px';
-      marco.src = url;
-      $('rutaBotoneraMarcos').appendChild(marco);
-      botoneras.set(vista, marco);
-    }
-    botoneras.forEach((f) => { f.hidden = f !== marco; });
   }
 
   function pintarBarra() {
@@ -564,50 +313,12 @@ window.RUTA = (() => {
     pintarPanel();
   }
 
-  /* ── La planilla real de la oficina, adentro de la página ── */
-  // Cada oficina abre su pestaña de Google Sheets tal cual: se edita igual que
-  // siempre, con sus menús (📞 Citar…) y sus Apps Script, y abajo de la hoja
-  // están todas las pestañas. Hay que estar con la cuenta de Google que tiene
-  // acceso. Quedan hasta 3 abiertas para ir y volver sin recargarlas.
-  const MAX_ABIERTAS = 3;
-  const abiertas = new Map(); // url → iframe, la última usada al final
-  const hojaDe = {}; // etapa → url de la pestaña elegida
-  function pintarHoja() {
-    const caja = $('rutaHoja');
-    const hojas = (ESTACIONES[elegida].herramientas || []).filter(esHoja);
-    caja.hidden = !hojas.length;
-    if (!hojas.length) return;
-    const actual = hojas.find((h) => h.u === hojaDe[elegida]) || hojas[0];
-    $('rutaHojaTabs').innerHTML = hojas.map((h) => `<button type="button" class="ru-hoja-tab" data-hoja="${esc(h.u)}" aria-pressed="${h === actual}"><b>${esc(h.t)}</b><small>${esc(h.d)}</small></button>`).join('');
-    $('rutaHojaAbrir').href = actual.u;
-    let marco = abiertas.get(actual.u);
-    if (marco) {
-      abiertas.delete(actual.u);
-    } else {
-      marco = document.createElement('iframe');
-      marco.className = 'ru-hoja-marco';
-      marco.title = `${actual.t} · ${actual.d}`;
-      marco.allow = 'clipboard-read; clipboard-write';
-      marco.src = actual.u;
-      $('rutaHojaMarcos').appendChild(marco);
-    }
-    abiertas.set(actual.u, marco);
-    if (abiertas.size > MAX_ABIERTAS) {
-      const [vieja, f] = abiertas.entries().next().value;
-      f.remove();
-      abiertas.delete(vieja);
-    }
-    abiertas.forEach((f) => { f.hidden = f !== marco; });
-  }
-
   function elegir(etapa) {
     if (!ESTACIONES[etapa]) return;
     elegida = etapa;
     window.RUTA.elegida = etapa;
     try { history.replaceState(null, '', '#' + hashDe(etapa)); } catch (e) { /* sin historial */ }
     pintarPanel();
-    pintarBotonera();
-    pintarHoja();
     avisar('ruta:elegida', { etapa });
   }
 
@@ -647,12 +358,6 @@ window.RUTA = (() => {
       guardar(CLAVE_DIAS, String(dias));
       pintarBarra();
       cargar();
-      return;
-    }
-    const h = e.target.closest('[data-hoja]');
-    if (h) {
-      hojaDe[elegida] = h.dataset.hoja;
-      pintarHoja();
     }
   });
   document.addEventListener('ruta:elegir', (e) => elegir((e.detail || {}).etapa));
@@ -660,8 +365,6 @@ window.RUTA = (() => {
 
   pintarLeyenda();
   pintar();
-  pintarBotonera();
-  pintarHoja();
   cargar();
   cargarVivo();
   setInterval(cargar, 60000);
