@@ -78,9 +78,11 @@ const DOJO = {
   borde: '#3e4a2c',
   papel: '#f6efdc',
 };
-// El público: tortuguitas sin máscara (piel y caparazón varían).
-const TORTUGA_PIEL = ['#6cb33f', '#5aa33a', '#7cc24e', '#4f9a3a', '#86c95a'];
-const TORTUGA_CAPARAZON = ['#7d7038', '#6f6331', '#8a6a3a', '#5f5a2a', '#94793f'];
+// El público: tortuguitas sin máscara, de verdes muy claros a muy oscuros y
+// caparazones de arena a casi negro (se combinan salteados para que no se repitan al lado).
+const TORTUGA_PIEL = ['#c3e89a', '#a8dc78', '#8fcf5c', '#78c048', '#64ad3c', '#549a34', '#46862d', '#3a7226', '#2f5e20', '#244b1a'];
+const TORTUGA_CAPARAZON = ['#d2b77a', '#bfa062', '#a88a4c', '#94793f', '#7d6835', '#69572c', '#554624', '#41361c'];
+const TORTUGA_PANZA = ['#f3e2a0', '#e3c770', '#cfae55'];
 
 // Las oficinas, en orden: los 13 pasos y al final la de salidas.
 const PASOS = ['POSTULADO', 'CITADO_ENTREVISTA', 'CONFIRMO_ENTREVISTA', 'ASISTIO_ENTREVISTA', 'APROBADO',
@@ -108,17 +110,37 @@ const suave = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
 const munecos = (n) => (n > 0 ? Math.min(12, Math.max(1, Math.round(Math.log10(n + 1) * 3))) : 0);
 const ICONO_TUTOR = { tortuga: '🐢', rata: '🐀', april: '🎙️' };
 
-// Referente: respira y, durante 2 s después de llegar a su oficina, saluda con la mano.
-const SALUDO = 2;
+// Referente: respira y hace su movida (2 s) al llegar a su oficina y cada vez que
+// dice una frase: reverencia (Splinter), giro con el bo, salto ninja, molinete de
+// nunchakus, en guardia o saludo a cámara (April).
+const MOVIDA = 2;
 function animarTutor(s, t, ahora) {
   const P = s.tutor;
+  const [izq, der] = P.brazos;
   P.torso.position.y = Math.sin(t * 2 + s.i) * 0.015;
-  const k = (ahora - s.saludo) / SALUDO;
-  const brazo = P.brazos[1];
-  if (!brazo) return;
-  brazo.rotation.z = k >= 0 && k < 1
-    ? P.base[1] + Math.sin(k * Math.PI) * (2.3 + Math.sin(ahora * 14) * 0.25)
-    : P.base[1];
+  // Vuelve a la pose de base y aplica la movida encima.
+  P.raiz.rotation.y = P.giro0;
+  P.raiz.position.y = PISO_Y;
+  P.torso.rotation.x = 0;
+  P.brazos.forEach((b, k) => { b.rotation.z = P.base[k]; b.rotation.x = 0; });
+  const k = (ahora - s.movida) / MOVIDA;
+  if (!(k >= 0 && k < 1)) return;
+  const env = Math.sin(k * Math.PI);
+  switch (s.tu.accion) {
+    case 'reverencia': P.torso.rotation.x = env * 0.4; break;
+    case 'giro': P.raiz.rotation.y = P.giro0 + suave(k) * Math.PI * 2; break;
+    case 'salto':
+      P.raiz.position.y = PISO_Y + Math.abs(Math.sin(k * Math.PI * 2)) * 0.35;
+      izq.rotation.z = P.base[0] - env * 2.4;
+      der.rotation.z = P.base[1] + env * 2.4;
+      break;
+    case 'molinete':
+      izq.rotation.x = Math.sin(ahora * 16) * 1.3 * env;
+      der.rotation.x = -Math.sin(ahora * 16) * 1.3 * env;
+      break;
+    case 'guardia': izq.rotation.x = der.rotation.x = -env * 1.4; break;
+    default: der.rotation.z = P.base[1] + env * (2.3 + Math.sin(ahora * 14) * 0.25); // saludo
+  }
 }
 
 /* ───────────────────────── Geometría low-poly ───────────────────────── */
@@ -199,12 +221,13 @@ function texTatami() {
     }
   });
 }
-// Pergamino colgante con 忍 ("shinobi", ninja) en tinta y el sello rojo.
-function texPergamino() {
-  return textura('pergamino', 160, 320, (c) => {
+// Pergamino colgante con 忍 ("shinobi", ninja) en tinta, marco del color del
+// referente y el sello rojo.
+function texPergamino(color) {
+  return textura('pergamino' + color, 160, 320, (c) => {
     c.fillStyle = DOJO.papel;
     c.fillRect(0, 0, 160, 320);
-    c.strokeStyle = '#c9b88f';
+    c.strokeStyle = color;
     c.lineWidth = 8;
     c.strokeRect(10, 10, 140, 300);
     c.fillStyle = '#1d1a16';
@@ -285,13 +308,13 @@ function planta(escala = 1) {
 /** Tortuguita del público: parada, sin máscara ni nada. Mira hacia +v. */
 function tortuguita(i) {
   const g = new T.Group();
-  const piel = mate(TORTUGA_PIEL[i % TORTUGA_PIEL.length]);
+  const piel = mate(TORTUGA_PIEL[(i * 7) % TORTUGA_PIEL.length]);
   const sin = { recibe: false };
   [-1, 1].forEach((s) => g.add(en(malla(forma('t-pata', () => new T.CapsuleGeometry(0.07, 0.08, 3, 8)), piel, sin), s * 0.1, 0.11, 0.01)));
-  const panza = en(malla(forma('t-esfera', () => new T.SphereGeometry(1, 12, 10)), mate('#e3c770'), sin), 0, 0.4, 0.03);
+  const panza = en(malla(forma('t-esfera', () => new T.SphereGeometry(1, 12, 10)), mate(TORTUGA_PANZA[(i * 5) % TORTUGA_PANZA.length]), sin), 0, 0.4, 0.03);
   panza.scale.set(0.2, 0.25, 0.15);
   g.add(panza);
-  const caparazon = en(malla(forma('t-caparazon', () => new T.SphereGeometry(1, 9, 7)), mate(TORTUGA_CAPARAZON[(i * 3) % TORTUGA_CAPARAZON.length], true), sin), 0, 0.42, -0.05);
+  const caparazon = en(malla(forma('t-caparazon', () => new T.SphereGeometry(1, 9, 7)), mate(TORTUGA_CAPARAZON[(i * 3 + (i >> 2)) % TORTUGA_CAPARAZON.length], true), sin), 0, 0.42, -0.05);
   caparazon.scale.set(0.24, 0.28, 0.17);
   g.add(caparazon);
   [-1, 1].forEach((s) => {
@@ -303,21 +326,50 @@ function tortuguita(i) {
   [-1, 1].forEach((s) => g.add(en(malla(forma('t-ojo', () => new T.SphereGeometry(0.028, 8, 6)), mate('#1b1e2c'), { sombra: false, recibe: false }), s * 0.06, 0.77, 0.165)));
   return g;
 }
-/** Armero contra la pared: katana arriba, bo abajo. */
-function armero() {
+/** Armero contra la pared con la herramienta del referente y una banda de su color. */
+function armero(tipo, color) {
   const g = new T.Group();
   [-1, 1].forEach((s) => g.add(en(caja(0.1, 1.3, 0.12, DOJO.madera, { r: 0.02 }), s * 0.6, 0.65, 0)));
   g.add(en(caja(1.4, 0.08, 0.2, DOJO.madera, { r: 0.02 }), 0, 0.04, 0.02));
+  g.add(en(caja(1.34, 0.1, 0.14, color, { r: 0.02 }), 0, 1.28, 0.02));
   [0.55, 0.98].forEach((y) => g.add(en(caja(1.3, 0.05, 0.08, DOJO.maderaClara, { r: 0.015 }), 0, y, 0.06)));
-  const bo = en(cilindro(0.035, 0.035, 1.5, 8, '#8b5a2b'), 0, 0.62, 0.12);
-  bo.rotation.z = Math.PI / 2;
-  g.add(bo);
-  const katana = new T.Group();
-  katana.add(en(cilindro(0.035, 0.035, 0.75, 8, '#24242e'), 0.12, 0, 0)); // vaina
-  katana.add(en(cilindro(0.07, 0.07, 0.025, 12, '#c9a227'), -0.27, 0, 0)); // guarda
-  katana.add(en(cilindro(0.03, 0.03, 0.28, 8, '#6b1f1f'), -0.42, 0, 0)); // mango
-  katana.children.forEach((m) => { m.rotation.z = Math.PI / 2; });
-  g.add(en(katana, 0, 1.05, 0.12));
+  const acostado = (obj, x, y) => { obj.rotation.z = Math.PI / 2; return en(obj, x, y, 0.12); };
+  const colgado = (x, partes) => { const h = new T.Group(); partes.forEach((p) => h.add(p)); return en(h, x, 0.96, 0.13); };
+  const armas = {
+    katana: () => [0.6, 1.05].forEach((y) => {
+      const k = new T.Group();
+      k.add(en(cilindro(0.035, 0.035, 0.75, 8, '#24242e'), 0, 0.12, 0)); // vaina
+      k.add(en(cilindro(0.07, 0.07, 0.025, 12, '#c9a227'), 0, -0.27, 0)); // guarda
+      k.add(en(cilindro(0.03, 0.03, 0.28, 8, color), 0, -0.42, 0)); // mango del color del referente
+      g.add(acostado(k, 0, y));
+    }),
+    bo: () => [0.62, 1.05].forEach((y) => g.add(acostado(cilindro(0.045, 0.045, 1.5, 8, '#c8925a'), 0, y))),
+    sai: () => [-0.3, 0.3].forEach((x) => g.add(colgado(x, [
+      en(cilindro(0.028, 0.028, 0.17, 8, color), 0, -0.08, 0),
+      en(cilindro(0.015, 0.015, 0.48, 6, '#d6dbe4'), 0, -0.4, 0),
+      ...[-1, 1].map((q) => { const p = en(cilindro(0.013, 0.013, 0.14, 6, '#d6dbe4'), 0.05 * q, -0.2, 0); p.rotation.z = 0.7 * q; return p; }),
+    ]))),
+    nunchaku: () => [-0.3, 0.3].forEach((x, k) => g.add(colgado(x, [
+      en(cilindro(0.035, 0.035, 0.3, 8, '#8b5a2b'), 0, -0.17, 0),
+      en(cilindro(0.006, 0.006, 0.12, 4, '#9aa3b2'), 0, -0.38, 0),
+      (() => { const p = en(cilindro(0.035, 0.035, 0.3, 8, k ? color : '#8b5a2b'), 0.06, -0.58, 0); p.rotation.z = 0.25; return p; })(),
+    ]))),
+    baston: () => {
+      const b = en(cilindro(0.035, 0.05, 1.45, 7, '#6b4a2b'), 0.1, 0.74, 0.14);
+      b.rotation.z = -0.22;
+      g.add(b);
+      g.add(en(cilindro(0.08, 0.06, 0.1, 10, '#3d4757'), -0.35, 0.13, 0.08)); // tetera
+      g.add(en(cilindro(0.045, 0.035, 0.06, 10, color), -0.15, 0.11, 0.1)); // taza
+    },
+    microfono: () => {
+      g.add(en(cilindro(0.03, 0.025, 0.24, 8, '#2a2a33'), -0.25, 1.15, 0.12));
+      g.add(en(malla(new T.SphereGeometry(0.06, 10, 8), mate('#9aa3b2')), -0.25, 1.3, 0.12));
+      g.add(en(caja(0.11, 0.08, 0.08, color, { r: 0.01 }), -0.25, 1.17, 0.13));
+      g.add(en(caja(0.34, 0.22, 0.2, '#2a2a33', { r: 0.03 }), 0.2, 0.69, 0.12)); // cámara
+      g.add(en(cilindro(0.07, 0.07, 0.12, 12, '#3d4757'), 0.2, 0.69, 0.27));
+    },
+  };
+  (armas[tipo] || armas.katana)();
   return g;
 }
 /** Caja de pizza (con la mancha de grasa de rigor). */
@@ -534,6 +586,8 @@ async function iniciar() {
     const tr = tramoDe(sala);
     const u0 = i * PASO;
     const g = en(new T.Group(), u0, 0, 0);
+    const tu = TUTORES[meta.tutor];
+    const color = tu ? tu.color : tr.color; // el color del referente personaliza la oficina
     const matPiso = new T.MeshStandardMaterial({ color: '#ffffff', map: texTatami(), roughness: 0.85 });
     g.add(en(caja(ANCHO, PISO_Y, FONDO, matPiso, { r: 0.05, sombra: false }), 0, PISO_Y / 2, 0));
     g.add(en(pared(ANCHO, tr.color, false), 0, PISO_Y, -FONDO / 2 + PARED_T / 2));
@@ -555,13 +609,16 @@ async function iniciar() {
     g.add(en(caja(3.4, 1.25, 0.08, PALETA.oscuro, { r: 0.04 }), -1.5, PISO_Y + 1.0, -FONDO / 2 + PARED_T + 0.05));
     // Escritorio, sala de espera y plantas.
     g.add(en(escritorio('#8ea3d1', tr.color), 2.6, PISO_Y, -1.9));
-    g.add(en(banco(tr.suave), -3.2, PISO_Y, 3.1));
+    g.add(en(banco(color), -3.2, PISO_Y, 3.1));
     g.add(en(planta(0.9), 4.35, PISO_Y, -3.35));
     g.add(en(planta(0.75), 4.3, PISO_Y, 3.4));
     // Dojo: armero y pergamino en la pared del fondo (a los lados de la pantalla) y pizza en el escritorio.
     const fondo = -FONDO / 2 + PARED_T;
-    g.add(en(armero(), -4.15, PISO_Y, fondo + 0.12));
-    g.add(en(new T.Mesh(forma('pergamino', () => new T.PlaneGeometry(0.56, 1.12)), new T.MeshStandardMaterial({ map: texPergamino(), roughness: 0.9 })), 0.62, PISO_Y + 1.0, fondo + 0.03));
+    g.add(en(armero(tu ? tu.herramienta : 'katana', color), -4.15, PISO_Y, fondo + 0.12));
+    g.add(en(new T.Mesh(forma('pergamino', () => new T.PlaneGeometry(0.56, 1.12)), new T.MeshStandardMaterial({ map: texPergamino(color), roughness: 0.9 })), 0.62, PISO_Y + 1.0, fondo + 0.03));
+    // Alfombra redonda del color del referente, donde se para.
+    g.add(en(cilindro(0.78, 0.78, 0.02, 32, color, { sombra: false }), 1.3, PISO_Y + 0.01, -0.3));
+    g.add(en(cilindro(0.62, 0.62, 0.022, 32, DOJO.papel, { sombra: false }), 1.3, PISO_Y + 0.012, -0.3));
     [-1, 1].forEach((s) => {
       const vara = en(cilindro(0.022, 0.022, 0.66, 8, DOJO.madera), 0.62, PISO_Y + 1.0 + s * 0.57, fondo + 0.05);
       vara.rotation.z = Math.PI / 2;
@@ -602,26 +659,25 @@ async function iniciar() {
     caminante.visible = false;
     g.add(caminante);
     // El referente, parado delante del escritorio, mirando hacia la sala de espera.
-    const tu = TUTORES[meta.tutor];
     const tutor = tu ? PERSONAJES[tu.personaje]({ color: tu.color, arma: tu.arma }) : null;
     if (tutor) {
       tutor.raiz.scale.setScalar(0.85);
       tutor.raiz.position.set(1.3, PISO_Y, -0.3);
-      tutor.raiz.rotation.y = -0.45;
+      tutor.raiz.rotation.y = tutor.giro0 = -0.45;
       tutor.base = tutor.brazos.map((b) => b.rotation.z);
       g.add(tutor.raiz);
     }
     g.traverse((h) => { h.userData.sala = sala; });
     plano.add(g);
 
-    const s = { sala, i, u0, tr, meta, matPiso, gente, caminante, tutor, saludo: 0, paseo: null, n: 0 };
+    const s = { sala, i, u0, tr, meta, matPiso, gente, caminante, tu, tutor, movida: 0, frase: 0, paseo: null, n: 0 };
     // El cartel va arriba de la pantalla.
     s.cartel = etiqueta('ru3-sala', '', () => aMundo(P(u0 - 1.5, -FONDO / 2, PISO_Y + PARED_H + 0.3)), 'translate(-50%, -100%)');
     s.cartel.style.setProperty('--c', tr.color);
     s.pantalla = etiqueta('ru3-pantalla', '', () => aMundo(P(u0 - 1.5, -FONDO / 2 + PARED_T + 0.1, PISO_Y + 1.0)));
     s.pantalla.style.setProperty('--c', tr.color);
     if (tu) {
-      s.globo = etiqueta('ru3-tutor', `<b>${ICONO_TUTOR[tu.personaje] || '🤖'} ${esc(tu.nombre)}</b><span>Se hace en ${esc(meta.donde || 'la planilla')}</span>`,
+      s.globo = etiqueta('ru3-tutor', `<b>${ICONO_TUTOR[tu.personaje] || '🤖'} ${esc(tu.nombre)}</b><q>${esc(tu.frases[0])}</q><span>Se hace en ${esc(meta.donde || 'la planilla')}</span>`,
         () => aMundo(P(u0 + 1.3, -0.3, PISO_Y + 1.75)), 'translate(-22px, -100%)'); // hacia la derecha: a la izquierda está la pantalla
       s.globo.style.setProperty('--c', tu.color);
     }
@@ -753,9 +809,17 @@ async function iniciar() {
     const i = SALAS.indexOf(SALIDAS.includes(etapa) ? 'SALIDAS' : etapa);
     if (i < 0 || i === actual) return;
     actual = i;
-    salas[i].saludo = performance.now() / 1000; // el referente saluda al que llega
+    salas[i].movida = performance.now() / 1000; // el referente hace su movida al que llega
     pintarNavegacion();
   }
+  // El referente de la oficina a la vista va diciendo sus frases (y hace su movida).
+  setInterval(() => {
+    const s = salas[actual];
+    if (!s || !s.tu || !visible || document.hidden) return;
+    s.frase = (s.frase + 1) % s.tu.frases.length;
+    s.globo.querySelector('q').textContent = s.tu.frases[s.frase];
+    s.movida = performance.now() / 1000;
+  }, 7000);
   document.addEventListener('ruta:datos', (e) => { datos = e.detail; pintarDatos(); });
   document.addEventListener('ruta:elegida', (e) => mostrar((e.detail || {}).etapa));
 
