@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Ruta del ingresante · Oficina digital · Equipo Tortuguitas</title>
-<link rel="stylesheet" href="styles.css?v=20261028e" />
+<link rel="stylesheet" href="styles.css?v=20261029a" />
 </head>
 <body>
 <script src="transition.js?v=20261019"></script>
@@ -17,7 +17,7 @@
       <div>
         <span class="breadcrumb">Selección · Oficina digital</span>
         <h1>Ruta del ingresante</h1>
-        <p>Todo el proceso, del formulario QR a iCheck, como una fila de oficinas: una por paso, con sus números, sus botones y su planilla real adentro. Junta Citaciones Tortus, TAREAS GRUPALES y Tareas grupales/zonas: se trabaja igual que en Drive, pero paso por paso.</p>
+        <p>Todo el proceso, del formulario QR a iCheck, como una fila de oficinas: una por paso, con su referente del equipo y sus números reales. El trabajo se sigue haciendo en las planillas (Citaciones Tortus, TAREAS GRUPALES y Tareas grupales/zonas); acá se ve cómo avanza.</p>
       </div>
     </div>
   </div>
@@ -35,38 +35,13 @@
       <span class="ru-cuando" id="rutaCuando" aria-live="polite">Cargando…</span>
     </div>
     <div class="ru-escena" id="rutaEscena"></div>
-    <div class="ru-trabajo">
-      <aside class="card ru-panel" id="rutaPanel" aria-live="polite"></aside>
-      <div class="ru-der">
-        <div class="card ru-botonera" id="rutaBotonera" hidden>
-          <div class="ru-hoja-head">
-            <h3 id="rutaBotoneraTitulo">Funciones</h3>
-            <a class="tab-btn" id="rutaBotoneraAbrir" href="#" target="_blank" rel="noopener" hidden>Abrir en otra pestaña ↗</a>
-          </div>
-          <p class="ru-nota" id="rutaBotoneraFalta">Los botones de esta oficina se activan cuando se publique la Botonera de Apps Script. Mientras tanto, usá el menú de la planilla de abajo.</p>
-          <div id="rutaBotoneraMarcos"></div>
-          <p class="ru-nota">Los botones andan con la cuenta personal de Kevin (la primera vez, abrilos en otra pestaña para darles permiso). Con el mail corporativo se usa el menú 📞 Citar de la planilla de abajo: hace lo mismo.</p>
-        </div>
-        <div class="card ru-hoja" id="rutaHoja" hidden>
-          <div class="ru-hoja-head">
-            <div>
-              <h3>📄 La planilla de esta oficina</h3>
-              <p class="desc">Es la hoja real de Drive: lo que cambies acá queda en la planilla y siguen andando sus menús y Apps Script (📞 Citar incluido). Abajo de la hoja están todas sus pestañas.</p>
-            </div>
-            <a class="tab-btn" id="rutaHojaAbrir" href="#" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a>
-          </div>
-          <div class="ru-hoja-tabs" id="rutaHojaTabs" role="group" aria-label="Planillas de esta oficina"></div>
-          <div class="ru-hoja-marcos" id="rutaHojaMarcos"></div>
-          <p class="ru-nota">¿No carga? Entrá a Google con la cuenta que tiene acceso a la planilla, o abrila en otra pestaña.</p>
-        </div>
-      </div>
-    </div>
-    <p class="footer-note">Números: Supabase (función ruta_estaciones), se renuevan cada minuto, sin datos personales · Planillas y botones: Google, con tu cuenta.</p>
+    <aside class="card ru-panel" id="rutaPanel" aria-live="polite"></aside>
+    <p class="footer-note">Números: Supabase (ruta_estaciones y ruta_oficinas), se renuevan cada minuto, sin datos personales. Solo cuentan los pasos con fecha real en la planilla.</p>
   </section>
 
 </div>
 <script src="supabase.js?v=20261015"></script>
-<script src="ruta.js?v=20261028g"></script>
-<script type="module" src="ruta-3d.js?v=20261028c"></script>
+<script src="ruta.js?v=20261029a"></script>
+<script type="module" src="ruta-3d.js?v=20261029a"></script>
 </body>
 </html>

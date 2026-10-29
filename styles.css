@@ -1239,7 +1239,15 @@ html.reveal-pending .container > *{opacity:0;}
 .ru-escena.sin-3d{display:none;}
 @media(max-width:600px){.ru-escena{aspect-ratio:1.1/1;}}
 
-.ru-panel{display:flex;flex-direction:column;gap:12px;}
+.ru-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:16px;align-items:start;margin-bottom:16px;}
+.ru-panel-col{display:flex;flex-direction:column;gap:12px;min-width:0;}
+@media(max-width:900px){.ru-panel{grid-template-columns:1fr;}}
+.ru-tutor{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:12px;background:#fff;box-shadow:inset 4px 0 0 var(--c),0 0 0 1px var(--border);}
+.ru-tutor-ico{font-size:22px;line-height:1;}
+.ru-tutor p{margin:0;display:flex;flex-direction:column;}
+.ru-tutor small{font-size:10.5px;color:var(--text-muted);}
+.ru-tutor b{font-size:14px;color:var(--c);}
+.ru-box .ru-herr{margin-top:8px;}
 .ru-panel-head{display:flex;align-items:center;gap:10px;}
 .ru-panel-head>div{flex:1;min-width:0;}
 .ru-panel-head h3{margin:0;font-size:16px;}
@@ -1267,10 +1275,7 @@ html.reveal-pending .container > *{opacity:0;}
 .ru-origenes b{font-variant-numeric:tabular-nums;}
 .ru-panel .tab-btn{margin-top:0;}
 
-/* Debajo de la maqueta: panel de la estación (queda a la vista al bajar), línea y movimientos. */
-.ru-trabajo{display:grid;grid-template-columns:360px minmax(0,1fr);gap:16px;align-items:start;margin-bottom:16px;}
-.ru-trabajo>*{min-width:0;}
-@media(max-width:1100px){.ru-trabajo{grid-template-columns:1fr;}}
+/* Debajo de la maqueta: panel de la estación. */
 .ru-abajo{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:16px;align-items:start;}
 .ru-abajo>*{min-width:0;}
 /* El panel no es sticky: con el formulario de cambios puede ser más alto que la pantalla. */
@@ -1363,6 +1368,12 @@ html.reveal-pending .container > *{opacity:0;}
 .ru3-pantalla span{font-size:10.5px;color:#c9d2e3;}
 .ru3-pantalla em{margin-top:2px;font-style:normal;font-size:10.5px;font-weight:700;color:#7ef0c4;}
 .ru3-pantalla.is-vacia b{font-size:15px;color:#ffb4a2;}
+.ru3-tutor{position:relative;display:flex;flex-direction:column;max-width:210px;padding:5px 10px 6px;border-radius:12px;background:#fff;box-shadow:inset 0 -3px 0 var(--c),0 4px 14px rgba(15,28,63,.16);line-height:1.2;pointer-events:none;margin-top:-10px;}
+.ru3-tutor::after{content:"";position:absolute;left:22px;bottom:-6px;width:12px;height:12px;background:#fff;transform:translateX(-50%) rotate(45deg);box-shadow:3px 3px 0 0 var(--c);}
+.ru3-tutor b{font-size:12.5px;color:var(--c);}
+.ru3-tutor span{font-size:10.5px;color:var(--text-muted);}
+.ru3-tutor[hidden]{display:none;}
+.o3d.is-chica .ru3-tutor span{display:none;}
 .o3d.is-chica .ru3-flecha-txt{display:none;}
 .o3d.is-chica .ru3-flecha{padding:4px;}
 .o3d.is-chica .ru3-flecha-ico{width:26px;height:26px;font-size:18px;}
@@ -1375,50 +1386,3 @@ html.reveal-pending .container > *{opacity:0;}
 .o3d.is-chica .ru3-pantalla span{display:none;}
 .o3d.is-chica .o3d-tag span{display:none;}
 
-/* Ruta · cambiar en la planilla (con PIN) */
-.ru-accion{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:12px;background:#fffdf5;box-shadow:0 0 0 1px #f1e2a8;}
-.ru-accion h4{margin:0;font-size:13px;letter-spacing:.02em;}
-.ru-accion form{display:flex;flex-direction:column;gap:6px;}
-.ru-accion form[hidden],.ru-accion-pin[hidden]{display:none;}
-.ru-accion label{font-size:11.5px;font-weight:600;color:var(--text-muted);}
-.ru-accion input,.ru-accion select{width:100%;box-sizing:border-box;min-width:0;padding:8px 10px;border-radius:10px;border:1px solid var(--border);font:inherit;font-size:13px;background:#fff;color:var(--text);}
-.ru-accion input:focus,.ru-accion select:focus{outline:2px solid var(--blue);outline-offset:1px;}
-.ru-accion-fila{display:flex;gap:6px;align-items:flex-end;}
-.ru-accion-fila>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px;}
-.ru-accion-fila>input{flex:1;}
-.ru-accion [data-pin]:not(:placeholder-shown){letter-spacing:.2em;}
-.ru-accion .btn-primary{border:0;cursor:pointer;padding:8px 14px;font-size:13px;align-self:flex-start;}
-.ru-accion button:disabled,.ru-accion input:disabled{opacity:.6;cursor:default;}
-.ru-accion-cancelar{border:1px solid var(--border);background:#fff;border-radius:10px;padding:8px 12px;font:inherit;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;}
-.ru-accion-aviso{margin:0;font-size:12px;font-weight:600;color:var(--red);}
-.ru-accion-aviso:empty{display:none;}
-.ru-accion-resumen{margin:0 0 6px;font-size:12.5px;line-height:1.45;font-weight:600;}
-.ru-accion-resumen.is-ok{color:#16805e;}
-.ru-accion-pin{display:flex;flex-direction:column;gap:6px;}
-.ru-accion-pin .tab-btn{align-self:flex-start;margin-top:0;}
-
-/* Ruta · la planilla real de la oficina (Google Sheets adentro de la página) */
-.ru-hoja{display:flex;flex-direction:column;gap:10px;}
-.ru-hoja[hidden]{display:none;}
-.ru-hoja-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;}
-.ru-hoja-head h3{margin:0 0 4px;font-size:15px;}
-.ru-hoja-head .desc{margin:0;}
-.ru-hoja-head .tab-btn{flex-shrink:0;margin-top:0;text-decoration:none;}
-.ru-hoja-tabs{display:flex;flex-wrap:wrap;gap:6px;}
-.ru-hoja-tab{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 12px;border:0;border-radius:10px;background:#fff;box-shadow:0 0 0 1px var(--border);font:inherit;color:var(--text);text-align:left;cursor:pointer;}
-.ru-hoja-tab b{font-size:13px;}
-.ru-hoja-tab small{font-size:10.5px;color:var(--text-muted);}
-.ru-hoja-tab:hover{box-shadow:0 0 0 1px var(--navy);}
-.ru-hoja-tab[aria-pressed="true"]{background:var(--navy);box-shadow:none;color:#fff;}
-.ru-hoja-tab[aria-pressed="true"] small{color:#c9d2e3;}
-.ru-hoja-tab:focus-visible{outline:2px solid var(--blue);outline-offset:2px;}
-.ru-hoja-marcos{position:relative;height:max(560px,75vh);overflow:hidden;border-radius:12px;background:#f6f8fb;box-shadow:0 0 0 1px var(--border);}
-.ru-hoja-marco{position:absolute;inset:0;width:100%;height:100%;border:0;background:#fff;}
-.ru-hoja-marco[hidden]{display:none;}
-
-/* Ruta · columna de trabajo: botones de Apps Script (Botonera) y la planilla */
-.ru-der{display:flex;flex-direction:column;gap:16px;min-width:0;}
-.ru-botonera{display:flex;flex-direction:column;gap:8px;}
-.ru-botonera[hidden],.ru-botonera [hidden]{display:none;}
-.ru-botonera h3{margin:0;font-size:15px;}
-.ru-botonera-marco{display:block;width:100%;border:0;border-radius:10px;background:#fff;box-shadow:0 0 0 1px var(--border);}
