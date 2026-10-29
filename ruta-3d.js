@@ -1,5 +1,7 @@
 // ruta-3d.js — la Ruta del ingresante en 3D (three.js, sin build): una oficina
-// por paso del proceso, con el mismo estilo low-poly de la Oficina digital.
+// por paso del proceso, como un dojo de las tortugas ninja (tatami, paredes de
+// papel con postes de madera, bonsái, armero con katana y bo, pergamino 忍 y la
+// pizza en el escritorio), con el mismo estilo low-poly de la Oficina digital.
 // Las oficinas están una al lado de la otra, unidas por un pasillo; se recorren
 // con las flechas de los costados (o ← → del teclado), con la barra de pasos de
 // arriba o tocando la oficina de al lado.
@@ -9,9 +11,9 @@
 //   fechas), en los últimos 7 días y hoy (rpc/ruta_estaciones, vía ruta.js);
 // - su referente: un personaje del equipo (tortuga, Splinter o April, los de
 //   personajes-3d.js) que saluda al llegar y dice en qué planilla se hace el paso;
-// - la sala de espera con muñequitos (más muñequitos, más gente llegó en los
-//   últimos 7 días; escala logarítmica para que entren de 1 a 10.000) y alguien
-//   que entra por la puerta cuando hubo movimiento hoy;
+// - la sala de espera con tortuguitas, sin máscara (más tortuguitas, más gente
+//   llegó en los últimos 7 días; escala logarítmica para que entren de 1 a 10.000)
+//   y una que entra por la puerta cuando hubo movimiento hoy;
 // - un objeto propio del paso (totem del QR, calendario, mesa de entrevista,
 //   buzón al zonal, lector de huella, servidores de iCheck, globos de bienvenida…).
 // Los datos en vivo y los accesos a las planillas están en ruta.js, debajo de la maqueta.
@@ -48,10 +50,10 @@ if (escena && window.RUTA) {
 /* ───────────────────────── Configuración ───────────────────────── */
 
 const PALETA = {
-  fondo: '#eef2f6',
-  base: '#e3e8ef',
+  fondo: '#f1ece2',
+  base: '#e2d9c6',
   blanco: '#ffffff',
-  pared: '#fbfcfd',
+  pared: '#f8f3e6',
   patas: '#d5dbe4',
   silla: '#c6cfdb',
   oscuro: '#3b4352',
@@ -59,7 +61,7 @@ const PALETA = {
   rackPanel: '#939dae',
   gris: '#b8c1ce',
   grisSuave: '#e6e9ee',
-  pasillo: '#dfe5ec',
+  pasillo: '#c9a77a',
   menta: '#5ee0b5',
   cian: '#45d3ec',
   ambar: '#f5b748',
@@ -68,8 +70,17 @@ const PALETA = {
   corcho: '#d8b48a',
   madera: '#c99a6b',
 };
-const ROPA = ['#f4a261', '#e9c46a', '#8ecae6', '#cdb4db', '#ffafcc', '#a3c4bc', '#f6bd60', '#90be6d', '#bde0fe'];
-const PIEL = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac'];
+// Dojo: madera, papel de arroz y tatami.
+const DOJO = {
+  madera: '#7a5232',
+  maderaClara: '#b98a5a',
+  tatami: '#d9cf98',
+  borde: '#3e4a2c',
+  papel: '#f6efdc',
+};
+// El público: tortuguitas sin máscara (piel y caparazón varían).
+const TORTUGA_PIEL = ['#6cb33f', '#5aa33a', '#7cc24e', '#4f9a3a', '#86c95a'];
+const TORTUGA_CAPARAZON = ['#7d7038', '#6f6331', '#8a6a3a', '#5f5a2a', '#94793f'];
 
 // Las oficinas, en orden: los 13 pasos y al final la de salidas.
 const PASOS = ['POSTULADO', 'CITADO_ENTREVISTA', 'CONFIRMO_ENTREVISTA', 'ASISTIO_ENTREVISTA', 'APROBADO',
@@ -93,7 +104,7 @@ const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&':
 const fmt = (n) => Number(n || 0).toLocaleString('es-AR');
 const suave = (k) => (k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2);
 
-// Muñequitos en la sala de espera: 0 → 0, 1 → 1, 10 → 3, 100 → 6, 1.000 → 9, 10.000 → 12.
+// Tortuguitas en la sala de espera: 0 → 0, 1 → 1, 10 → 3, 100 → 6, 1.000 → 9, 10.000 → 12.
 const munecos = (n) => (n > 0 ? Math.min(12, Math.max(1, Math.round(Math.log10(n + 1) * 3))) : 0);
 const ICONO_TUTOR = { tortuga: '🐢', rata: '🐀', april: '🎙️' };
 
@@ -140,6 +151,74 @@ function caja(w, h, d, color, { r = 0.05, sombra = true, recibe = true } = {}) {
 function cilindro(rt, rb, h, seg, color, opciones) {
   return malla(new T.CylinderGeometry(rt, rb, h, seg), typeof color === 'string' ? mate(color) : color, opciones);
 }
+// Geometría compartida por clave (las tortuguitas del público son muchas).
+function forma(clave, crear) {
+  if (!geometrias.has(clave)) geometrias.set(clave, crear());
+  return geometrias.get(clave);
+}
+// Texturas pintadas en un canvas, una sola vez.
+const texturas = {};
+function textura(nombre, ancho, alto, pintar) {
+  if (!texturas[nombre]) {
+    const lienzo = document.createElement('canvas');
+    lienzo.width = ancho;
+    lienzo.height = alto;
+    pintar(lienzo.getContext('2d'));
+    const tex = new T.CanvasTexture(lienzo);
+    tex.colorSpace = T.SRGBColorSpace;
+    tex.anisotropy = 4;
+    texturas[nombre] = tex;
+  }
+  return texturas[nombre];
+}
+// Piso de tatami para una oficina de ANCHO × FONDO: esteras de 2 × 1 que se
+// alternan de a pares (acostadas / paradas) con su borde de tela oscura.
+function texTatami() {
+  const px = 100; // por unidad
+  return textura('tatami', ANCHO * px, FONDO * px, (c) => {
+    c.fillStyle = DOJO.borde;
+    c.fillRect(0, 0, ANCHO * px, FONDO * px);
+    const estera = (x, y, w, h) => {
+      const g = 5;
+      c.fillStyle = (x + y) % 3 ? DOJO.tatami : '#d2c890';
+      c.fillRect(x + g, y + g, w - 2 * g, h - 2 * g);
+      c.strokeStyle = 'rgba(120, 110, 60, .22)';
+      c.lineWidth = 2;
+      const largo = w >= h;
+      for (let k = 12; k < (largo ? h : w) - 8; k += 9) {
+        c.beginPath();
+        if (largo) { c.moveTo(x + g, y + k); c.lineTo(x + w - g, y + k); } else { c.moveTo(x + k, y + g); c.lineTo(x + k, y + h - g); }
+        c.stroke();
+      }
+    };
+    for (let cx = 0; cx < ANCHO / 2; cx++) {
+      for (let cy = 0; cy < FONDO / 2; cy++) {
+        const x = cx * 2 * px, y = cy * 2 * px;
+        if ((cx + cy) % 2) { estera(x, y, 2 * px, px); estera(x, y + px, 2 * px, px); } else { estera(x, y, px, 2 * px); estera(x + px, y, px, 2 * px); }
+      }
+    }
+  });
+}
+// Pergamino colgante con 忍 ("shinobi", ninja) en tinta y el sello rojo.
+function texPergamino() {
+  return textura('pergamino', 160, 320, (c) => {
+    c.fillStyle = DOJO.papel;
+    c.fillRect(0, 0, 160, 320);
+    c.strokeStyle = '#c9b88f';
+    c.lineWidth = 8;
+    c.strokeRect(10, 10, 140, 300);
+    c.fillStyle = '#1d1a16';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.font = 'bold 110px "Yu Mincho", "Hiragino Mincho ProN", "Noto Serif CJK JP", "MS Mincho", serif';
+    c.fillText('忍', 80, 140);
+    c.fillStyle = '#c0392b';
+    c.fillRect(98, 246, 34, 34);
+    c.fillStyle = DOJO.papel;
+    c.fillRect(106, 254, 18, 4);
+    c.fillRect(113, 254, 4, 18);
+  });
+}
 
 function pared(largo, acento, conPuerta) {
   const g = new T.Group();
@@ -149,6 +228,10 @@ function pared(largo, acento, conPuerta) {
   tramos.forEach((t) => {
     g.add(en(caja(t.l, PARED_H, PARED_T, PALETA.pared, { r: 0.06 }), t.x, PARED_H / 2, 0));
     g.add(en(caja(t.l, 0.07, PARED_T + 0.02, acento, { r: 0.025, sombra: false }), t.x, PARED_H + 0.01, 0));
+    // Dojo: zócalo y postes de madera cada ~2,5.
+    g.add(en(caja(t.l, 0.14, PARED_T + 0.04, DOJO.madera, { r: 0.02, sombra: false }), t.x, 0.07, 0));
+    const n = Math.max(1, Math.ceil(t.l / 2.6));
+    for (let k = 0; k <= n; k++) g.add(en(caja(0.14, PARED_H, PARED_T + 0.08, DOJO.madera, { r: 0.03 }), t.x - t.l / 2 + 0.07 + k * (t.l - 0.14) / n, PARED_H / 2, 0));
   });
   return g;
 }
@@ -172,25 +255,77 @@ function escritorio(colorSilla, colorPantalla) {
   g.add(en(silla(colorSilla), 0.3, 0, 0.95));
   return g;
 }
-function sillon(color) {
+/** Banco bajo de madera con almohadones (zabuton) del color del tramo. */
+function banco(color) {
   const g = new T.Group();
-  g.add(en(caja(2.1, 0.42, 0.9, color, { r: 0.1 }), 0, 0.3, 0));
-  g.add(en(caja(2.1, 0.6, 0.25, color, { r: 0.1 }), 0, 0.68, -0.34));
-  [-1, 1].forEach((sx) => g.add(en(caja(0.22, 0.55, 0.9, color, { r: 0.08 }), sx * 1.0, 0.5, 0)));
+  g.add(en(caja(2.2, 0.1, 0.7, DOJO.maderaClara, { r: 0.03 }), 0, 0.42, 0));
+  [-1, 1].forEach((sx) => [-1, 1].forEach((sz) => g.add(en(caja(0.1, 0.38, 0.1, DOJO.madera, { r: 0.02 }), sx * 0.98, 0.19, sz * 0.26))));
+  [-0.68, 0, 0.68].forEach((x) => g.add(en(caja(0.6, 0.08, 0.55, color, { r: 0.04 }), x, 0.51, 0)));
   return g;
 }
+/** Bonsái sobre una mesita. */
 function planta(escala = 1) {
   const g = new T.Group();
-  g.add(en(cilindro(0.3, 0.24, 0.6, 10, PALETA.blanco), 0, 0.3, 0));
-  g.add(en(malla(new T.IcosahedronGeometry(0.45, 0), mate('#9be6c9', true)), 0, 0.95, 0));
-  g.add(en(malla(new T.IcosahedronGeometry(0.27, 0), mate(PALETA.menta, true)), 0.2, 1.32, 0.05));
+  g.add(en(caja(0.7, 0.36, 0.55, DOJO.madera, { r: 0.03 }), 0, 0.18, 0));
+  g.add(en(caja(0.6, 0.16, 0.4, '#3d4757', { r: 0.04 }), 0, 0.44, 0));
+  const tronco = en(cilindro(0.045, 0.08, 0.5, 6, '#5b3d24'), -0.04, 0.72, 0);
+  tronco.rotation.z = 0.3;
+  g.add(tronco);
+  const rama = en(cilindro(0.03, 0.045, 0.34, 6, '#5b3d24'), 0.1, 0.84, 0);
+  rama.rotation.z = -1.0;
+  g.add(rama);
+  [[-0.14, 1.0, 0, 0.3], [0.26, 0.92, 0.03, 0.22], [0.02, 1.18, -0.02, 0.2]].forEach(([x, y, z, r], k) => {
+    const copa = en(malla(new T.IcosahedronGeometry(r, 0), mate(k ? '#6aa85f' : '#5a9752', true)), x, y, z);
+    copa.scale.y = 0.5;
+    g.add(copa);
+  });
   g.scale.setScalar(escala);
   return g;
 }
-function muneco(i) {
+/** Tortuguita del público: parada, sin máscara ni nada. Mira hacia +v. */
+function tortuguita(i) {
   const g = new T.Group();
-  g.add(en(malla(new T.CapsuleGeometry(0.17, 0.26, 4, 10), mate(ROPA[i % ROPA.length]), { recibe: false }), 0, 0.33, 0));
-  g.add(en(malla(new T.SphereGeometry(0.14, 12, 10), mate(PIEL[(i * 3) % PIEL.length]), { recibe: false }), 0, 0.76, 0));
+  const piel = mate(TORTUGA_PIEL[i % TORTUGA_PIEL.length]);
+  const sin = { recibe: false };
+  [-1, 1].forEach((s) => g.add(en(malla(forma('t-pata', () => new T.CapsuleGeometry(0.07, 0.08, 3, 8)), piel, sin), s * 0.1, 0.11, 0.01)));
+  const panza = en(malla(forma('t-esfera', () => new T.SphereGeometry(1, 12, 10)), mate('#e3c770'), sin), 0, 0.4, 0.03);
+  panza.scale.set(0.2, 0.25, 0.15);
+  g.add(panza);
+  const caparazon = en(malla(forma('t-caparazon', () => new T.SphereGeometry(1, 9, 7)), mate(TORTUGA_CAPARAZON[(i * 3) % TORTUGA_CAPARAZON.length], true), sin), 0, 0.42, -0.05);
+  caparazon.scale.set(0.24, 0.28, 0.17);
+  g.add(caparazon);
+  [-1, 1].forEach((s) => {
+    const brazo = en(malla(forma('t-brazo', () => new T.CapsuleGeometry(0.05, 0.12, 3, 8)), piel, sin), s * 0.22, 0.42, 0.03);
+    brazo.rotation.z = s * 0.5;
+    g.add(brazo);
+  });
+  g.add(en(malla(forma('t-cabeza', () => new T.SphereGeometry(0.15, 14, 12)), piel, sin), 0, 0.74, 0.03));
+  [-1, 1].forEach((s) => g.add(en(malla(forma('t-ojo', () => new T.SphereGeometry(0.028, 8, 6)), mate('#1b1e2c'), { sombra: false, recibe: false }), s * 0.06, 0.77, 0.165)));
+  return g;
+}
+/** Armero contra la pared: katana arriba, bo abajo. */
+function armero() {
+  const g = new T.Group();
+  [-1, 1].forEach((s) => g.add(en(caja(0.1, 1.3, 0.12, DOJO.madera, { r: 0.02 }), s * 0.6, 0.65, 0)));
+  g.add(en(caja(1.4, 0.08, 0.2, DOJO.madera, { r: 0.02 }), 0, 0.04, 0.02));
+  [0.55, 0.98].forEach((y) => g.add(en(caja(1.3, 0.05, 0.08, DOJO.maderaClara, { r: 0.015 }), 0, y, 0.06)));
+  const bo = en(cilindro(0.035, 0.035, 1.5, 8, '#8b5a2b'), 0, 0.62, 0.12);
+  bo.rotation.z = Math.PI / 2;
+  g.add(bo);
+  const katana = new T.Group();
+  katana.add(en(cilindro(0.035, 0.035, 0.75, 8, '#24242e'), 0.12, 0, 0)); // vaina
+  katana.add(en(cilindro(0.07, 0.07, 0.025, 12, '#c9a227'), -0.27, 0, 0)); // guarda
+  katana.add(en(cilindro(0.03, 0.03, 0.28, 8, '#6b1f1f'), -0.42, 0, 0)); // mango
+  katana.children.forEach((m) => { m.rotation.z = Math.PI / 2; });
+  g.add(en(katana, 0, 1.05, 0.12));
+  return g;
+}
+/** Caja de pizza (con la mancha de grasa de rigor). */
+function cajaPizza() {
+  const g = new T.Group();
+  g.add(en(caja(0.5, 0.06, 0.5, '#efdcb6', { r: 0.01 }), 0, 0.03, 0));
+  g.add(en(cilindro(0.13, 0.13, 0.006, 16, '#c0392b', { sombra: false }), 0, 0.063, 0));
+  g.add(en(cilindro(0.06, 0.06, 0.007, 10, '#e1b56a', { sombra: false }), 0.15, 0.064, 0.14));
   return g;
 }
 
@@ -399,7 +534,7 @@ async function iniciar() {
     const tr = tramoDe(sala);
     const u0 = i * PASO;
     const g = en(new T.Group(), u0, 0, 0);
-    const matPiso = new T.MeshStandardMaterial({ color: tr.suave, roughness: 0.75 });
+    const matPiso = new T.MeshStandardMaterial({ color: '#ffffff', map: texTatami(), roughness: 0.85 });
     g.add(en(caja(ANCHO, PISO_Y, FONDO, matPiso, { r: 0.05, sombra: false }), 0, PISO_Y / 2, 0));
     g.add(en(pared(ANCHO, tr.color, false), 0, PISO_Y, -FONDO / 2 + PARED_T / 2));
     const izq = en(pared(FONDO, tr.color, true), -ANCHO / 2 + PARED_T / 2, PISO_Y, 0);
@@ -420,9 +555,19 @@ async function iniciar() {
     g.add(en(caja(3.4, 1.25, 0.08, PALETA.oscuro, { r: 0.04 }), -1.5, PISO_Y + 1.0, -FONDO / 2 + PARED_T + 0.05));
     // Escritorio, sala de espera y plantas.
     g.add(en(escritorio('#8ea3d1', tr.color), 2.6, PISO_Y, -1.9));
-    g.add(en(sillon(tr.suave), -3.2, PISO_Y, 3.1));
-    g.add(en(planta(0.85), -4.3, PISO_Y, -3.3));
-    g.add(en(planta(0.7), 4.3, PISO_Y, 3.4));
+    g.add(en(banco(tr.suave), -3.2, PISO_Y, 3.1));
+    g.add(en(planta(0.9), 4.35, PISO_Y, -3.35));
+    g.add(en(planta(0.75), 4.3, PISO_Y, 3.4));
+    // Dojo: armero y pergamino en la pared del fondo (a los lados de la pantalla) y pizza en el escritorio.
+    const fondo = -FONDO / 2 + PARED_T;
+    g.add(en(armero(), -4.15, PISO_Y, fondo + 0.12));
+    g.add(en(new T.Mesh(forma('pergamino', () => new T.PlaneGeometry(0.56, 1.12)), new T.MeshStandardMaterial({ map: texPergamino(), roughness: 0.9 })), 0.62, PISO_Y + 1.0, fondo + 0.03));
+    [-1, 1].forEach((s) => {
+      const vara = en(cilindro(0.022, 0.022, 0.66, 8, DOJO.madera), 0.62, PISO_Y + 1.0 + s * 0.57, fondo + 0.05);
+      vara.rotation.z = Math.PI / 2;
+      g.add(vara);
+    });
+    g.add(en(cajaPizza(), 2.6 - 0.68, PISO_Y + 0.96, -1.9 + 0.08));
     // Objeto propio del paso.
     const enPared = (obj, x) => en(obj, x, PISO_Y + 1.0, -FONDO / 2 + PARED_T + 0.04);
     const props = {
@@ -446,14 +591,14 @@ async function iniciar() {
     // Gente esperando (de 0 a 12) y alguien que entra por la puerta.
     const gente = [];
     for (let k = 0; k < 12; k++) {
-      const m = muneco(i * 5 + k);
+      const m = tortuguita(i * 5 + k);
       m.position.set(-3.7 + (k % 6) * 0.78 + (Math.floor(k / 6) % 2) * 0.3, PISO_Y, 0.6 + Math.floor(k / 6) * 0.85);
       m.visible = false;
       m.userData.fase = Math.random() * 6;
       g.add(m);
       gente.push(m);
     }
-    const caminante = muneco(i + 2);
+    const caminante = tortuguita(i + 2);
     caminante.visible = false;
     g.add(caminante);
     // El referente, parado delante del escritorio, mirando hacia la sala de espera.
@@ -506,7 +651,7 @@ async function iniciar() {
     salas.forEach((s) => {
       const e = numeros(s.sala);
       const vacia = !e.personas;
-      s.matPiso.color.set(vacia ? PALETA.grisSuave : s.tr.suave);
+      s.matPiso.color.set(vacia ? '#c4c2bb' : '#ffffff'); // tatami gris si no llegó nadie
       s.n = munecos(e.semana);
       s.gente.forEach((m, k) => { m.visible = k < s.n; });
       const num = s.sala === 'SALIDAS' ? 'Fuera de la ruta · de cualquier paso' : `Paso ${s.i + 1} de ${PASOS.length} · ${esc(s.tr.nombre)}`;
