@@ -57,15 +57,30 @@ window.RUTA = (() => {
   };
 
   // Tutores: los personajes del equipo (los de personajes.html) hacen de referentes
-  // de cada oficina. Van rotando por la ruta.
+  // de cada oficina. Van rotando por la ruta y cada uno personaliza la suya: su
+  // color (almohadones, alfombra, pergamino), su herramienta en el armero, sus
+  // frases (las mismas de personajes.js, FRASES_EQUIPO) y su movida.
   const TUTORES = {
-    kevin: { nombre: 'Kevin', personaje: 'rata', color: '#5c2430' },
-    agustin: { nombre: 'Agustín', personaje: 'tortuga', arma: 'bo', color: '#5b2d78' },
-    agustina: { nombre: 'Agustina', personaje: 'tortuga', arma: 'sai', color: '#cc2f2f' },
-    rafael: { nombre: 'Rafael', personaje: 'tortuga', arma: 'nunchaku', color: '#e2721f' },
-    gustavo: { nombre: 'Gustavo', personaje: 'tortuga', arma: 'katana', color: '#4f8fc9' },
-    albana: { nombre: 'Albana', personaje: 'april', color: '#d4a017' },
+    kevin: { nombre: 'Kevin', personaje: 'rata', color: '#5c2430', lema: 'Autómata y estratégico',
+      herramienta: 'baston', accion: 'reverencia', movida: '🙇 Reverencia de sensei',
+      frases: ['Antes de preguntar… ¿pensaste?', '¿Cuántas altas tuvimos en el mes?', '¿Me explico?', '¿Ya terminaron de jugar?'] },
+    agustin: { nombre: 'Agustín', personaje: 'tortuga', arma: 'bo', color: '#5b2d78', lema: 'El innovador',
+      herramienta: 'bo', accion: 'giro', movida: '🌀 Giro con el bo',
+      frases: ['¿Qué harías vos?', 'Pensando qué automatizar…'] },
+    agustina: { nombre: 'Agustina', personaje: 'tortuga', arma: 'sai', color: '#cc2f2f', lema: 'La creativa',
+      herramienta: 'sai', accion: 'salto', movida: '🦘 Salto ninja',
+      frases: ['¿Alguno tiene gerencial de Sur?', '¿Salimos al break?', '¿Trajeron comida?'] },
+    rafael: { nombre: 'Rafael', personaje: 'tortuga', arma: 'nunchaku', color: '#e2721f', lema: 'El compañero confiable',
+      herramienta: 'nunchaku', accion: 'molinete', movida: '🥢 Molinete de nunchakus',
+      frases: ['Mientras menos pregunten, mejor…', 'Qué tranquilo que está Oeste…'] },
+    gustavo: { nombre: 'Gustavo', personaje: 'tortuga', arma: 'katana', color: '#4f8fc9', lema: 'El más versátil',
+      herramienta: 'katana', accion: 'guardia', movida: '⚔️ En guardia',
+      frases: ['Tengo hambre…'] },
+    albana: { nombre: 'Albana', personaje: 'april', color: '#d4a017', lema: 'La estructurada',
+      herramienta: 'microfono', accion: 'saludo', movida: '🎙️ Saludo a cámara',
+      frases: ['En busca de gerente de tienda…', '¿Salimos así puedo fumar?'] },
   };
+  const HERRAMIENTAS = { baston: 'Bastón de sensei', bo: 'Bo', sai: 'Sai', nunchaku: 'Nunchakus', katana: 'Katanas', microfono: 'Micrófono y cámara' };
   const SOLICITUDES = 'TAREAS GRUPALES · Solicitudes Sabores / Extremas';
 
   // Cada paso: tramo, ícono, tutor, dónde se hace (siempre en la planilla), datos
@@ -106,13 +121,13 @@ window.RUTA = (() => {
     RECHAZADO_ZONAL: { tramo: 'x', icono: '✋', corto: 'Rechazo zonal', tutor: 'agustin', donde: SOLICITUDES,
       herramientas: [H.solSabores, H.solExtremas, H.bloqueados] },
   };
-  return { TRAMOS, TUTORES, ESTACIONES, datos: null, elegida: null };
+  return { TRAMOS, TUTORES, HERRAMIENTAS, ESTACIONES, datos: null, elegida: null };
 })();
 
 (() => {
   const seccion = document.getElementById('rutaSeccion');
   if (!seccion || !window.SB) return;
-  const { TRAMOS, TUTORES, ESTACIONES } = window.RUTA;
+  const { TRAMOS, TUTORES, HERRAMIENTAS, ESTACIONES } = window.RUTA;
   const ZONA = 'America/Argentina/Buenos_Aires';
   const CLAVE_DIAS = 'ruta-dias';
   const PASOS = Object.keys(ESTACIONES).filter((k) => ESTACIONES[k].tramo !== 'x');
@@ -287,7 +302,7 @@ window.RUTA = (() => {
         ${desde ? `<p class="ru-nota">Hay fechas de este paso desde el ${esc(corta(desde))}: antes no se registraban.</p>` : ''}
         ${e.sin_fecha ? `<p class="ru-nota">📄 ${fmt(e.sin_fecha)} más ${e.sin_fecha === 1 ? 'está' : 'están'} en la planilla sin la fecha del paso (carga inicial o fecha mal escrita): no se cuentan.</p>` : ''}
         ${e.programados ? `<p class="ru-nota">📅 ${fmt(e.programados)} con fecha futura (programados).</p>` : ''}
-        ${tutor ? `<div class="ru-tutor" style="--c:${tutor.color}"><span class="ru-tutor-ico" aria-hidden="true">${ICONO_TUTOR[tutor.personaje] || '🤖'}</span><p><small>Referente de esta oficina</small><b>${esc(tutor.nombre)}</b></p></div>` : ''}
+        ${tutor ? `<div class="ru-tutor" style="--c:${tutor.color}"><span class="ru-tutor-ico" aria-hidden="true">${ICONO_TUTOR[tutor.personaje] || '🤖'}</span><p><small>Referente de esta oficina</small><b>${esc(tutor.nombre)} · ${esc(tutor.lema)}</b><span>${esc(HERRAMIENTAS[tutor.herramienta] || '')} · ${esc(tutor.movida)}</span><q>${esc(tutor.frases[0])}</q></p></div>` : ''}
         <div class="ru-nav">
           ${ant ? `<button type="button" class="ru-nav-btn" data-etapa="${ant}">‹ ${esc(ESTACIONES[ant].corto)}</button>` : '<span></span>'}
           ${sig ? `<button type="button" class="ru-nav-btn" data-etapa="${sig}">${esc(sig === 'NO_AVANZA' ? 'Salidas' : ESTACIONES[sig].corto)} ›</button>` : '<span></span>'}
