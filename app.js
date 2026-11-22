@@ -787,9 +787,8 @@
     const rangeLabel = cumMonths.length
       ? `${monthLabel(cumMonths[0])} a ${monthLabel(cumMonths[cumMonths.length - 1])}`
       : 'sin datos';
-    document.querySelectorAll('.section-label + p.desc')[0] &&
-      (document.querySelectorAll('.section-label + p.desc')[0].textContent =
-        `Enviados vs. vacantes totales · datos disponibles solo para ${rangeLabel}`);
+    const cumplDesc = document.getElementById('cumplDesc');
+    if (cumplDesc) cumplDesc.textContent = `Enviados vs. vacantes totales · datos disponibles solo para ${rangeLabel}`;
 
     const cumF = CUMPL.filter(r => cumMonths.includes(r.mes));
 
