@@ -462,6 +462,7 @@
     renderZonas(altasF);
     renderKpis(altasF, months);
     renderAltasMes(months, altasF);
+    renderPesoMeses(months, altasF);
     renderNoPresentados(months, altasF);
     renderTops(altasF);
     renderPiccola(months);
@@ -597,11 +598,11 @@
     // con pocas altas o vacantes casi no cambia el promedio del año).
     const ultMes = months[months.length - 1];
     const subAltas = months.length > 1 && total
-      ? `${monthLabel(ultMes)}: ${fmtPct(pct(altasF.filter(r => r.mes === ultMes).length, total))} del período` : '';
+      ? `${monthLabel(ultMes)} es el ${pctEntero(altasF.filter(r => r.mes === ultMes).length, total)} del total` : '';
     const ultCum = cumMonths[cumMonths.length - 1];
     const vacUlt = cumplRows.filter(r => r.mes === ultCum).reduce((a, r) => a + (r.total || 0), 0);
     const subCumpl = cumMonths.length > 1 && totalVac
-      ? `Enviados / vacantes · ${monthLabel(ultCum)} pesa ${fmtPct(pct(vacUlt, totalVac))}` : 'Enviados / vacantes totales';
+      ? `${monthLabel(ultCum)} es el ${pctEntero(vacUlt, totalVac)} de las vacantes` : 'Enviados / vacantes totales';
 
     const kpis = [
       { key: 'altas', label: 'ALTAS TOTALES', num: total, fmt: fmtInt, sub: subAltas, cls: 'c-blue', trend: trendAltas },
@@ -628,12 +629,46 @@
     kpisEl.querySelectorAll('.kpi .value').forEach((el, i) => countUp(el, kpis[i].key, kpis[i].num, kpis[i].fmt));
   }
 
+  // % entero para leer rápido ("6%"); lo que no llega a 1% queda "<1%"
+  function pctEntero(n, tot) {
+    if (!tot || !n) return '0%';
+    const v = n / tot * 100;
+    return v < 1 ? '<1%' : Math.round(v) + '%';
+  }
+
+  // "Cuánto representa cada mes": de todo el período (100%), qué parte puso
+  // cada mes, en altas y en vacantes. Explica por qué un mes chico mueve poco
+  // el promedio del año.
+  function renderPesoMeses(months, altasF) {
+    const box = document.getElementById('pesoMeses');
+    if (!box) return;
+    const cumMonths = activeCumMonths(months);
+    const filas = [
+      { titulo: 'Altas', meses: months, n: (m) => altasF.filter(r => r.mes === m).length },
+      { titulo: 'Vacantes (cumplimiento)', meses: cumMonths,
+        n: (m) => CUMPL.filter(r => r.mes === m).reduce((a, r) => a + (r.total || 0), 0) },
+    ];
+    const ult = months[months.length - 1];
+    box.innerHTML = filas.map(f => {
+      const vals = f.meses.map(m => ({ m, n: f.n(m) })).filter(x => x.n > 0);
+      const tot = vals.reduce((a, x) => a + x.n, 0);
+      if (vals.length < 2 || !tot) return '';
+      const segs = vals.map((x, i) => {
+        const w = x.n / tot * 100;
+        return `<span class="peso-seg${x.m === ult ? ' is-ult' : ''}" style="width:${w}%;opacity:${i % 2 ? 0.72 : 1}" title="${monthLabel(x.m)}: ${fmtInt(x.n)} · ${pctEntero(x.n, tot)}">${w >= 6 ? `${monthLabel(x.m).split(' ')[0]}<b>${pctEntero(x.n, tot)}</b>` : ''}</span>`;
+      }).join('');
+      const chips = vals.map(x => `<span class="peso-chip${x.m === ult ? ' is-ult' : ''}"><b>${monthLabel(x.m)}</b> ${pctEntero(x.n, tot)} <i>${fmtInt(x.n)}</i></span>`).join('');
+      return `<div class="peso-fila"><div class="peso-tit">${f.titulo} <span>${fmtInt(tot)} = 100%</span></div>
+        <div class="peso-barra">${segs}</div><div class="peso-chips">${chips}</div></div>`;
+    }).join('') || '<p class="desc">Elegí más de un mes para ver cuánto representa cada uno.</p>';
+  }
+
   function renderAltasMes(months, altasF) {
     const counts = groupCount(altasF, r => r.mes);
     const data = months.map(m => counts.get(m) || 0);
     const tot = data.reduce((a, n) => a + n, 0);
     Charts.line('chartAltasMes', months.map(monthLabel), data, { color: col('blue'),
-      afterLabel: (i) => tot ? ` ${fmtPct(pct(data[i], tot))} de las altas del período` : '' });
+      afterLabel: (i) => tot ? ` Es el ${pctEntero(data[i], tot)} de las altas del período` : '' });
   }
 
   function renderNoPresentados(months, altasF) {
@@ -817,7 +852,7 @@
     const vacMes = cumMonths.map(m => cumF.filter(r => r.mes === m).reduce((a, r) => a + (r.total || 0), 0));
     const vacTot = vacMes.reduce((a, n) => a + n, 0);
     Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple'), suffix: '%', avg,
-      afterLabel: (i) => vacTot ? ` ${fmtInt(vacMes[i])} vacantes · pesa ${fmtPct(pct(vacMes[i], vacTot))} en el promedio` : '' });
+      afterLabel: (i) => vacTot ? ` ${fmtInt(vacMes[i])} vacantes: el ${pctEntero(vacMes[i], vacTot)} de las del período` : '' });
 
     // Ranking de cumplimiento: todo el equipo en el mismo rango de meses (ver
     // comentario de allAltasF en render() — mismo criterio, para comparar
