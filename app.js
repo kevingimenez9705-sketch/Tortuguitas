@@ -593,12 +593,22 @@
       return pct(rows.reduce((a, r) => a + (r.enviados || 0), 0), rows.reduce((a, r) => a + (r.total || 0), 0));
     });
 
+    // Peso del último mes en el período: cuánto mueve el total (p. ej. un mes
+    // con pocas altas o vacantes casi no cambia el promedio del año).
+    const ultMes = months[months.length - 1];
+    const subAltas = months.length > 1 && total
+      ? `${monthLabel(ultMes)}: ${fmtPct(pct(altasF.filter(r => r.mes === ultMes).length, total))} del período` : '';
+    const ultCum = cumMonths[cumMonths.length - 1];
+    const vacUlt = cumplRows.filter(r => r.mes === ultCum).reduce((a, r) => a + (r.total || 0), 0);
+    const subCumpl = cumMonths.length > 1 && totalVac
+      ? `Enviados / vacantes · ${monthLabel(ultCum)} pesa ${fmtPct(pct(vacUlt, totalVac))}` : 'Enviados / vacantes totales';
+
     const kpis = [
-      { key: 'altas', label: 'ALTAS TOTALES', num: total, fmt: fmtInt, sub: '', cls: 'c-blue', trend: trendAltas },
+      { key: 'altas', label: 'ALTAS TOTALES', num: total, fmt: fmtInt, sub: subAltas, cls: 'c-blue', trend: trendAltas },
       { key: 'presentismo', label: 'PRESENTISMO DÍA 1', num: pct(presentes, conDato.length), fmt: fmtPct, sub: `${fmtInt(noPresentados)} no presentados`, cls: 'c-green', trend: trendPresentismo },
       { key: 'sabores', label: 'SABORES EXPRESS', num: sabores, fmt: fmtInt, sub: `${fmtPct(pct(sabores, total))} del total`, cls: 'c-blue', trend: trendSabores },
       { key: 'extremas', label: 'HAMBURGUESAS EXTREMAS', num: extremas, fmt: fmtInt, sub: `${fmtPct(pct(extremas, total))} del total`, cls: 'c-blue', trend: trendExtremas },
-      { key: 'cumplimiento', label: 'CUMPLIMIENTO PROMEDIO', num: cumplProm, fmt: fmtPct, sub: 'Enviados / vacantes totales', cls: 'c-purple', trend: trendCumpl },
+      { key: 'cumplimiento', label: 'CUMPLIMIENTO PROMEDIO', num: cumplProm, fmt: fmtPct, sub: subCumpl, cls: 'c-purple', trend: trendCumpl },
     ];
 
     // Las 5 tarjetas comparten el color de THEME (en vez de azul/verde/violeta
@@ -621,7 +631,9 @@
   function renderAltasMes(months, altasF) {
     const counts = groupCount(altasF, r => r.mes);
     const data = months.map(m => counts.get(m) || 0);
-    Charts.line('chartAltasMes', months.map(monthLabel), data, { color: col('blue') });
+    const tot = data.reduce((a, n) => a + n, 0);
+    Charts.line('chartAltasMes', months.map(monthLabel), data, { color: col('blue'),
+      afterLabel: (i) => tot ? ` ${fmtPct(pct(data[i], tot))} de las altas del período` : '' });
   }
 
   function renderNoPresentados(months, altasF) {
@@ -801,7 +813,11 @@
     // Promedio marcado = total enviados / total vacantes del período: el
     // mismo número que el KPI "Cumplimiento promedio" y el ranking de abajo.
     const avg = round1(pct(cumF.reduce((a, r) => a + (r.enviados || 0), 0), cumF.reduce((a, r) => a + (r.total || 0), 0)) * 100);
-    Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple'), suffix: '%', avg });
+    // Peso de cada mes en el promedio = sus vacantes sobre las del período
+    const vacMes = cumMonths.map(m => cumF.filter(r => r.mes === m).reduce((a, r) => a + (r.total || 0), 0));
+    const vacTot = vacMes.reduce((a, n) => a + n, 0);
+    Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple'), suffix: '%', avg,
+      afterLabel: (i) => vacTot ? ` ${fmtInt(vacMes[i])} vacantes · pesa ${fmtPct(pct(vacMes[i], vacTot))} en el promedio` : '' });
 
     // Ranking de cumplimiento: todo el equipo en el mismo rango de meses (ver
     // comentario de allAltasF en render() — mismo criterio, para comparar

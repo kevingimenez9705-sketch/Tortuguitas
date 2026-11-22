@@ -261,7 +261,11 @@ const Charts = (() => {
         animation: stagger(60),
         plugins: {
           ...base.plugins,
-          tooltip: { callbacks: { label: (ctx) => ' ' + fmtNum(ctx.parsed.y, suffix) } },
+          tooltip: { callbacks: {
+            label: (ctx) => ' ' + fmtNum(ctx.parsed.y, suffix),
+            // opts.afterLabel(i): línea extra del tooltip (p. ej. el peso del mes en el período)
+            afterLabel: (ctx) => (opts.afterLabel ? opts.afterLabel(ctx.dataIndex) : ''),
+          } },
           insights: { enabled: opts.insights !== false, color, suffix, avg: opts.avg },
         },
       },
