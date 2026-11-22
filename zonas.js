@@ -22,6 +22,7 @@
     'PUEYRREDON': 'capital', 'RETIRO': 'capital', 'SAAVEDRA': 'capital', 'SAVEEDRA': 'capital',
     'SAN CRISTOBAL': 'capital', 'SAN NICOLAS': 'capital', 'SANTA FE': 'capital', 'TUCUMAN': 'capital',
     'URQUIZA': 'capital', 'VILLA DEL PARQUE': 'capital', 'VILLA LUGANO': 'capital',
+    'LACROZE': 'capital', 'PALERMO': 'capital',
     // Zona Norte (San Isidro, Vicente López, San Fernando, Tigre, Escobar, Pilar, San Martín, San Miguel, Malvinas Argentinas, José C. Paz...)
     'BALLESTER': 'norte', 'BANAVIDEZ': 'norte', 'BENAVIDEZ': 'norte', 'BOULOGNE': 'norte',
     'CHILAVERT': 'norte', 'DEL VISO': 'norte', 'DON TORCUATO': 'norte', 'ESCOBAR': 'norte',
@@ -39,7 +40,7 @@
     'LOMAS DEL MIRADOR': 'oeste', 'LUJAN': 'oeste', 'MERLO': 'oeste', 'MORENO': 'oeste', 'MORON': 'oeste',
     'PADUA': 'oeste', 'PASO DEL REY': 'oeste', 'RAFAEL CASTILLO': 'oeste', 'RAMOS MEJIA': 'oeste',
     'SAN JUSTO': 'oeste', 'SANTOS LUGARES': 'oeste', 'SOURDEAUX': 'oeste', 'TAPIALES': 'oeste',
-    'W MORRIS': 'oeste',
+    'W MORRIS': 'oeste', 'WILLIAM MORRIS': 'oeste',
     // Zona Sur (Avellaneda, Lanús, Lomas de Zamora, Almirante Brown, Ezeiza, Esteban Echeverría, Quilmes, Berazategui, Florencio Varela...)
     'ADROGUE': 'sur', 'E ADROGUE': 'sur', 'AVELLANEDA': 'sur', 'BANFIELD': 'sur', 'BERAZATEGUI': 'sur',
     'CLAYPOLE': 'sur', 'CROVARA': 'sur', 'CRUCE VARELA': 'sur', 'EZEIZA': 'sur', 'GERLI': 'sur',
