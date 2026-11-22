@@ -262,14 +262,23 @@
   if (member && member.selectors.length) {
     const set = new Set(member.selectors);
     ALTAS = DATA.altas.filter(r => set.has(r.selector));
-    CUMPL = DATA.cumplimiento.filter(r => set.has(r.selector));
   } else if (member) {
     ALTAS = [];
-    CUMPL = [];
   } else {
     ALTAS = DATA.altas;
-    CUMPL = DATA.cumplimiento;
   }
+  // CUMPL se rearma cuando llega el cumplimiento en vivo de El Dojo (cargarCumplimientoVivo)
+  function aplicarCumplimiento() {
+    if (member && member.selectors.length) {
+      const set = new Set(member.selectors);
+      CUMPL = DATA.cumplimiento.filter(r => set.has(r.selector));
+    } else {
+      CUMPL = member ? [] : DATA.cumplimiento;
+    }
+    CUMPL_MONTHS = [...new Set(CUMPL.map(r => r.mes))].sort();
+  }
+  let CUMPL_MONTHS = [];
+  aplicarCumplimiento();
 
   // Mapa de zonas: es contexto general del equipo, así que solo se muestra
   // en el panel sin filtrar (Kevin). En la vista de un integrante se oculta
@@ -407,7 +416,6 @@
   }
 
   const ALL_MONTHS = [...new Set(ALTAS.map(r => r.mes))].sort();
-  const CUMPL_MONTHS = [...new Set(CUMPL.map(r => r.mes))].sort();
 
   // Meses de cumplimiento a usar para un período seleccionado: intersección
   // con los meses que realmente tienen datos de cumplimiento cargados: si el
@@ -828,6 +836,28 @@
     return { rankVolumen: rankOrder, rankPresentismo: order2 };
   }
 
+  // Cumplimiento en vivo: desde nov 2026 (cuando arrancó el portal) lo trae El Dojo con
+  // rpc/cumplimiento_vivo (vacantes del portal por semana y selector + semanas de la planilla
+  // cumplimiento_planilla). Reemplaza esos meses de data.js; si no responde, queda data.js.
+  const CUMPL_VIVO_DESDE = '2026-11';
+  let cumplVivo = false;
+  async function cargarCumplimientoVivo() {
+    if (!window.SB) return;
+    try {
+      const filas = await window.SB.pedir('rpc/cumplimiento_vivo', { desde: CUMPL_VIVO_DESDE });
+      if (!Array.isArray(filas) || !filas.length) return;
+      DATA.cumplimiento = DATA.cumplimiento.filter(r => r.mes < CUMPL_VIVO_DESDE).concat(filas.map(f => ({
+        mes: f.mes, semana: f.semana, selector: f.selector, cumplimiento: Number(f.cumplimiento) || 0,
+        enviados: f.enviados, restantes: f.restantes, total: f.total,
+      })));
+      cumplVivo = true;
+      aplicarCumplimiento();
+      render();
+    } catch (e) {
+      console.warn('Cumplimiento en vivo (El Dojo):', e.message || e);
+    }
+  }
+
   function renderCumplimiento(months) {
     const cumMonths = activeCumMonths(months);
 
@@ -835,7 +865,8 @@
       ? `${monthLabel(cumMonths[0])} a ${monthLabel(cumMonths[cumMonths.length - 1])}`
       : 'sin datos';
     const cumplDesc = document.getElementById('cumplDesc');
-    if (cumplDesc) cumplDesc.textContent = `Enviados vs. vacantes totales · datos disponibles solo para ${rangeLabel}`;
+    if (cumplDesc) cumplDesc.textContent = `Enviados vs. vacantes totales · datos disponibles solo para ${rangeLabel}`
+      + (cumplVivo ? ` · desde ${monthLabel(CUMPL_VIVO_DESDE)}, en vivo de El Dojo` : '');
 
     const cumF = CUMPL.filter(r => cumMonths.includes(r.mes));
 
@@ -946,6 +977,7 @@
   render();
   renderAnios();
   initScrollReveal();
+  cargarCumplimientoVivo();
 
   // Botón "Resumen de tu año" (resumen.js): solo lee los mismos datos.
   if (window.ResumenAnual) {

@@ -46,6 +46,10 @@ Cada integrante (Kevin García, Agustín Márquez, Agustina Castillo, Rafael Bar
 - `supabase.js` — lectura de Supabase con la clave publicable (solo lectura, sin datos personales de candidatos). También expone `BASE` y `KEY` para la sala multijugador de `sala.js`.
 - El workflow de n8n **"Equipo - Sync hojas de Drive → Supabase (Tortuguitas)"** copia cada 30 minutos las planillas *Tareas grupales* y *Solicitudes Sabores/Extremas* a las tablas `equipo_tareas` y `equipo_solicitudes` (de las solicitudes solo lee las columnas A a L, sin datos personales); las usan las oficinas de la ruta. El dashboard ya no muestra tareas ni búsquedas: solo altas y cumplimiento de `data.js`.
 
+## Cumplimiento en vivo (desde noviembre 2026)
+
+El dashboard pide `rpc/cumplimiento_vivo` a Supabase al abrir y reemplaza con eso los meses desde nov 2026 de `data.js`: las vacantes de El Dojo (`seleccion_busquedas`) por semana de carga y selector (completadas = COMUNICADO o Cerrada/Finalizada, sin Canceladas ni locales EXCEDIDO, igual que la batería) más las semanas cargadas en la tabla `cumplimiento_planilla` (p. ej. la cuarta semana de noviembre del Excel). La batería de El Dojo lee la misma tabla, así que los dos dan el mismo número. Si Supabase no responde, queda lo de `data.js`. Para sumar una semana de la planilla: insertar sus filas en `cumplimiento_planilla` (mes, semana = lunes, semana_txt, selector, enviados, total).
+
 ## Cómo actualizar los datos
 
 Los datos NO están pre-agregados: `data.js` guarda cada registro individual (`altas`: selector, regional, zonal, local, fecha, mes, presente, marca; `cumplimiento`: mes, semana, selector, cumplimiento, enviados, restantes, total; `piccola`: mes, altas). Todas las agregaciones (por mes, por selector, top zonales/locales, etc.) se calculan en `app.js` en tiempo real según el período elegido. Esto lo hace escalable: para actualizar, solo hay que regenerar `data.js` desde el Excel fuente (misma estructura de columnas) y no tocar el resto del código.
