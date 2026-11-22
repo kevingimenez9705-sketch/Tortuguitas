@@ -1390,3 +1390,18 @@ html.reveal-pending .container > *{opacity:0;}
 .o3d.is-chica .ru3-pantalla span{display:none;}
 .o3d.is-chica .o3d-tag span{display:none;}
 
+
+/* Cuánto representa cada mes (dashboard) */
+.peso-fila{margin-bottom:14px;}
+.peso-fila:last-child{margin-bottom:0;}
+.peso-tit{font-size:12px;font-weight:800;color:var(--text);margin-bottom:6px;}
+.peso-tit span{font-weight:600;color:var(--text-muted);margin-left:6px;}
+.peso-barra{display:flex;height:34px;border-radius:10px;overflow:hidden;background:#e5e7eb;}
+.peso-seg{display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--theme, var(--blue));color:#fff;font-size:10px;line-height:1.1;white-space:nowrap;overflow:hidden;border-right:1px solid rgba(255,255,255,.6);}
+.peso-seg b{font-size:11px;}
+.peso-seg.is-ult{outline:2px solid var(--text);outline-offset:-2px;}
+.peso-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.peso-chip{font-size:11px;padding:3px 8px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;color:var(--text);}
+.peso-chip i{font-style:normal;color:var(--text-muted);margin-left:2px;}
+.peso-chip.is-ult{border-color:var(--text);font-weight:700;}
+@media (max-width:600px){.peso-seg{font-size:0;}.peso-seg b{font-size:0;}}

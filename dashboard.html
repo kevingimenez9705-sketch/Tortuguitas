@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Altas de personal · Dashboard</title>
-<link rel="stylesheet" href="styles.css?v=20261022" />
+<link rel="stylesheet" href="styles.css?v=20261122" />
 <link rel="stylesheet" href="resumen.css?v=20261003" />
 <script src="vendor/chart.umd.min.js"></script>
 </head>
@@ -95,6 +95,12 @@
   <div class="kpis" id="kpis"></div>
 
   <div class="card" style="margin-bottom:16px;">
+    <h3>Cuánto representa cada mes</h3>
+    <p class="desc">Del total del período (100%), qué parte puso cada mes. Un mes con pocas vacantes mueve poco el cumplimiento promedio.</p>
+    <div id="pesoMeses"></div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px;">
     <h3>Altas totales por mes</h3>
     <div class="chart-wrap"><canvas id="chartAltasMes"></canvas></div>
   </div>
@@ -152,7 +158,7 @@
   <div class="grid cols-2">
     <div class="card">
       <h3>Cumplimiento por mes</h3>
-      <p class="desc">Enviados / vacantes de cada mes. En el promedio del período cada mes pesa según sus vacantes (pasá el mouse para ver cuánto).</p>
+      <p class="desc">Enviados / vacantes de cada mes</p>
       <div class="chart-wrap"><canvas id="chartCumplimientoMes"></canvas></div>
     </div>
     <div class="card">
@@ -171,6 +177,6 @@
 <script src="charts.js?v=20261122"></script>
 <script src="resumen.js?v=20261003f"></script>
 <script src="zonas.js?v=20261122"></script>
-<script src="app.js?v=20261122b"></script>
+<script src="app.js?v=20261122c"></script>
 </body>
 </html>
