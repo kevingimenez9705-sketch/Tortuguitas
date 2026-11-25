@@ -841,7 +841,9 @@
   // cumplimiento_planilla). Reemplaza esos meses de data.js; si no responde, queda data.js.
   const CUMPL_VIVO_DESDE = '2026-11';
   // Cuentas que no son una persona: suman al cumplimiento del equipo pero no van al ranking.
-  const FUERA_DE_RANKING = new Set(['Seleccion']);
+  // Se compara sin tildes, mayúsculas ni espacios ("Selección", "seleccion ").
+  const normSel = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  const FUERA_DE_RANKING = { has: (s) => normSel(s) === 'seleccion' };
   let cumplVivo = false;
   async function cargarCumplimientoVivo() {
     if (!window.SB) return;
