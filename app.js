@@ -417,15 +417,19 @@
 
   const ALL_MONTHS = [...new Set(ALTAS.map(r => r.mes))].sort();
 
-  // Meses de cumplimiento a usar para un período seleccionado: intersección
-  // con los meses que realmente tienen datos de cumplimiento cargados: si el
-  // filtro de altas no tiene equivalente en cumplimiento, se muestra el rango
-  // completo disponible en vez de quedar vacío.
-  function activeCumMonths(months) {
+  // Meses de cumplimiento del período elegido: solo los que tienen datos
+  // cargados. Antes, sin intersección caía al rango completo y 2024/2025
+  // mostraban el mismo número que 2026; ahora queda vacío y se ve "s/d".
+  function activeCumMonths(months, base = CUMPL_MONTHS) {
     const monthSet = new Set(months);
-    const cumMonths = CUMPL_MONTHS.filter(m => monthSet.has(m));
-    return cumMonths.length ? cumMonths : CUMPL_MONTHS;
+    return base.filter(m => monthSet.has(m));
   }
+  // Gráfico sin datos en el período: se oculta el canvas y se ve "s/d".
+  function marcarSinDatos(canvasId, sinDatos) {
+    const wrap = document.getElementById(canvasId)?.closest('.chart-wrap');
+    if (wrap) wrap.classList.toggle('is-sd', sinDatos);
+  }
+  const RANK_SD = '<li class="rank-sd">s/d · sin datos en este período</li>';
 
   let periodType = '12';
   let customSelected = new Set();
@@ -614,10 +618,14 @@
 
     const kpis = [
       { key: 'altas', label: 'ALTAS TOTALES', num: total, fmt: fmtInt, sub: subAltas, cls: 'c-blue', trend: trendAltas },
-      { key: 'presentismo', label: 'PRESENTISMO DÍA 1', num: pct(presentes, conDato.length), fmt: fmtPct, sub: `${fmtInt(noPresentados)} no presentados`, cls: 'c-green', trend: trendPresentismo },
+      // Sin dato de ingreso en el período (2024): s/d en vez de un 0% falso.
+      { key: 'presentismo', label: 'PRESENTISMO DÍA 1', num: conDato.length ? pct(presentes, conDato.length) : null, fmt: fmtPct,
+        sub: conDato.length ? `${fmtInt(noPresentados)} no presentados` : 'Sin dato de ingreso en el período', cls: 'c-green', trend: trendPresentismo },
       { key: 'sabores', label: 'SABORES EXPRESS', num: sabores, fmt: fmtInt, sub: `${fmtPct(pct(sabores, total))} del total`, cls: 'c-blue', trend: trendSabores },
       { key: 'extremas', label: 'HAMBURGUESAS EXTREMAS', num: extremas, fmt: fmtInt, sub: `${fmtPct(pct(extremas, total))} del total`, cls: 'c-blue', trend: trendExtremas },
-      { key: 'cumplimiento', label: 'CUMPLIMIENTO PROMEDIO', num: cumplProm, fmt: fmtPct, sub: subCumpl, cls: 'c-purple', trend: trendCumpl },
+      // Cumplimiento hay solo desde Ene 26: antes de eso, s/d.
+      { key: 'cumplimiento', label: 'CUMPLIMIENTO PROMEDIO', num: totalVac ? cumplProm : null, fmt: fmtPct,
+        sub: totalVac ? subCumpl : (CUMPL_MONTHS.length ? `Hay datos desde ${monthLabel(CUMPL_MONTHS[0])}` : 'Sin datos en el período'), cls: 'c-purple', trend: trendCumpl },
     ];
 
     // Las 5 tarjetas comparten el color de THEME (en vez de azul/verde/violeta
@@ -630,11 +638,15 @@
           <span class="kpi-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${KPI_ICONS[k.key]}</svg></span>
           <div class="label">${k.label}</div>
         </div>
-        <div class="value">${k.fmt(k.num)}</div>
+        <div class="value${k.num == null ? ' is-sd' : ''}">${k.num == null ? 's/d' : k.fmt(k.num)}</div>
         <div class="sub">${k.sub}</div>
         ${sparkline(k.trend)}
       </div>`).join('');
-    kpisEl.querySelectorAll('.kpi .value').forEach((el, i) => countUp(el, kpis[i].key, kpis[i].num, kpis[i].fmt));
+    kpisEl.querySelectorAll('.kpi .value').forEach((el, i) => {
+      const k = kpis[i];
+      if (k.num == null) { kpiPrev[k.key] = null; return; } // s/d: sin animación
+      countUp(el, k.key, k.num, k.fmt);
+    });
   }
 
   // % entero para leer rápido ("6%"); lo que no llega a 1% queda "<1%"
@@ -694,6 +706,8 @@
     // complemento exacto del KPI "Presentismo día 1"), no el promedio simple
     // de los % mensuales, que da otro número.
     const conDato = altasF.filter(r => r.presente !== null);
+    marcarSinDatos('chartNoPresentados', !conDato.length);
+    if (!conDato.length) { Charts.line('chartNoPresentados', [], [], { insights: false }); return; }
     const avg = round1(100 - pct(conDato.filter(r => r.presente).length, conDato.length) * 100);
     Charts.line('chartNoPresentados', months.map(monthLabel), data, { color: col('blue'), suffix: '%', avg });
   }
@@ -820,12 +834,12 @@
     const rankNames = rankOrder.map(x => x[0]);
     const isMe = (n) => memberSelectorSet && memberSelectorSet.has(n);
     // Presentismo por selector (todo el equipo)
-    const presentismo = rankNames.map(s => {
+    // Selector sin dato de ingreso en el período: fuera del ranking (no un 0% falso).
+    const order2 = rankNames.map(s => {
       const rows = allAltasF.filter(r => r.selector === s && r.presente !== null);
-      return pct(rows.filter(r => r.presente).length, rows.length);
-    });
-    const order2 = rankNames.map((n, i) => [n, presentismo[i]]).sort((a, b) => b[1] - a[1]);
-    document.getElementById('rankPresentismo').innerHTML = order2.map(([n, p], i) => `
+      return rows.length ? [s, pct(rows.filter(r => r.presente).length, rows.length)] : null;
+    }).filter(Boolean).sort((a, b) => b[1] - a[1]);
+    document.getElementById('rankPresentismo').innerHTML = !order2.length ? RANK_SD : order2.map(([n, p], i) => `
       <li class="${isMe(n) ? 'me' : ''}">
         ${rankIdxHtml(i)}
         <span class="name" style="${rankColorCss(i)}">${nombreSel(n)}</span>
@@ -840,6 +854,10 @@
   // rpc/cumplimiento_vivo (vacantes del portal por semana y selector + semanas de la planilla
   // cumplimiento_planilla). Reemplaza esos meses de data.js; si no responde, queda data.js.
   const CUMPL_VIVO_DESDE = '2026-11';
+  // Cuentas que no son una persona: suman al cumplimiento del equipo pero no van al ranking.
+  // Se compara sin tildes, mayúsculas ni espacios ("Selección", "seleccion ").
+  const normSel = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLowerCase();
+  const FUERA_DE_RANKING = { has: (s) => normSel(s) === 'seleccion' };
   let cumplVivo = false;
   async function cargarCumplimientoVivo() {
     if (!window.SB) return;
@@ -861,14 +879,15 @@
   function renderCumplimiento(months) {
     const cumMonths = activeCumMonths(months);
 
-    const rangeLabel = cumMonths.length
-      ? `${monthLabel(cumMonths[0])} a ${monthLabel(cumMonths[cumMonths.length - 1])}`
-      : 'sin datos';
+    const rango = (mm) => `${monthLabel(mm[0])} a ${monthLabel(mm[mm.length - 1])}`;
     const cumplDesc = document.getElementById('cumplDesc');
-    if (cumplDesc) cumplDesc.textContent = `Enviados vs. vacantes totales · datos disponibles solo para ${rangeLabel}`
-      + (cumplVivo ? ` · desde ${monthLabel(CUMPL_VIVO_DESDE)}, en vivo de El Dojo` : '');
+    if (cumplDesc) cumplDesc.textContent = cumMonths.length
+      ? `Enviados vs. vacantes totales · datos disponibles solo para ${rango(cumMonths)}`
+        + (cumplVivo ? ` · desde ${monthLabel(CUMPL_VIVO_DESDE)}, en vivo de El Dojo` : '')
+      : `s/d · sin datos de cumplimiento en este período` + (CUMPL_MONTHS.length ? ` (hay datos de ${rango(CUMPL_MONTHS)})` : '');
 
     const cumF = CUMPL.filter(r => cumMonths.includes(r.mes));
+    marcarSinDatos('chartCumplimientoMes', !cumMonths.length);
 
     const dataByMonth = cumMonths.map(m => {
       const rows = cumF.filter(r => r.mes === m);
@@ -883,14 +902,17 @@
     const vacMes = cumMonths.map(m => cumF.filter(r => r.mes === m).reduce((a, r) => a + (r.total || 0), 0));
     const vacTot = vacMes.reduce((a, n) => a + n, 0);
     Charts.line('chartCumplimientoMes', cumMonths.map(monthLabel), dataByMonth, { color: col('purple'), suffix: '%', avg,
+      insights: cumMonths.length > 0,
       afterLabel: (i) => vacTot ? ` ${fmtInt(vacMes[i])} vacantes: el ${pctEntero(vacMes[i], vacTot)} de las del período` : '' });
 
     // Ranking de cumplimiento: todo el equipo en el mismo rango de meses (ver
     // comentario de allAltasF en render() — mismo criterio, para comparar
     // contra el resto en vez de mostrar una sola fila cuando hay un
-    // integrante filtrado).
-    const allCumF = member ? DATA.cumplimiento.filter(r => cumMonths.includes(r.mes)) : cumF;
-    const selectores = [...new Set(allCumF.map(r => r.selector))];
+    // integrante filtrado). Con integrante, los meses con datos del equipo.
+    const rankMonths = member ? activeCumMonths(months, [...new Set(DATA.cumplimiento.map(r => r.mes))]) : cumMonths;
+    const allCumF = member ? DATA.cumplimiento.filter(r => rankMonths.includes(r.mes)) : cumF;
+    // "Seleccion" es la cuenta genérica del equipo, no un selector: no compite.
+    const selectores = [...new Set(allCumF.map(r => r.selector))].filter(s => !FUERA_DE_RANKING.has(s));
     const ranking = selectores.map(s => {
       const rows = allCumF.filter(r => r.selector === s);
       const env = rows.reduce((a, r) => a + (r.enviados || 0), 0);
@@ -898,7 +920,7 @@
       return [s, pct(env, tot)];
     }).sort((a, b) => b[1] - a[1]);
 
-    document.getElementById('rankCumplimiento').innerHTML = ranking.map(([n, p], i) => `
+    document.getElementById('rankCumplimiento').innerHTML = !ranking.length ? RANK_SD : ranking.map(([n, p], i) => `
       <li class="${memberSelectorSet && memberSelectorSet.has(n) ? 'me' : ''}">
         ${rankIdxHtml(i)}
         <span class="name" style="${rankColorCss(i)}">${nombreSel(n)}</span>
