@@ -840,6 +840,8 @@
   // rpc/cumplimiento_vivo (vacantes del portal por semana y selector + semanas de la planilla
   // cumplimiento_planilla). Reemplaza esos meses de data.js; si no responde, queda data.js.
   const CUMPL_VIVO_DESDE = '2026-11';
+  // Cuentas que no son una persona: suman al cumplimiento del equipo pero no van al ranking.
+  const FUERA_DE_RANKING = new Set(['Seleccion']);
   let cumplVivo = false;
   async function cargarCumplimientoVivo() {
     if (!window.SB) return;
@@ -890,7 +892,8 @@
     // contra el resto en vez de mostrar una sola fila cuando hay un
     // integrante filtrado).
     const allCumF = member ? DATA.cumplimiento.filter(r => cumMonths.includes(r.mes)) : cumF;
-    const selectores = [...new Set(allCumF.map(r => r.selector))];
+    // "Seleccion" es la cuenta genérica del equipo, no un selector: no compite.
+    const selectores = [...new Set(allCumF.map(r => r.selector))].filter(s => !FUERA_DE_RANKING.has(s));
     const ranking = selectores.map(s => {
       const rows = allCumF.filter(r => r.selector === s);
       const env = rows.reduce((a, r) => a + (r.enviados || 0), 0);

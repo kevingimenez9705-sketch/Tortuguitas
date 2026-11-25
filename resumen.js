@@ -87,7 +87,8 @@ window.ResumenAnual = (() => {
       return [s, pct(rows.filter(r => r.presente).length, rows.length)];
     }).sort((a, b) => b[1] - a[1]);
     const cumYear = D.cumplimiento.filter(inYear);
-    const rankCum = [...new Set(cumYear.map(r => r.selector))].map(s => {
+    // "Seleccion" es la cuenta genérica del equipo, no un selector: fuera del ranking.
+    const rankCum = [...new Set(cumYear.map(r => r.selector))].filter(s => s !== 'Seleccion').map(s => {
       const rows = cumYear.filter(r => r.selector === s);
       return [s, pct(sum(rows, 'enviados'), sum(rows, 'total'))];
     }).sort((a, b) => b[1] - a[1]);
