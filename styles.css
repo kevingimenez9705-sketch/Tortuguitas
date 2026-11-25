@@ -149,6 +149,7 @@ body{
 .kpi.c-purple{border-top-color:var(--purple);}
 .kpi .label{font-size:11px;font-weight:700;color:var(--text-muted);letter-spacing:.03em;text-transform:uppercase;}
 .kpi .value{font-size:26px;font-weight:800;margin-top:8px;font-variant-numeric:tabular-nums;}
+.kpi .value.is-sd{color:var(--text-muted);}
 .kpi .sub{font-size:12px;color:var(--text-muted);margin-top:4px;}
 
 .grid{display:grid;gap:16px;margin-bottom:16px;}
@@ -204,6 +205,7 @@ body{
 .rank-list li{display:flex;align-items:center;gap:10px;margin:0 -8px 4px;padding:4px 8px;border-radius:8px;font-size:13px;transition:background .2s ease;}
 .rank-list li:hover{background:rgba(255,255,255,.6);}
 .rank-list li:last-child{margin-bottom:0;}
+.rank-list li.rank-sd{justify-content:center;color:var(--text-muted);font-weight:600;}
 .rank-list .idx{
   width:22px;height:22px;border-radius:50%;background:#fff;
   display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;
@@ -231,6 +233,9 @@ body{
    blanco de la tarjeta — este tono es notoriamente más oscuro. */
 .chart-wrap{position:relative;height:260px;background:#e4e9f2;border-radius:12px;padding:12px;}
 .chart-wrap.small{height:230px;}
+/* Sin datos en el período: se oculta el gráfico y se ve "s/d". */
+.chart-wrap.is-sd canvas{visibility:hidden;}
+.chart-wrap.is-sd::after{content:'s/d · sin datos en este período';position:absolute;inset:0;display:grid;place-items:center;color:var(--text-muted);font-size:13px;font-weight:600;}
 
 .footer-note{font-size:11px;color:var(--text-muted);text-align:right;margin:8px 4px 30px;}
 
