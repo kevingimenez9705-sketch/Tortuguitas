@@ -163,7 +163,7 @@ const mesCorto = (m) => { const [y, mm] = m.split('-'); return `${MES_ABBR[+mm -
 const mesLargo = (m) => { const [y, mm] = m.split('-'); return `${MES_LARGO[+mm - 1]} ${y}`; };
 const pct = (n, d) => (d > 0 ? Math.min(1, n / d) : 0);
 const fmtPct = (x) => (x == null ? 'S/D' : (x * 100).toFixed(1) + '%');
-const fmtInt = (x) => Number(x || 0).toLocaleString('es-AR');
+const fmtInt = (x) => Math.round(Number(x || 0)).toLocaleString('es-AR'); // el reparto de "Seleccion" (reparto.js) deja decimales
 const suma = (filas, k) => filas.reduce((a, r) => a + (r[k] || 0), 0);
 const rango = (meses) => (!meses.length ? 'sin datos' : meses.length === 1 ? mesCorto(meses[0]) : `${mesCorto(meses[0])} – ${mesCorto(meses[meses.length - 1])}`);
 const MES_HOY = new Intl.DateTimeFormat('en-CA', { timeZone: ZONA_HORARIA, year: 'numeric', month: '2-digit' }).format(new Date()).slice(0, 7);
