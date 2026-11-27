@@ -453,7 +453,7 @@
   // cuando debería ser mayor). Un cumplimiento no puede superar el 100%.
   function pct(n, d) { return d > 0 ? Math.min(1, n / d) : 0; }
   function fmtPct(x) { return (x * 100).toFixed(1) + '%'; }
-  function fmtInt(x) { return Math.round(x).toLocaleString('es-AR'); } // redondea: el reparto de "Seleccion" deja vacantes con decimales
+  function fmtInt(x) { return x.toLocaleString('es-AR'); }
   function round1(x) { return Math.round(x * 10) / 10; } // 1 decimal para valores que Chart.js grafica/muestra en tooltip
 
   // ---------- Render ----------
@@ -846,13 +846,10 @@
     try {
       const filas = await window.SB.pedir('rpc/cumplimiento_vivo', { desde: CUMPL_VIVO_DESDE });
       if (!Array.isArray(filas) || !filas.length) return;
-      const vivas = filas.map(f => ({
+      DATA.cumplimiento = DATA.cumplimiento.filter(r => r.mes < CUMPL_VIVO_DESDE).concat(filas.map(f => ({
         mes: f.mes, semana: f.semana, selector: f.selector, cumplimiento: Number(f.cumplimiento) || 0,
         enviados: f.enviados, restantes: f.restantes, total: f.total,
-      }));
-      // "Seleccion" se reparte entre los activos (reparto.js)
-      DATA.cumplimiento = DATA.cumplimiento.filter(r => r.mes < CUMPL_VIVO_DESDE)
-        .concat(window.repartirSeleccion ? window.repartirSeleccion(vivas) : vivas);
+      })));
       cumplVivo = true;
       aplicarCumplimiento();
       render();
